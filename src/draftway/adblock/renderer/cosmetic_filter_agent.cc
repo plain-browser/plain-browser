@@ -1,4 +1,4 @@
-// Copyright Draftway. MPL-2.0.
+// Copyright Plain Browser contributors. MPL-2.0.
 #include "draftway/adblock/renderer/cosmetic_filter_agent.h"
 
 #include "base/functional/bind.h"

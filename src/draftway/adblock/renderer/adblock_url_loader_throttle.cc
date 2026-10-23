@@ -1,4 +1,4 @@
-// Copyright Draftway. MPL-2.0.
+// Copyright Plain Browser contributors. MPL-2.0.
 #include "draftway/adblock/renderer/adblock_url_loader_throttle.h"
 
 #include "base/functional/bind.h"

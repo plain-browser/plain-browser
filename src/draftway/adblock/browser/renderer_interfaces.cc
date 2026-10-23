@@ -1,4 +1,4 @@
-// Copyright Draftway. MPL-2.0.
+// Copyright Plain Browser contributors. MPL-2.0.
 #include "draftway/adblock/browser/renderer_interfaces.h"
 
 #include "base/functional/bind.h"

@@ -1,4 +1,4 @@
-# Copyright Draftway. MPL-2.0.
+# Copyright Plain Browser contributors. MPL-2.0.
 import("//build/rust/rust_static_library.gni")
 import("//mojo/public/tools/bindings/mojom.gni")
 

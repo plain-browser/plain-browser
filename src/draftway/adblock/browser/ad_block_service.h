@@ -1,4 +1,4 @@
-// Copyright Draftway. MPL-2.0.
+// Copyright Plain Browser contributors. MPL-2.0.
 #ifndef DRAFTWAY_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 #define DRAFTWAY_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 

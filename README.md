@@ -24,7 +24,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design and [docs/ADBLOC
 
 ## Licenses
 
-Chromium and ungoogled-chromium are BSD-3-Clause; adblock-rust is MPL-2.0; bundled filter lists are GPLv3 or CC BY-SA 3.0 (see `src/draftway/adblock/lists/NOTICE.md`). The license of this repository's own code is not decided yet.
+- Original code (`src/draftway`, scripts, docs): **MPL-2.0**, see [LICENSE](LICENSE).
+- Patches to Chromium and ungoogled-chromium (`patches/`): **BSD-3-Clause**, see [patches/LICENSE](patches/LICENSE).
+- Upstream components keep their own licenses: Chromium and ungoogled-chromium (BSD-3-Clause), adblock-rust (MPL-2.0), bundled filter lists (GPLv3 or CC BY-SA 3.0, with attribution).
+
+Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser" and any logo are not covered by these licenses.
 
 ## Status
 

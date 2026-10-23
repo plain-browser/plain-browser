@@ -1,4 +1,4 @@
-// Copyright Draftway. MPL-2.0.
+// Copyright Plain Browser contributors. MPL-2.0.
 #ifndef DRAFTWAY_ADBLOCK_RENDERER_COSMETIC_FILTER_AGENT_H_
 #define DRAFTWAY_ADBLOCK_RENDERER_COSMETIC_FILTER_AGENT_H_
 

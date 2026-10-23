@@ -1,4 +1,4 @@
-// Copyright Draftway. MPL-2.0.
+// Copyright Plain Browser contributors. MPL-2.0.
 module draftway.adblock.mojom;
 
 import "url/mojom/url.mojom";

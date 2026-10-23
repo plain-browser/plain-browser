@@ -1,4 +1,4 @@
-// Copyright Draftway. MPL-2.0.
+// Copyright Plain Browser contributors. MPL-2.0.
 #ifndef DRAFTWAY_ADBLOCK_RENDERER_ADBLOCK_URL_LOADER_THROTTLE_H_
 #define DRAFTWAY_ADBLOCK_RENDERER_ADBLOCK_URL_LOADER_THROTTLE_H_
 
