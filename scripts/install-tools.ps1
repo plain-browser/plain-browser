@@ -41,12 +41,12 @@ $vsOverride = "--quiet --wait --norestart --nocache " +
   "--add Microsoft.VisualStudio.Component.VC.ATLMFC " +
   "--add Microsoft.VisualStudio.Component.Windows11SDK.26100"
 Install-Pkg "Microsoft.VisualStudio.2022.BuildTools" $vsOverride
-# VS installs the SDK without "Debugging Tools for Windows", which Chromium needs (dbghelp.dll);
-# winget then sees the SDK as installed, so force the full SDK when the debuggers are missing.
-if (-not (Test-Path "${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\dbghelp.dll")) {
-  Write-Host "[install] Microsoft.WindowsSDK.10.0.26100 (forced: Debugging Tools missing)"
-  winget install -e --id Microsoft.WindowsSDK.10.0.26100 --source winget --force --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-  if (-not (Test-Path "${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\dbghelp.dll")) { throw "Debugging Tools for Windows still missing" }
+# Chromium pins the Windows SDK (SDK_VERSION in build/vs_toolchain.py): 10.0.28000.0 for Chromium 156.
+# The standalone SDK package also brings "Debugging Tools for Windows" (dbghelp.dll), which VS omits.
+$sdk = "10.0.28000"
+if (-not (Test-Path "${env:ProgramFiles(x86)}\Windows Kits\10\Include\$sdk.0\um")) { Install-Pkg "Microsoft.WindowsSDK.$sdk" }
+foreach ($need in "Include\$sdk.0\um","Debuggers\x64\dbghelp.dll") {
+  if (-not (Test-Path "${env:ProgramFiles(x86)}\Windows Kits\10\$need")) { throw "Windows SDK $sdk incomplete: missing $need" }
 }
 Install-Pkg "Git.Git"
 Install-Pkg "Python.Python.3.12"
