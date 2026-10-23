@@ -1,7 +1,8 @@
 # Adblock (adblock-rust) integration
 
-Status 2026-10-23: code written, patches dry-applied against Chromium 156.0.8078.47 copies,
-**not compiled yet** (the stock build was running; the crate vendoring step is still to do).
+Status 2026-10-23: builds on Chromium 156.0.8078.47 (patches applied, crates vendored, `chrome.exe`
+linked). End-to-end blocking is **not yet verified**: the first headless test was confounded by the
+network's DNS-level ad blocking (see README).
 
 ## Architecture
 - `src/draftway/adblock/rs` – Rust bridge (cxx) over `adblock` 0.13.3. Default lists
@@ -23,23 +24,16 @@ Chromium links its own Rust std (`build/rust/std`) and routes Rust allocation to
 PartitionAlloc (`build/rust/allocator`); cxx's C++ side is compiled with Chromium's clang +
 libc++. A cargo staticlib would bring a second std/allocator and an MSVC-STL cxx.
 
-## Remaining step: vendor the crates (patch 30-adblock/0000, generated)
-18 crates of the closure are missing from `third_party/rust/chromium_crates_io`
-(adblock, addr, arrayvec, flatbuffers, form_urlencoded, idna, idna_adapter,
-percent-encoding, precomputed-hash, psl, psl-types, rustc-hash, rustc_version, semver,
-seahash, thiserror 1, thiserror-impl 1, url). In the tree after the stock build:
-1. `third_party/rust/chromium_crates_io/Cargo.toml`:
-   `[dependencies.adblock]` `version = "=0.13.3"`, `default-features = false`,
-   `features = ["full-regex-handling", "embedded-domain-resolver"]`.
-2. `gnrt_config.toml`: `[crate.regex]` group `test` -> `safe` (else regex stays testonly);
-   `allow_unsafe` / license entries for new crates as gnrt asks. Engine runs in the browser
-   process for the alpha; moving parsing to a utility process is a later hardening step.
-3. `python3 tools/crates/run_gnrt.py vendor` then `... gen`
-   (this also enables bitflags `serde` and serde `rc` features tree-wide).
-4. Export the diff (Cargo.toml/lock, gnrt_config.toml, new vendor dirs, generated
-   `third_party/rust/*/v*/BUILD.gn`) as `patches/30-adblock/0000-vendor-adblock-crates.patch`.
-   Redo with gnrt on every Chromium bump instead of hand-merging Cargo.lock.
-Watch: flatbuffers has a build.rs (rustc_version); psl is a large generated crate.
+## Vendoring the crates (done, scripted)
+1. `scripts/apply-draftway.ps1` applies `patches/series`, including `30-adblock/0000-crate-config.patch`
+   (adblock in `chromium_crates_io/Cargo.toml`, `gnrt_config.toml` entries, LICENSE patches for seahash and flatbuffers).
+2. `scripts/vendor-adblock-crates.ps1` runs `gnrt vendor`, strips Cargo.lock checksums, runs `gnrt gen`, then
+   `scripts/post-gnrt-fixups.ps1`.
+Failures met on the way (all handled in those scripts or the patch): killed `gnrt vendor` leaves `.cargo/config.toml`
+deleted; `gnrt vendor` deletes ucw's extracted `windows-rs-0.52.0` and `gnrt gen` overwrites ucw's patch to the
+`windows_*_msvc` BUILD.gn files; nine crates need `allow_unsafe`; `thiserror` v1/v2 differ in build-script outputs;
+flatbuffers' build.rs turns on nightly-only features; cxx `Result` needs C++ exceptions, so the bridge uses `bool`.
+Security note: adblock parses untrusted filter lists in the browser process; moving it to a utility process is a later step.
 
 ## Not done yet (alpha scope)
 - `$redirect` resources (treated as block), scriptlets, generic class/id hiding.

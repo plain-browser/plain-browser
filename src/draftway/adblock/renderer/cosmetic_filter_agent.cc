@@ -46,7 +46,7 @@ void CosmeticFilterAgent::OnCss(const GURL& document_url,
   if (GURL(document.Url()) != document_url) {
     return;
   }
-  document.InsertStyleSheet(blink::WebString::FromUTF8(css), nullptr,
+  document.InsertStyleSheet(blink::WebString::FromUtf8(css), nullptr,
                             blink::WebCssOrigin::kUser);
 }
 

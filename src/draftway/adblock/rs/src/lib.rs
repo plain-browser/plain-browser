@@ -17,7 +17,10 @@ mod ffi {
         fn new_engine(rules: &str) -> Box<AdblockEngine>;
         /// Engine built from the filter lists compiled into the binary.
         fn new_default_engine() -> Box<AdblockEngine>;
-        fn deserialize_engine(data: &[u8]) -> Result<Box<AdblockEngine>>;
+        /// Replaces the rules with a blob made by `serialize`. Returns false (leaving the engine
+        /// unchanged) when the blob is invalid. No `Result` here: Chromium builds without C++
+        /// exceptions and cxx turns `Result` into `throw`.
+        fn deserialize(self: &mut AdblockEngine, data: &[u8]) -> bool;
         fn serialize(self: &mut AdblockEngine) -> Vec<u8>;
         fn check_network_request(
             self: &AdblockEngine,
@@ -52,13 +55,17 @@ fn new_engine(rules: &str) -> Box<AdblockEngine> {
     Box::new(AdblockEngine(Engine::new_with_filter_set(set)))
 }
 
-fn deserialize_engine(data: &[u8]) -> Result<Box<AdblockEngine>, String> {
-    let mut e = Engine::default();
-    e.deserialize(data).map_err(|err| format!("{err:?}"))?;
-    Ok(Box::new(AdblockEngine(e)))
-}
-
 impl AdblockEngine {
+    fn deserialize(&mut self, data: &[u8]) -> bool {
+        let mut e = Engine::default();
+        if e.deserialize(data).is_ok() {
+            self.0 = e;
+            true
+        } else {
+            false
+        }
+    }
+
     fn serialize(&mut self) -> Vec<u8> {
         self.0.serialize()
     }
@@ -125,7 +132,11 @@ mod tests {
     fn roundtrip() {
         let mut e = new_engine(RULES);
         let bytes = e.serialize();
-        let e2 = deserialize_engine(&bytes).unwrap();
+        let mut e2 = new_engine("");
+        assert!(e2.deserialize(&bytes));
+        assert!(e2.check_network_request("https://ads.example.com/x.js", "https://site.com", "script").matched);
+        // An invalid blob is rejected and leaves the engine usable.
+        assert!(!e2.deserialize(b"not a blob"));
         assert!(e2.check_network_request("https://ads.example.com/x.js", "https://site.com", "script").matched);
     }
 }
