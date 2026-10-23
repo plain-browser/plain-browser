@@ -2,3 +2,4 @@ target/
 vendor/
 __pycache__/
 *.pyc
+.vm-credentials
