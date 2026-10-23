@@ -1,6 +1,6 @@
-# Draftway Browser – projekt architektury (Windows 11)
+# Plain Browser – projekt architektury (Windows 11)
 
-Stan: szkic v0.1, 2026-10-23. Nazwa robocza „Draftway” – do podmiany.
+Stan: szkic v0.1, 2026-10-23. Nazwa produktu: **Plain Browser** (wybrana 2026-10-23). „draftway” zostaje wewnętrznym kryptonimem w kodzie (GN `//draftway`, przestrzeń nazw C++, nazwy VM i zadań).
 
 ## 1. Założenia i co z nich wynika
 
@@ -19,7 +19,7 @@ Stan: szkic v0.1, 2026-10-23. Nazwa robocza „Draftway” – do podmiany.
 Chromium (tag upstream, np. 150.0.7871.x)
   └─ ungoogled-chromium (patches/, pruning.list, domain_substitution.list, flags.gn)
        └─ ungoogled-chromium-windows (patche Windows, build.py, package.py)
-            └─ Draftway (to repo)
+            └─ Plain Browser (to repo)
                  ├─ patches/        – minimalne zmiany w drzewie Chromium
                  ├─ src/draftway/   – NASZ kod, kopiowany do chromium/src/draftway (GN //draftway)
                  ├─ branding/       – ikony, grd, install_static, instalator
@@ -67,10 +67,10 @@ Cykl: śledzimy tagi ungoogled-chromium (podążają za Chromium stable). Cel: *
 Miejsca w Chromium (wszystko za `BUILDFLAG(CHROMIUM_BRANDING)` – budujemy jako „Chromium branding”, podmieniamy zawartość):
 
 - `chrome/app/theme/chromium/` – ikony aplikacji, instalatora, dokumentów (ico, png w rozmiarach 16–256).
-- `chrome/app/chromium_strings.grd` + `chrome/app/settings_chromium_strings.grdp` – nazwa produktu. Zamiast patchować setki stringów: skrypt na etapie prepare (jak domain substitution ungoogled) robi `Chromium` → `Draftway` w plikach `*_chromium_strings*.grd*` z listą wyjątków.
-- `chrome/install_static/chromium_install_modes.cc` – **najważniejszy plik**: nazwa, `app_guid`, klucze rejestru (`Software\Draftway\...`), `AppUserModelId`, ProgID (`DraftwayHTML`), katalog `%LOCALAPPDATA%\Draftway\User Data`, kanały (stable/beta). Dzięki temu Draftway instaluje się obok Chrome/Chromium bez konfliktu.
+- `chrome/app/chromium_strings.grd` + `chrome/app/settings_chromium_strings.grdp` – nazwa produktu. Zamiast patchować setki stringów: skrypt na etapie prepare (jak domain substitution ungoogled) robi `Chromium` → `Plain Browser` w plikach `*_chromium_strings*.grd*` z listą wyjątków.
+- `chrome/install_static/chromium_install_modes.cc` – **najważniejszy plik**: nazwa, `app_guid`, klucze rejestru (`Software\PlainBrowser\...`), `AppUserModelId`, ProgID (`PlainBrowserHTML`), katalog `%LOCALAPPDATA%\PlainBrowser\User Data`, kanały (stable/beta). Dzięki temu Plain Browser instaluje się obok Chrome/Chromium bez konfliktu.
 - `chrome/installer/setup/`, `chrome/installer/mini_installer/` – nazwa w Add/Remove Programs, skróty, rejestracja jako domyślna przeglądarka (Win11: użytkownik klika w `ms-settings:defaultapps`; rejestracja ProgID musi być kompletna: http, https, .html, .htm, .pdf, .svg, .webp).
-- `chrome/browser/ui/webui/version/` i about – wersja Draftway + wersja Chromium.
+- `chrome/browser/ui/webui/version/` i about – wersja Plain Browser + wersja Chromium.
 - `components/search_engines/prepopulated_engines.json` + `template_url_prepopulate_data.cc` – domyślna wyszukiwarka (ungoogled zostawia Google jako domyślną z wyciętymi sugestiami; my ustawiamy swoją/DDG/Brave Search – decyzja biznesowa).
 - NTP: ungoogled ma pustą/lokalną; dla brandingu własna lokalna strona w `//draftway/ntp` (WebUI, bez sieci).
 - Znaki towarowe: nie wolno użyć logo Chrome/Chromium ani nazwy w produkcie poza `chrome://version`.
@@ -80,8 +80,8 @@ Miejsca w Chromium (wszystko za `BUILDFLAG(CHROMIUM_BRANDING)` – budujemy jako
 Protokół Omaha 3/4 obsługuje w Chromium: aktualizację przeglądarki (`chrome/updater`, open-source Omaha 4), komponenty (`components/update_client`) i rozszerzenia CRX (`extensions/browser/updater`). Jeden serwer obsłuży wszystko:
 
 - Serwer: **Nebraska** (Flatcar, Go, Omaha-compatible) albo `omaha-server` (Python). Nebraska jest lżejsza i utrzymywana.
-- Klient: `chrome/updater` zbudowany z naszymi stałymi w `chrome/updater/branding.gni` (URL, nazwa serwisu `DraftwayUpdater`). Alternatywa na start (szybsza): prosty in-browser updater w `//draftway/updater` sprawdzający JSON i pobierający `mini_installer.exe` (ungoogled tak nie robi – użytkownicy ręcznie aktualizują; dla produktu konsumenckiego to nie przejdzie).
-- Patch `20-updater`: przywrócenie `update_client` (ungoogled go nie usuwa, tylko domain substitution kieruje URL-e na martwe hosty) z URL-em `https://update.draftway.example/service/update2`.
+- Klient: `chrome/updater` zbudowany z naszymi stałymi w `chrome/updater/branding.gni` (URL, nazwa serwisu `PlainBrowserUpdater`). Alternatywa na start (szybsza): prosty in-browser updater w `//draftway/updater` sprawdzający JSON i pobierający `mini_installer.exe` (ungoogled tak nie robi – użytkownicy ręcznie aktualizują; dla produktu konsumenckiego to nie przejdzie).
+- Patch `20-updater`: przywrócenie `update_client` (ungoogled go nie usuwa, tylko domain substitution kieruje URL-e na martwe hosty) z URL-em `https://update.plainbrowser.example/service/update2`.
 - Przez ten sam kanał dystrybuujemy: listy filtrów (jako komponent), zasoby redirect dla adblocka, oraz **nasze repozytorium CRX MV2** (sekcja 8).
 
 ## 7. Adblock: integracja adblock-rust
@@ -107,6 +107,14 @@ Fork trzymamy jako upstream + kilka commitów (np. parametry PL, FFI). Każdy na
 
 ## 8. MV2 – realistyczny plan
 
+> **Aktualizacja 2026-10-23 (Chromium 156, zweryfikowane w drzewie):** ungoogled-chromium ma już
+> `extensions-manifestv2.patch`, który wyłącza jedyną blokadę MV2 (`ShouldDisableLegacyExtensions()`
+> zwraca `false` w `extensions/browser/manifest_v2_handler.cc`). `webRequestBlocking` jest dostępne
+> dla MV2 bez ograniczenia do polityk (`_permission_features.json`), a implementacja blokującego
+> webRequest i API MV2 (background pages, browserAction, pageAction) są w drzewie. Nasz patch
+> `40-mv2/0001` tylko usuwa pozostałości UI wycofania. Punkty 8.1.1–8.1.6 poniżej są więc na teraz
+> nieaktualne; zostaje dystrybucja (8.2) i pilnowanie, czy kolejne wersje Chromium nie usuną kodu.
+
 ### 8.1 Co faktycznie trzeba odwrócić (stan na 2026)
 Weryfikować na konkretnym tagu Chromium (`git log --grep="MV2"` w `extensions/` i `chrome/browser/extensions/`):
 1. `extensions/common/extension_features.cc` – feature'y `kExtensionManifestV2*` (Disabled/Unsupported/Deprecation…). Część już usunięta i zastąpiona stałym „MV2 unsupported”.
@@ -120,7 +128,7 @@ Ryzyko: jeśli Google usunie implementację blokującego `webRequest` także dla
 
 ### 8.2 Dystrybucja rozszerzeń MV2 (bez Chrome Web Store)
 - Własne repozytorium CRX na serwerze Omaha (sekcja 6): `update_url` → nasz host. Pakujemy uBO, uMatrix, NoScript, AdGuard z ich GitHub releases, podpisujemy **naszym** kluczem (więc ID różni się od CWS, jak u Brave).
-- UI: `chrome://settings/extensions/mv2` – lista kuratorowana z przełącznikami (jak Brave). Instalacja przez `ExtensionInstaller` z naszego CRX, flaga „from Draftway store” pozwala `webRequestBlocking` (traktujemy jak location policy w gatingu z 8.1 pkt 4).
+- UI: `chrome://settings/extensions/mv2` – lista kuratorowana z przełącznikami (jak Brave). Instalacja przez `ExtensionInstaller` z naszego CRX, flaga „from Plain Browser store” pozwala `webRequestBlocking` (traktujemy jak location policy w gatingu z 8.1 pkt 4).
 - Migracja: wykrywamy ID znanych rozszerzeń z CWS (uBO `cjpalhdlnbpafiamejdnhcphjbkeiagm` itd.), importujemy ustawienia (`chrome.storage.local` → nasz CRX) i podmieniamy – Brave to ma, dobra UX.
 - Instalacja dowolnego CRX / unpacked MV2 przez dev mode – zostawiamy, z ostrzeżeniem.
 

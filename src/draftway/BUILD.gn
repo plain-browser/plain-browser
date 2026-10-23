@@ -1,8 +1,9 @@
 # Copyright Draftway. MPL-2.0.
-# Added to chromium/src/draftway/. Wired into //chrome:browser_dependencies by
-# patches/00-build/0001-add-draftway-deps.patch (to be generated against a real checkout).
-import("//build/config/rust.gni")
-
+# Copied to chromium/src/draftway/ by scripts/prepare.py. Chromium targets depend
+# on //draftway/adblock:browser and //draftway/adblock:renderer (patches/30-adblock).
 group("draftway") {
-  public_deps = [ "//draftway/adblock" ]
+  public_deps = [
+    "//draftway/adblock:browser",
+    "//draftway/adblock:renderer",
+  ]
 }

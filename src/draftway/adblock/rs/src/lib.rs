@@ -15,6 +15,8 @@ mod ffi {
     extern "Rust" {
         type AdblockEngine;
         fn new_engine(rules: &str) -> Box<AdblockEngine>;
+        /// Engine built from the filter lists compiled into the binary.
+        fn new_default_engine() -> Box<AdblockEngine>;
         fn deserialize_engine(data: &[u8]) -> Result<Box<AdblockEngine>>;
         fn serialize(self: &mut AdblockEngine) -> Vec<u8>;
         fn check_network_request(
@@ -28,6 +30,21 @@ mod ffi {
 }
 
 pub struct AdblockEngine(Engine);
+
+/// Default lists, compiled in (see ../lists/NOTICE.md). GN lists them as inputs.
+const DEFAULT_LISTS: [&str; 3] = [
+    include_str!("../../lists/easylist.txt"),
+    include_str!("../../lists/easyprivacy.txt"),
+    include_str!("../../lists/easylistpolish.txt"),
+];
+
+fn new_default_engine() -> Box<AdblockEngine> {
+    let mut set = FilterSet::new(false);
+    for list in DEFAULT_LISTS {
+        set.add_filter_list(list.to_string(), ParseOptions::default());
+    }
+    Box::new(AdblockEngine(Engine::new_with_filter_set(set)))
+}
 
 fn new_engine(rules: &str) -> Box<AdblockEngine> {
     let mut set = FilterSet::new(false);
@@ -94,6 +111,14 @@ mod tests {
         let e = new_engine(RULES);
         assert!(e.cosmetic_css("https://example.org/").contains(".banner"));
         assert!(e.cosmetic_css("https://other.org/").is_empty());
+    }
+
+    #[test]
+    fn default_lists() {
+        let e = new_default_engine();
+        // A well-known ad server from EasyList; must stay blocked.
+        assert!(e.check_network_request("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", "https://example.com", "script").matched);
+        assert!(!e.check_network_request("https://example.com/app.js", "https://example.com", "script").matched);
     }
 
     #[test]

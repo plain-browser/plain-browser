@@ -1,0 +1,25 @@
+From: Draftway
+Subject: [adblock] Expose draftway.adblock.mojom.AdblockFilter to renderers
+
+Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it in.
+---
+--- a/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
++++ b/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
+@@ -52,6 +52,7 @@
+ #include "content/public/browser/security_principal.h"
+ #include "content/public/browser/service_worker_version_base_info.h"
+ #include "content/public/common/buildflags.h"
++#include "draftway/adblock/browser/renderer_interfaces.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/extension_id.h"
+ #include "media/mojo/buildflags.h"
+@@ -232,6 +233,9 @@
+   registry->AddInterface<metrics::mojom::CallStackProfileCollector>(
+       base::BindRepeating(&metrics::CallStackProfileCollector::Create));
+ 
++  // Draftway: adblock filter for renderer subresource and cosmetic filtering.
++  draftway::adblock::ExposeInterfacesToRenderer(registry);
++
+   if (NetBenchmarking::CheckBenchmarkingEnabled()) {
+     Profile* profile =
+         Profile::FromBrowserContext(render_process_host->GetBrowserContext());

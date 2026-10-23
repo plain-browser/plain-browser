@@ -1,7 +1,7 @@
 <# Phase 0: build stock ungoogled-chromium-windows at the tag pinned in versions.toml.
    Self-elevates (the upstream build must run as administrator in a VS developer environment).
    Profiles:
-     alpha    (default) is_official_build=false, no PGO/LTO. ~2x faster, fits 32 GB RAM. Not for releases.
+     alpha    (default) is_official_build=false, no PGO/LTO, no PCH (PCH breaks with clang modules). Fits 32 GB RAM. Not for releases.
      official upstream flags (ThinLTO + PGO). Needs ~64 GB RAM and many hours.
    Usage: powershell -ExecutionPolicy Bypass -File scripts\build.ps1 [-Profile alpha|official] [-Work C:\dw-build] [-Jobs 12]
    Log:   <Work>\build.log #>
@@ -56,7 +56,7 @@ try {
   $flags = "$ucw\flags.windows.gn"
   $content = (Get-Content $flags -Raw) -replace '(?s)\r?\n# DRAFTWAY-OVERRIDE-BEGIN.*?# DRAFTWAY-OVERRIDE-END\r?\n',''
   if ($Profile -eq "alpha") {
-    $content += "`n# DRAFTWAY-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`n# DRAFTWAY-OVERRIDE-END`n"
+    $content += "`n# DRAFTWAY-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`n# DRAFTWAY-OVERRIDE-END`n"
   }
   Set-Content $flags -Value $content -NoNewline
 

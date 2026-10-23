@@ -1,0 +1,79 @@
+From: Draftway
+Subject: [adblock] Add the Draftway adblock throttle to renderer subresource loads
+
+Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it in.
+---
+--- a/chrome/renderer/url_loader_throttle_provider_impl.h
++++ b/chrome/renderer/url_loader_throttle_provider_impl.h
+@@ -18,6 +18,8 @@
+ #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
+ #include "third_party/blink/public/platform/url_loader_throttle_provider.h"
+ 
++#include "draftway/adblock/renderer/adblock_throttle_factory.h"
++
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+ #include "extensions/renderer/extension_throttle_manager.h"
+ #endif
+@@ -95,6 +97,9 @@
+   // provider which was created on the main thread.
+   scoped_refptr<base::SequencedTaskRunner> main_thread_task_runner_;
+ 
++  // Draftway adblock; null when the filter interface is unavailable.
++  std::unique_ptr<draftway::adblock::AdblockThrottleFactory> draftway_adblock_;
++
+   SEQUENCE_CHECKER(sequence_checker_);
+ };
+ 
+--- a/chrome/renderer/url_loader_throttle_provider_impl.cc
++++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
+@@ -117,7 +117,7 @@
+       pending_extension_web_request_reporter.InitWithNewPipeAndPassReceiver());
+ #endif  // BUILDFLAG(ENABLE_EXTENSIONS)
+ 
+-  return std::make_unique<URLLoaderThrottleProviderImpl>(
++  auto provider = std::make_unique<URLLoaderThrottleProviderImpl>(
+       type, chrome_content_renderer_client, std::move(pending_safe_browsing),
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+       std::move(pending_extension_web_request_reporter),
+@@ -127,6 +127,9 @@
+           ? base::SequencedTaskRunner::GetCurrentDefault()
+           : nullptr,
+       base::PassKey<URLLoaderThrottleProviderImpl>());
++  provider->draftway_adblock_ =
++      draftway::adblock::AdblockThrottleFactory::Create(broker);
++  return provider;
+ }
+ 
+ URLLoaderThrottleProviderImpl::URLLoaderThrottleProviderImpl(
+@@ -158,12 +161,16 @@
+ std::unique_ptr<blink::URLLoaderThrottleProvider>
+ URLLoaderThrottleProviderImpl::Clone() {
+   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+-  return std::make_unique<URLLoaderThrottleProviderImpl>(
++  auto clone = std::make_unique<URLLoaderThrottleProviderImpl>(
+       type_, chrome_content_renderer_client_, CloneSafeBrowsingPendingRemote(),
+ #if BUILDFLAG(ENABLE_EXTENSIONS)
+       CloneExtensionWebRequestReporterPendingRemote(),
+ #endif  // BUILDFLAG(ENABLE_EXTENSIONS)
+       main_thread_task_runner_, base::PassKey<URLLoaderThrottleProviderImpl>());
++  if (draftway_adblock_) {
++    clone->draftway_adblock_ = draftway_adblock_->Clone();
++  }
++  return clone;
+ }
+ 
+ std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
+@@ -192,6 +199,13 @@
+   DCHECK(!is_frame_resource ||
+          type_ == blink::URLLoaderThrottleProviderType::kFrame);
+ 
++  // Draftway adblock: subresources only (returns null for frame resources).
++  if (draftway_adblock_) {
++    if (auto throttle = draftway_adblock_->MaybeCreateThrottle(request)) {
++      throttles.emplace_back(std::move(throttle));
++    }
++  }
++
+ #if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
+   if (!is_frame_resource) {
+     if (pending_safe_browsing_) {
