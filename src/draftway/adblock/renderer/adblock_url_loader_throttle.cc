@@ -2,6 +2,7 @@
 #include "draftway/adblock/renderer/adblock_url_loader_throttle.h"
 
 #include "base/functional/bind.h"
+#include "base/time/time.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "net/base/net_errors.h"
 #include "services/network/public/cpp/resource_request.h"
@@ -69,16 +70,23 @@ void AdblockURLLoaderThrottle::WillStartRequest(
   if (pending_filter_) {
     own_filter_.Bind(std::move(pending_filter_));
   }
-  mojom::AdblockFilter* filter =
-      own_filter_.is_bound() ? own_filter_.get() : filter_.get();
+  mojom::AdblockFilter* filter = nullptr;
+  if (own_filter_.is_bound()) {
+    filter = own_filter_.is_connected() ? own_filter_.get() : nullptr;
+  } else {
+    filter = filter_.get();
+  }
   if (!filter) {
-    return;
+    return;  // No working filter: let the request through.
   }
   url_ = request->url;
   const GURL source_url = request->request_initiator.has_value()
                               ? request->request_initiator->GetURL()
                               : request->url;
   *defer = true;
+  failsafe_timer_.Start(FROM_HERE, kDecisionTimeout,
+                        base::BindOnce(&AdblockURLLoaderThrottle::OnDecision,
+                                       base::Unretained(this), false));
   // If the pipe closes (e.g. the browser has the filter disabled and never
   // binds it), mojo drops the callback; default to "allow" so the deferred
   // request cannot hang.
@@ -95,6 +103,11 @@ const char* AdblockURLLoaderThrottle::NameForLoggingWillStartRequest() {
 }
 
 void AdblockURLLoaderThrottle::OnDecision(bool block) {
+  if (decided_) {
+    return;  // Answer and fail-open timer can both fire; act once.
+  }
+  decided_ = true;
+  failsafe_timer_.Stop();
   if (block) {
     delegate_->CancelWithError(net::ERR_BLOCKED_BY_CLIENT, "DraftwayAdblock");
     return;

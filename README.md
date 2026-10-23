@@ -38,14 +38,13 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 |---|---|
 | Stock ungoogled-chromium 156 build on our Windows builder | Done (6.7 h); unsigned test build in a draft release |
 | adblock-rust bridge crate (Rust + cxx, bundled lists) | Done, 4 unit tests pass |
-| Browser/renderer adblock code (service, mojo filter, request throttle, cosmetic agent) | Compiles and links into `chrome.exe` on Chromium 156; **end-to-end blocking not yet verified** (see below) |
+| Browser/renderer adblock code (service, mojo filter, request throttle, cosmetic agent) | Compiles, links and **blocks**: headless test (`scripts/test-adblock.ps1`) blocks four ad hosts, passes controls, and with `--disable-features=DraftwayAdblock` lets all through without hanging |
 | Vendoring the adblock crates into Chromium's GN build (gnrt) | Done, scripted (`scripts/vendor-adblock-crates.ps1`) |
 | MV2 | ungoogled-chromium already keeps MV2 enabled in 156; one small cleanup patch written and compiled, **no extension tested yet** |
 | Branding, installer, updater, extension repository | Not started |
 
-First test run (headless, three EasyList ad hosts blocked, two control sites allowed) is inconclusive: the
-home network's DNS filter blocks the same ad hosts, so a "blocked" result cannot be attributed to the browser.
-A DNS-independent test (local server answering for the ad hostnames) is the next step.
+Verified: same six requests with the filter on and off. On: the four EasyList hosts never reach the server, controls load.
+Off (kill switch): all six load. Not yet tested: cosmetic hiding (only site-specific rules exist), UI, MV2 extensions, installer.
 
 ## Roadmap
 

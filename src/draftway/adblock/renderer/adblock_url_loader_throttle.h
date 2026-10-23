@@ -6,6 +6,7 @@
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/timer/timer.h"
 #include "draftway/adblock/common/adblock.mojom.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/remote.h"
@@ -36,6 +37,11 @@ class AdblockURLLoaderThrottle : public blink::URLLoaderThrottle {
 
  private:
   void OnDecision(bool block);
+
+  // Fail open: if the browser never answers, let the request through after this long.
+  static constexpr base::TimeDelta kDecisionTimeout = base::Seconds(3);
+  bool decided_ = false;
+  base::OneShotTimer failsafe_timer_;
 
   raw_ptr<mojom::AdblockFilter> filter_;
   // Used after DetachFromCurrentSequence(): bound lazily on the new sequence.

@@ -1,8 +1,8 @@
 # Adblock (adblock-rust) integration
 
-Status 2026-10-23: builds on Chromium 156.0.8078.47 (patches applied, crates vendored, `chrome.exe`
-linked). End-to-end blocking is **not yet verified**: the first headless test was confounded by the
-network's DNS-level ad blocking (see README).
+Status 2026-10-23: builds on Chromium 156.0.8078.47 and blocks requests end to end (`scripts/test-adblock.ps1`).
+Bug found by that test and fixed: with the filter pipe disconnected, deferred requests hung forever; the throttle now skips
+disconnected filters and fails open after 3 s.
 
 ## Architecture
 - `src/draftway/adblock/rs` – Rust bridge (cxx) over `adblock` 0.13.3. Default lists

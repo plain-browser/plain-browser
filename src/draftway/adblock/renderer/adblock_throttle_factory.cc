@@ -30,7 +30,9 @@ mojom::AdblockFilter* AdblockThrottleFactory::GetFilter() {
   if (pending_filter_) {
     filter_.Bind(std::move(pending_filter_));
   }
-  return filter_.is_bound() ? filter_.get() : nullptr;
+  // A disconnected remote (browser side missing, e.g. kill switch, or the service died)
+  // silently drops calls and their callbacks never run: do not defer requests on it.
+  return filter_.is_bound() && filter_.is_connected() ? filter_.get() : nullptr;
 }
 
 std::unique_ptr<AdblockThrottleFactory> AdblockThrottleFactory::Clone() {
