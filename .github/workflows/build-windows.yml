@@ -1,0 +1,9 @@
+name: build-windows
+on: { workflow_dispatch: {} }
+jobs:
+  build:
+    runs-on: [self-hosted, windows, x64, chromium-builder]
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@v4
+      - run: powershell -File scripts/build.ps1

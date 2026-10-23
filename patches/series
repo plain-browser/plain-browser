@@ -1,0 +1,3 @@
+# Draftway patches, applied after ungoogled-chromium-windows patches.
+# Each entry is a path relative to patches/. Patches must be generated against
+# the pinned Chromium tag (see versions.toml); none are committed yet.

@@ -1,0 +1,14 @@
+# Copyright Draftway. MPL-2.0.
+# Rust crate is built by cargo (offline, vendored) and linked via cxx.
+action("cargo_build") {
+  script = "//draftway/scripts/cargo_build.py"
+  outputs = [ "$target_out_dir/libdraftway_adblock_ffi.a" ]
+  sources = [ "rs/Cargo.toml", "rs/src/lib.rs", "rs/build.rs" ]
+  args = [ rebase_path("rs", root_build_dir), rebase_path("$target_out_dir", root_build_dir) ]
+}
+
+source_set("adblock") {
+  sources = [ "ad_block_service.cc", "ad_block_service.h" ]
+  deps = [ ":cargo_build", "//base", "//third_party/rust/cxx/v1:lib" ]
+  public_configs = []
+}
