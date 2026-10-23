@@ -60,14 +60,21 @@ try {
   }
   Set-Content $flags -Value $content -NoNewline
 
-  $b = @("build.py"); if ($Jobs -gt 0) { $b += @("-j",$Jobs) }
-  Write-Host "Running: python3 $($b -join ' ')  ($(Get-Date))"
-  & python3 @b
-  if ($LASTEXITCODE) { throw "build.py failed (exit $LASTEXITCODE). Re-run the script to resume incrementally." }
-  & python3 package.py
-  if ($LASTEXITCODE) { throw "package.py failed" }
+  # gn bootstrap looks for ninja via %NINJA% or PATH; use the copy shipped in the Chromium tree.
+  $env:NINJA = "$ucw\build\src\third_party\ninja\ninja.exe"
+  # --ci makes build.py resumable: finished steps (clone, patches, gn, bindgen) are skipped on re-run.
+  # Its ninja step stops after 3.5 h with exit code 124; we simply resume. On success it runs package.py.
+  $b = @("build.py","--ci"); if ($Jobs -gt 0) { $b += @("-j",$Jobs) }
+  for ($pass = 1; $pass -le 30; $pass++) {
+    Write-Host "Running: python3 $($b -join ' ')  pass $pass  ($(Get-Date))"
+    & python3 @b
+    $rc = $LASTEXITCODE
+    if ($rc -ne 124) { break }
+    Write-Host "ninja time slice ended, resuming"
+  }
+  if ($rc) { throw "build.py failed (exit $rc). Re-run the script to resume incrementally." }
   Pop-Location
-  Write-Host "BUILD OK $(Get-Date). Artifacts in $ucw (see *.zip / installer)."
+  Write-Host "BUILD OK $(Get-Date). Artifacts:"; Get-ChildItem $ucw\build -Filter "ungoogled-chromium*" -File | ForEach-Object { Write-Host "  $($_.FullName)  $([math]::Round($_.Length/1MB)) MB" }
 } catch {
   Write-Host "BUILD FAILED: $($_.Exception.Message)"
 } finally {
