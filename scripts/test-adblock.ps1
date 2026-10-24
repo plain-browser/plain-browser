@@ -7,7 +7,7 @@
    Hosts are deliberately NOT on Chrome's HSTS preload list (google/wikipedia domains are: they would fail
    with or without a blocker).
    Usage: powershell -File scripts\test-adblock.ps1 [-Zip <package.zip>] #>
-param([string]$Zip = "C:\dw-build\ucw\build\ungoogled-chromium_156.0.8078.47-1.1_windows_x64.zip")
+param([string]$Zip = "C:\dw-build\ucw\build\PlainBrowser_0.1.0-alpha.1_x64.zip")
 $ErrorActionPreference = "Continue"
 Get-Process chrome,python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "C:\dw-test*" -or $_.Name -eq "python" } | Stop-Process -Force -ErrorAction SilentlyContinue
 Remove-Item C:\dw-test3 -Recurse -Force -ErrorAction SilentlyContinue
