@@ -1,0 +1,59 @@
+From: Plain Browser
+Subject: [branding] Install modes: product name, ProgIDs, fresh GUIDs
+
+chromium_install_modes.h (install dir, user data dir, registry and ProgID names, Start menu name) now say Plain Browser.
+Active Setup and toast activator GUIDs are new so a Plain Browser install cannot hijack those registrations of a real
+Chromium on the same machine. The elevation service and tracing service CLSIDs/IIDs are left as upstream: they are
+tied to generated IDL files. BRANDING and the UI strings are handled by scripts/apply-branding.py.
+---
+--- a/chrome/install_static/chromium_install_modes.h
++++ b/chrome/install_static/chromium_install_modes.h
+@@ -21,10 +21,10 @@
+ 
+ // The brand-specific product name to be included as a component of the install
+ // and user data directory paths.
+-inline constexpr wchar_t kProductPathName[] = L"Chromium";
++inline constexpr wchar_t kProductPathName[] = L"PlainBrowser";
+ 
+ // The brand-specific safe browsing client name.
+-inline constexpr char kSafeBrowsingName[] = "chromium";
++inline constexpr char kSafeBrowsingName[] = "plainbrowser";
+ 
+ // Note: This list of indices must be kept in sync with the brand-specific
+ // resource strings in chrome/installer/util/prebuild/create_string_rc.
+@@ -54,23 +54,22 @@
+         .logo_suffix = L"",  // No logo suffix for the primary install mode.
+         .app_guid =
+             L"",  // Empty app_guid since no integration with Google Update.
+-        .base_app_name = L"Chromium",              // A distinct base_app_name.
+-        .base_app_id = L"Chromium",                // A distinct base_app_id.
+-        .browser_prog_id_prefix = L"ChromiumHTM",  // Browser ProgID prefix.
++        .base_app_name = L"Plain Browser",         // A distinct base_app_name.
++        .base_app_id = L"PlainBrowser",             // A distinct base_app_id.
++        .browser_prog_id_prefix = L"PlainBrowserHTM",  // Browser ProgID prefix.
+         .browser_prog_id_description =
+-            L"Chromium HTML Document",  // Browser ProgID description.
+-        .direct_launch_url_scheme = "chromium",
+-        .pdf_prog_id_prefix = L"ChromiumPDF",  // PDF ProgID prefix.
++            L"Plain Browser HTML Document",  // Browser ProgID description.
++        .direct_launch_url_scheme = "plainbrowser",
++        .pdf_prog_id_prefix = L"PlainBrowserPDF",  // PDF ProgID prefix.
+         .pdf_prog_id_description =
+-            L"Chromium PDF Document",  // PDF ProgID description.
++            L"Plain Browser PDF Document",  // PDF ProgID description.
+         .active_setup_guid =
+-            L"{7D2B3E1D-D096-4594-9D8F-A6667F12E0AC}",  // Active Setup
++            L"{5F3D0A62-2A2B-4C61-9B5F-6F1C7D1B8E40}",  // Active Setup
+                                                         // GUID.
+-        .toast_activator_clsid = {0x635EFA6F,
+-                                  0x08D6,
+-                                  0x4EC9,
+-                                  {0xBD, 0x14, 0x8A, 0x0F, 0xDE, 0x97, 0x51,
+-                                   0x59}},  // Toast Activator CLSID.
++        .toast_activator_clsid = {0xB1C7E9D4,
++                                  0x8F3A,
++                                  0x4D27,
++                                  {0xA6, 0xE5, 0x0C, 0x94, 0xD2, 0xF7, 0x1A, 0x83}},  // Toast Activator CLSID (Plain Browser).
+         .elevator_clsid = {0xD133B120,
+                            0x6DB4,
+                            0x4D6B,

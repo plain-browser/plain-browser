@@ -24,4 +24,9 @@ foreach ($rel in $series) {
   if ($LASTEXITCODE -ne 0) { throw "patch failed: $rel" }
   Write-Host "[ok]   $rel"
 }
+# 3. UI strings and their translations (grit ids move with the text; see apply-branding.py)
+$py = (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe","$env:ProgramFiles\Python3*\python.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+if (-not $py) { throw "Python 3 not found (needed for apply-branding.py)" }
+& $py -I "$Repo\scripts\apply-branding.py" $Src
+if ($LASTEXITCODE) { throw "apply-branding.py failed" }
 Write-Host "Draftway layer applied. Next: out\Default\gn.exe gen out\Default, then ninja (see docs/ADBLOCK.md)."

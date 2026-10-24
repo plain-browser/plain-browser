@@ -1,0 +1,31 @@
+name = "plainbrowser-sb-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Replace with your own zone and hostname. The zone must be on Cloudflare.
+routes = [
+  { pattern = "sb.example.com", custom_domain = true }
+]
+
+# Do not keep request logs. Aggregate metrics in the dashboard are enough.
+[observability]
+enabled = false
+
+[observability.logs]
+enabled = false
+invocation_logs = false
+
+# Rate limit per client IP: 60 requests per 60 s. Safe Browsing clients poll every 30 min or more.
+# Create the namespace_id yourself; any unique integer in your account.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
+
+[vars]
+# Optional: only accept `X-Client: PlainBrowser/<version>`. Not authentication, just a cheap filter.
+# REQUIRED_CLIENT = "PlainBrowser"
+
+# The Google API key is a secret, never put it here:
+#   npx wrangler secret put GOOGLE_SB_KEY

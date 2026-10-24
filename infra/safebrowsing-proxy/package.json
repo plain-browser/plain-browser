@@ -1,0 +1,9 @@
+{
+  "name": "plainbrowser-sb-proxy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "deploy": "wrangler deploy"
+  }
+}

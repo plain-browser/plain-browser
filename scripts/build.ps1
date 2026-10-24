@@ -73,8 +73,10 @@ try {
     Write-Host "ninja time slice ended, resuming"
   }
   if ($rc) { throw "build.py failed (exit $rc). Re-run the script to resume incrementally." }
+  & python3 "$root\scripts\package-plainbrowser.py"
+  if ($LASTEXITCODE) { throw "package-plainbrowser.py failed" }
   Pop-Location
-  Write-Host "BUILD OK $(Get-Date). Artifacts:"; Get-ChildItem $ucw\build -Filter "ungoogled-chromium*" -File | ForEach-Object { Write-Host "  $($_.FullName)  $([math]::Round($_.Length/1MB)) MB" }
+  Write-Host "BUILD OK $(Get-Date). Artifacts:"; Get-ChildItem $ucw\build -Filter "PlainBrowser_*" -File | ForEach-Object { Write-Host "  $($_.FullName)  $([math]::Round($_.Length/1MB)) MB" }
 } catch {
   Write-Host "BUILD FAILED: $($_.Exception.Message)"
 } finally {
