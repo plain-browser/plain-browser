@@ -48,6 +48,8 @@ Off (kill switch): all six load. Not yet tested: cosmetic hiding (only site-spec
 
 ## Roadmap
 
+Privacy features and the project-security plan are in [docs/ROADMAP.md](docs/ROADMAP.md); vulnerability reporting in [SECURITY.md](SECURITY.md).
+
 1. Finish the stock build, then apply our patches and vendor the adblock crates.
 2. Compile, fix and test the blocker on real pages; toolbar toggle and per-site settings.
 3. Branding, installer and update server; curated MV2 extension repository (uBlock Origin and similar).

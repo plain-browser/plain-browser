@@ -1,9 +1,15 @@
 name: build-windows
+# Manual only. Needs a self-hosted Windows runner labelled "chromium-builder" that does not exist yet.
+# Never trigger this from pull_request: a self-hosted runner executes whatever the workflow says.
 on: { workflow_dispatch: {} }
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: [self-hosted, windows, x64, chromium-builder]
     timeout-minutes: 720
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: powershell -File scripts/build.ps1
