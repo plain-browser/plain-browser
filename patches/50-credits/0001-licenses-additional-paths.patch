@@ -1,0 +1,19 @@
+From: Plain Browser
+Subject: [credits] List Plain Browser, ungoogled-chromium and the bundled filter lists in chrome://credits
+
+licenses.py only walks third_party directories plus ADDITIONAL_PATHS. Our code lives in //draftway, so it is added
+here; each directory has a README.chromium with its license file. Needs generate_about_credits=true.
+---
+--- a/tools/licenses/licenses.py
++++ b/tools/licenses/licenses.py
+@@ -195,6 +195,10 @@
+   # Fake directories to include the strongtalk and fdlibm licenses.
+   os.path.join('v8', 'strongtalk'),
+   os.path.join('v8', 'fdlibm'),
++  # Plain Browser: its own code, the bundled filter lists and the ungoogled-chromium patch set.
++  os.path.join('draftway'),
++  os.path.join('draftway', 'adblock', 'lists'),
++  os.path.join('draftway', 'ungoogled'),
+ )
+ 
+ # SPECIAL_CASES are used for historical directories where we checked out

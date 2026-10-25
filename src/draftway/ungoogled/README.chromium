@@ -1,0 +1,9 @@
+Name: ungoogled-chromium
+URL: https://github.com/ungoogled-software/ungoogled-chromium
+Version: 156.0.8078.47-1.1
+License: BSD-3-Clause
+License File: //draftway/ungoogled/LICENSE
+Shipped: yes
+Security Critical: no
+
+Description: Plain Browser is built from Chromium with the ungoogled-chromium patch set (https://github.com/ungoogled-software/ungoogled-chromium-windows), which removes Google services and dependencies.

@@ -10,11 +10,11 @@ tree's own grit, rewrites the English text, and moves each translation to the ne
 Usage: python apply-branding.py <chromium src dir> [--name "Plain Browser"] [--dry-run] [--force]
 Idempotent: writes chrome/app/.plainbrowser_branded; a second run does nothing unless --force.
 """
-import argparse, datetime, glob, io, os, re, sys
+import argparse, datetime, filecmp, glob, io, os, re, shutil, sys
 
 OLD = "Chromium"
 # Legal and attribution phrases keep the upstream name.
-KEEP = ["The Chromium Authors", "Chromium Authors", "Chromium open source", "Chromium OS", "ChromiumOS",
+KEEP = ["The Chromium Authors", "Chromium Authors", "Autorzy Chromium", "Chromium open source", "Chromium OS", "ChromiumOS",
         "Chromium Embedded Framework"]
 GRD_FILES = ["chrome/app/chromium_strings.grd", "chrome/app/settings_chromium_strings.grdp",
              "components/components_chromium_strings.grd", "extensions/strings/extensions_chromium_strings.grdp"]
@@ -62,6 +62,37 @@ def attribution_pl(body, new):
     return body
 
 
+# Logo files (branding/icons, drawn by branding/make-icons.py) -> chrome/app/theme/chromium/<dest>.
+ICON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "branding", "icons")
+ICON_DEST = "chrome/app/theme/chromium"
+ICON_FILES = {
+    "product_logo.svg": "product_logo.svg",
+    **{"product_logo_%d.png" % n: "product_logo_%d.png" % n for n in (16, 24, 48, 64, 128, 256)},
+    "product_logo_22_mono.png": "product_logo_22_mono.png",
+    **{n: "win/" + n for n in ("chromium.ico", "chromium_doc.ico", "chromium_pdf.ico", "app_list.ico")},
+    "tiles/Logo.png": "win/tiles/Logo.png",
+    "tiles/SmallLogo.png": "win/tiles/SmallLogo.png",
+}
+
+
+def apply_icons(src, dry_run):
+    """Copy the logo over Chromium's. Independent of the branding marker, so a changed logo is picked up by a
+    plain re-run. Returns the number of files written."""
+    n = 0
+    for name, dest in ICON_FILES.items():
+        a = os.path.join(ICON_DIR, name)
+        b = os.path.join(src, *ICON_DEST.split("/"), *dest.split("/"))
+        if not os.path.isfile(a):
+            raise SystemExit("logo file missing: %s (run branding/make-icons.py)" % a)
+        if os.path.isfile(b) and filecmp.cmp(a, b, shallow=False):
+            continue
+        n += 1
+        if not dry_run:
+            shutil.copyfile(a, b)
+    print("logo: %d of %d files %s" % (n, len(ICON_FILES), "would change" if dry_run else "written"))
+    return n
+
+
 def rebrand(text, new):
     for i, k in enumerate(KEEP):
         text = text.replace(k, "\x00%d\x00" % i)
@@ -106,6 +137,7 @@ def main():
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args()
     src, new = a.src, a.name
+    apply_icons(src, a.dry_run)
     marker = os.path.join(src, "chrome", "app", ".plainbrowser_branded")
     if os.path.exists(marker) and not a.force:
         print("already branded (%s); use --force to redo" % open(marker).read().strip())

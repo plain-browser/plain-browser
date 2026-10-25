@@ -56,7 +56,7 @@ try {
   $flags = "$ucw\flags.windows.gn"
   $content = (Get-Content $flags -Raw) -replace '(?s)\r?\n# DRAFTWAY-OVERRIDE-BEGIN.*?# DRAFTWAY-OVERRIDE-END\r?\n',''
   if ($Profile -eq "alpha") {
-    $content += "`n# DRAFTWAY-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`n# DRAFTWAY-OVERRIDE-END`n"
+    $content += "`n# DRAFTWAY-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`ngenerate_about_credits=true`n# DRAFTWAY-OVERRIDE-END`n"
   }
   Set-Content $flags -Value $content -NoNewline
 
