@@ -21,7 +21,7 @@ Releases carry a `SHA256SUMS.txt` and a keyless cosign bundle per file (`.github
 
 ```
 cosign verify-blob --bundle <file>.bundle \
-  --certificate-identity-regexp 'https://github.com/carriera/plain-browser/.github/workflows/sign-release.yml@.*' \
+  --certificate-identity-regexp 'https://github.com/plain-prowser/plain-browser/.github/workflows/sign-release.yml@.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com <file>
 sha256sum -c SHA256SUMS.txt
 ```
