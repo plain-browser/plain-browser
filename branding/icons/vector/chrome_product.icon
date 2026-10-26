@@ -1,0 +1,16 @@
+// Copyright Plain Browser contributors. MPL-2.0.
+// Plain Browser product mark (a "P"), monochrome so that it takes the tint of the surrounding UI.
+
+CANVAS_DIMENSIONS, 16,
+FILL_RULE_NONZERO,
+MOVE_TO, 5.25f, 4,
+LINE_TO, 7.875f, 4,
+ARC_TO, 2.875f, 2.875f, 0, 0, 1, 7.875f, 9.75f,
+LINE_TO, 7, 9.75f,
+LINE_TO, 7, 12,
+LINE_TO, 5.25f, 12,
+CLOSE,
+MOVE_TO, 8, 5.875f,
+ARC_TO, 1, 1, 0, 0, 0, 8, 7.875f,
+ARC_TO, 1, 1, 0, 0, 0, 8, 5.875f,
+CLOSE

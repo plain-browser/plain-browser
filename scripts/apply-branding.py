@@ -72,6 +72,8 @@ ICON_FILES = {
     **{n: "chromium/win/" + n for n in ("chromium.ico", "chromium_doc.ico", "chromium_pdf.ico", "app_list.ico")},
     "tiles/Logo.png": "chromium/win/tiles/Logo.png",
     "tiles/SmallLogo.png": "chromium/win/tiles/SmallLogo.png",
+    # Monochrome product mark used by toolbar and menu UI (a CRLF file, so it is copied rather than patched).
+    "vector/chrome_product.icon": "../vector_icons/chrome_product.icon",
     # In-browser images: infobars, About page, New Tab Page.
     **{"theme/default_%s_percent/%s" % (pct, n): "default_%s_percent/chromium/%s" % (pct, n)
        for pct in ("100", "200")
