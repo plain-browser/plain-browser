@@ -28,7 +28,8 @@ try {
   if ($ver -like "TODO*") { throw "Set ungoogled_chromium_windows tag in versions.toml first." }
   Write-Host "Tag: $ver  Profile: $Profile"
   $free = [math]::Round((Get-PSDrive ($Work.Substring(0,1))).Free/1GB); Write-Host "Free disk: $free GB"
-  if ($free -lt 200) { throw "Need >= 200 GB free on the build drive (have $free)." }
+  # Measured 2026-10-26: 38 GB sources + ~50 GB out/Default + 2 GB download cache for one tree.
+  if ($free -lt 120) { throw "Need >= 120 GB free on the build drive (have $free)." }
 
   # Python: real python.exe + python3.exe copy first on PATH (upstream calls python3; avoids the Store alias).
   $pyExe = Get-ChildItem "$env:ProgramFiles\Python3*\python.exe","$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe" -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
