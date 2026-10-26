@@ -1,0 +1,25 @@
+From: Plain Browser
+Subject: [safebrowsing] Use the public phishing list (SOCIAL_ENGINEERING_PUBLIC)
+
+Category: 70-safebrowsing. Applies after 0001 (same file). With the Chrome-only SOCIAL_ENGINEERING list in the
+request Google answers 403 "ThreatType is not accessible" for the whole update; with SOCIAL_ENGINEERING_PUBLIC
+the identical request returns 200 (verified 2026-10-26 through sb.plain-browser.app with the request taken from
+a NetLog). The local store name and SBThreatType stay the same, so lookups and UI are unchanged.
+---
+--- a/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
++++ b/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
+@@ -298,10 +298,13 @@
+ }
+ 
+ ListIdentifier GetUrlSocEngId() {
++  // Plain Browser: SOCIAL_ENGINEERING (5) is the Chrome-only phishing list;
++  // a third-party API key is served SOCIAL_ENGINEERING_PUBLIC (2). Asking for
++  // the former fails the whole list update ("ThreatType is not accessible").
+   return base::FeatureList::IsEnabled(safe_browsing::kLocalListsUseSBv5)
+              ? ListIdentifier(SBThreatType::SB_THREAT_TYPE_URL_PHISHING)
+              : ListIdentifier(GetCurrentPlatformType(), URL,
+-                              SOCIAL_ENGINEERING);
++                              SOCIAL_ENGINEERING_PUBLIC);
+ }
+ 
+ ListIdentifier GetUrlSubresourceFilterId() {

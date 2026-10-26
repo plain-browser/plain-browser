@@ -25,5 +25,6 @@
 70-safebrowsing/0001-proxy-and-client-header.patch
 70-safebrowsing/0002-no-signin-pref-includes.patch
 70-safebrowsing/0003-public-lists-only.patch
+70-safebrowsing/0004-public-phishing-list.patch
 80-fingerprint/0001-renderer-agent.patch
 80-fingerprint/0002-browser-renderer-switches.patch
