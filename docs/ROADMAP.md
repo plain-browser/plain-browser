@@ -52,7 +52,7 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 | Windows code signing (Authenticode) | `scripts/sign-windows.ps1` | **dropped 2026-10-26**: Plain Browser ships only as an MSIX through the Microsoft Store, which signs the package itself. The script stays for a possible future direct-download channel |
 | Updates | Microsoft Store | **covered by the Store** (automatic app updates, usually within a day of certification). No own updater while the Store is the only channel; see `docs/GITHUB_SETUP.md`, section 6 |
 | Org-level 2FA, second owner, separate CI account | GitHub org `plain-browser` | organization exists; 2FA requirement, second owner and bot account still to set up (`docs/GITHUB_SETUP.md`, section 3) |
-| Reproducible builds | build pipeline | long-term. Not realistic soon: our profile differs from upstream's and builds are not bit-identical. First goal is verifiable releases (above), then deterministic flags. |
+| Reproducible builds | build pipeline, `build-windows.yml` | long-term. Not realistic soon: our profile differs from upstream's and builds are not bit-identical. First goal is verifiable releases (above), then builds in GitHub Actions instead of the private VM (`build-windows.yml`, staged over several runners, written 2026-10-26, not yet run; `docs/CI.md`), then deterministic flags. |
 | Patches apply on the next upstream tag | `scripts/check-patches.py`, `patches-check.yml`, `upstream-watch.yml` | **done**: dry-run without a Chromium checkout on every change to `patches/` and on every new upstream tag |
 | CVE regression check for our patches | CI | needs a list of security-relevant files our patches touch, compared against upstream commits |
 | Few, small patches on top of ungoogled-chromium | repo layout | already the design; keep each patch under one category (`patches/series`) |
@@ -60,5 +60,8 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 ## Limits of what the signing items give
 - A cosign bundle ties a file to this repository's workflow identity. It says nothing about the builder machine.
 - Build attestations (SLSA provenance) only make sense once builds run in GitHub Actions; today they run on a private VM.
+  `build-windows.yml` (`docs/CI.md`) is the first step: once a release is built there, the `release` job can add
+  `actions/attest-build-provenance` for the packages, and sign-release.yml's note that the build is not provenance
+  can go.
 - Branch protection with required reviews blocks a single-maintainer workflow unless you add yourself as exempt or
   add a second reviewer; decide this before enabling it.
