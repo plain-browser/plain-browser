@@ -1,7 +1,7 @@
-From: Draftway
-Subject: [adblock] Add the Draftway adblock throttle to renderer subresource loads
+From: Plain Browser
+Subject: [adblock] Add the Plain Browser adblock throttle to renderer subresource loads
 
-Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it in.
+Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
 ---
 --- a/chrome/renderer/url_loader_throttle_provider_impl.h
 +++ b/chrome/renderer/url_loader_throttle_provider_impl.h
@@ -9,7 +9,7 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
  #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
  #include "third_party/blink/public/platform/url_loader_throttle_provider.h"
  
-+#include "draftway/adblock/renderer/adblock_throttle_factory.h"
++#include "plainbrowser/adblock/renderer/adblock_throttle_factory.h"
 +
  #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
  #include "extensions/renderer/extension_throttle_manager.h"
@@ -18,8 +18,8 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
    // provider which was created on the main thread.
    scoped_refptr<base::SequencedTaskRunner> main_thread_task_runner_;
  
-+  // Draftway adblock; null when the filter interface is unavailable.
-+  std::unique_ptr<draftway::adblock::AdblockThrottleFactory> draftway_adblock_;
++  // Plain Browser adblock; null when the filter interface is unavailable.
++  std::unique_ptr<plainbrowser::adblock::AdblockThrottleFactory> plainbrowser_adblock_;
 +
    SEQUENCE_CHECKER(sequence_checker_);
  };
@@ -39,8 +39,8 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
            ? base::SequencedTaskRunner::GetCurrentDefault()
            : nullptr,
        base::PassKey<URLLoaderThrottleProviderImpl>());
-+  provider->draftway_adblock_ =
-+      draftway::adblock::AdblockThrottleFactory::Create(broker);
++  provider->plainbrowser_adblock_ =
++      plainbrowser::adblock::AdblockThrottleFactory::Create(broker);
 +  return provider;
  }
  
@@ -56,8 +56,8 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
        CloneExtensionWebRequestReporterPendingRemote(),
  #endif  // BUILDFLAG(ENABLE_EXTENSIONS)
        main_thread_task_runner_, base::PassKey<URLLoaderThrottleProviderImpl>());
-+  if (draftway_adblock_) {
-+    clone->draftway_adblock_ = draftway_adblock_->Clone();
++  if (plainbrowser_adblock_) {
++    clone->plainbrowser_adblock_ = plainbrowser_adblock_->Clone();
 +  }
 +  return clone;
  }
@@ -67,9 +67,9 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
    DCHECK(!is_frame_resource ||
           type_ == blink::URLLoaderThrottleProviderType::kFrame);
  
-+  // Draftway adblock: subresources only (returns null for frame resources).
-+  if (draftway_adblock_) {
-+    if (auto throttle = draftway_adblock_->MaybeCreateThrottle(request)) {
++  // Plain Browser adblock: subresources only (returns null for frame resources).
++  if (plainbrowser_adblock_) {
++    if (auto throttle = plainbrowser_adblock_->MaybeCreateThrottle(request)) {
 +      throttles.emplace_back(std::move(throttle));
 +    }
 +  }

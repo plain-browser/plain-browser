@@ -18,7 +18,7 @@ diff -ruN a/third_party/rust/chromium_crates_io/Cargo.toml b/third_party/rust/ch
  version = "=0.5.16-rc1"
  features = ["arith"]
 +
-+# Plain Browser: Brave's adblock-rust engine (see //draftway/adblock).
++# Plain Browser: Brave's adblock-rust engine (see //plainbrowser/adblock).
 +[dependencies.adblock]
 +version = "=0.13.3"
 +default-features = false

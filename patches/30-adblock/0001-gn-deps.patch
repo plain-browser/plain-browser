@@ -1,7 +1,7 @@
-From: Draftway
-Subject: [adblock] Link //draftway/adblock into chrome/browser:core and chrome/renderer
+From: Plain Browser
+Subject: [adblock] Link //plainbrowser/adblock into chrome/browser:core and chrome/renderer
 
-Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it in.
+Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
 ---
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
@@ -9,7 +9,7 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
    }
  
    deps = [
-+    "//draftway/adblock:browser",
++    "//plainbrowser/adblock:browser",
      ":active_use_util",
      ":after_startup_task_utils",
      ":bad_message",
@@ -19,7 +19,7 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
    ]
  
    deps = [
-+    "//draftway/adblock:renderer",
++    "//plainbrowser/adblock:renderer",
      ":process_state",
      "//base/allocator:buildflags",
      "//build:chromeos_buildflags",

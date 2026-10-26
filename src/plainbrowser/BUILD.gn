@@ -1,0 +1,9 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# Copied to chromium/src/plainbrowser/ by scripts/prepare.py. Chromium targets depend
+# on //plainbrowser/adblock:browser and //plainbrowser/adblock:renderer (patches/30-adblock).
+group("plainbrowser") {
+  public_deps = [
+    "//plainbrowser/adblock:browser",
+    "//plainbrowser/adblock:renderer",
+  ]
+}

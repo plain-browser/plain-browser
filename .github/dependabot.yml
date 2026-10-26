@@ -4,5 +4,5 @@ updates:
     directory: /
     schedule: { interval: weekly }
   - package-ecosystem: cargo
-    directory: /src/draftway/adblock/rs
+    directory: /src/plainbrowser/adblock/rs
     schedule: { interval: weekly }

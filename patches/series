@@ -1,4 +1,4 @@
-# Plain Browser patches (internal codename "draftway"), applied after ungoogled-chromium-windows patches.
+# Plain Browser patches, applied after ungoogled-chromium-windows patches.
 # Each entry is a path relative to patches/. Patches must be generated against
 # the pinned Chromium tag (see versions.toml).
 # After applying these, run scripts/vendor-adblock-crates.ps1 (gnrt vendor + gen); see docs/ADBLOCK.md.

@@ -1,0 +1,20 @@
+// Copyright Plain Browser contributors. MPL-2.0.
+module plainbrowser.adblock.mojom;
+
+import "url/mojom/url.mojom";
+
+// Browser-process ad/tracker filter, backed by adblock-rust. Exposed to
+// renderer processes (see browser/renderer_interfaces.h).
+interface AdblockFilter {
+  // Adds another receiver; used to hand the filter to worker threads.
+  Clone(pending_receiver<AdblockFilter> receiver);
+
+  // `request_type` uses adblock-rust names: "script", "image", "stylesheet",
+  // "font", "media", "sub_frame", "xmlhttprequest", "websocket", "object",
+  // "other". `source_url` is the URL of the requesting document (or its origin).
+  ShouldBlockRequest(url.mojom.Url url, url.mojom.Url source_url,
+                     string request_type) => (bool block);
+
+  // Element-hiding CSS for a document URL; empty when nothing applies.
+  GetCosmeticCss(url.mojom.Url url) => (string css);
+};

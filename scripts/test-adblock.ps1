@@ -2,7 +2,7 @@
    Serves six hostnames from a local HTTP server (chrome --host-resolver-rules maps them to 127.0.0.1, so
    DNS filters such as Pi-hole cannot interfere) and loads a page that fetches one URL from each:
    four known ad/tracker hosts (EasyList rules) and two controls. The result is read from the tab title
-   over the remote-debugging port. Run once with the filter on and once with --disable-features=DraftwayAdblock.
+   over the remote-debugging port. Run once with the filter on and once with --disable-features=PlainBrowserAdblock.
    Expected ON: ad_* error, never reach the server; ctl_* allowed. Expected OFF: all six allowed, none hang.
    Hosts are deliberately NOT on Chrome's HSTS preload list (google/wikipedia domains are: they would fail
    with or without a blocker).
@@ -57,5 +57,5 @@ function Run($extra, $tag, $port) {
   "   server received: " + ((Get-Content $log -ErrorAction SilentlyContinue | Select-String "GET" | ForEach-Object { ($_.Line -split '"')[1] }) -join " | ")
 }
 Run @() "ON" 9351
-Run @("--disable-features=DraftwayAdblock") "OFF_killswitch" 9352
+Run @("--disable-features=PlainBrowserAdblock") "OFF_killswitch" 9352
 "DONE"

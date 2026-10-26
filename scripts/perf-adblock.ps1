@@ -50,9 +50,9 @@ function Run($extra, $tag, $port) {
   Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue
   Start-Sleep 1
   "[$tag] $title"
-  Get-Content "C:\dw-perf\e_$tag.txt" -ErrorAction SilentlyContinue | Select-String "Draftway adblock engine ready" | ForEach-Object { "   " + $_.Line.Substring($_.Line.IndexOf("Draftway")) }
+  Get-Content "C:\dw-perf\e_$tag.txt" -ErrorAction SilentlyContinue | Select-String "Plain Browser adblock engine ready" | ForEach-Object { "   " + $_.Line.Substring($_.Line.IndexOf("Plain Browser")) }
 }
 Run @() "ON" 9361
 Run @() "ON_again" 9362
-Run @("--disable-features=DraftwayAdblock") "OFF" 9363
+Run @("--disable-features=PlainBrowserAdblock") "OFF" 9363
 "DONE"

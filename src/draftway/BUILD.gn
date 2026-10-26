@@ -1,9 +1,0 @@
-# Copyright Plain Browser contributors. MPL-2.0.
-# Copied to chromium/src/draftway/ by scripts/prepare.py. Chromium targets depend
-# on //draftway/adblock:browser and //draftway/adblock:renderer (patches/30-adblock).
-group("draftway") {
-  public_deps = [
-    "//draftway/adblock:browser",
-    "//draftway/adblock:renderer",
-  ]
-}

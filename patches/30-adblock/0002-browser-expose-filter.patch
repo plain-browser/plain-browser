@@ -1,7 +1,7 @@
-From: Draftway
-Subject: [adblock] Expose draftway.adblock.mojom.AdblockFilter to renderers
+From: Plain Browser
+Subject: [adblock] Expose plainbrowser.adblock.mojom.AdblockFilter to renderers
 
-Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it in.
+Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
 ---
 --- a/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
 +++ b/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
@@ -9,7 +9,7 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
  #include "content/public/browser/security_principal.h"
  #include "content/public/browser/service_worker_version_base_info.h"
  #include "content/public/common/buildflags.h"
-+#include "draftway/adblock/browser/renderer_interfaces.h"
++#include "plainbrowser/adblock/browser/renderer_interfaces.h"
  #include "extensions/buildflags/buildflags.h"
  #include "extensions/common/extension_id.h"
  #include "media/mojo/buildflags.h"
@@ -17,8 +17,8 @@ Category: 30-adblock. Code lives in //draftway/adblock; this patch only wires it
    registry->AddInterface<metrics::mojom::CallStackProfileCollector>(
        base::BindRepeating(&metrics::CallStackProfileCollector::Create));
  
-+  // Draftway: adblock filter for renderer subresource and cosmetic filtering.
-+  draftway::adblock::ExposeInterfacesToRenderer(registry);
++  // Plain Browser: adblock filter for renderer subresource and cosmetic filtering.
++  plainbrowser::adblock::ExposeInterfacesToRenderer(registry);
 +
    if (NetBenchmarking::CheckBenchmarkingEnabled()) {
      Profile* profile =

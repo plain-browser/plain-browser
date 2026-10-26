@@ -1,4 +1,4 @@
-<# Install the Windows toolchain needed to build Draftway/Chromium via winget.
+<# Install the Windows toolchain needed to build Plain Browser/Chromium via winget.
    Self-elevates. Idempotent: already installed packages are skipped.
    Usage:  powershell -ExecutionPolicy Bypass -File scripts\install-tools.ps1 [-DefenderExclusion] [-BuildDir C:\dw-build]
    Log:    <BuildDir>\install-tools.log #>

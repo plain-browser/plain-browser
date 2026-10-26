@@ -1,0 +1,9 @@
+Name: Plain Browser
+URL: https://github.com/plain-browser/plain-browser
+Version: 0.1.0
+License: MPL-2.0
+License File: //plainbrowser/LICENSE
+Shipped: yes
+Security Critical: yes
+
+Description: Plain Browser's own code: the adblock integration (browser process service, renderer throttle and cosmetic filter agent, Mojo interface and the adblock-rust bridge) and the build patches, licensed under the Mozilla Public License 2.0 (patches: BSD-3-Clause, see patches/LICENSE in the repository).

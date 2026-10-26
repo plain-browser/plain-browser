@@ -86,5 +86,5 @@ if __name__ == "__main__":
     chrome = sys.argv[1]
     runs = int(sys.argv[2]) if len(sys.argv) > 2 else 1
     run(chrome, [], "adblock ON", 9371, runs)
-    run(chrome, ["--disable-features=DraftwayAdblock"], "adblock OFF", 9372, runs)
+    run(chrome, ["--disable-features=PlainBrowserAdblock"], "adblock OFF", 9372, runs)
     print("DONE")

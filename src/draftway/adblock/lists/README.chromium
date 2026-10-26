@@ -1,9 +1,0 @@
-Name: EasyList, EasyPrivacy and EasyList Polish filter lists
-URL: https://easylist.to
-Version: 2026-10-23
-License: CC-BY-SA-3.0
-License File: //draftway/adblock/lists/LICENSE
-Shipped: yes
-Security Critical: no
-
-Description: Ad and tracker filter lists bundled unmodified and used by the built-in ad blocker. The lists are available under GPLv3 or Creative Commons Attribution-ShareAlike 3.0 (https://easylist.to/pages/licence.html); this entry uses the CC BY-SA 3.0 terms. Copyright the EasyList authors (https://easylist.to/pages/about.html). EasyList Polish is maintained by the Polish filter authors (https://github.com/MajkiIT/polish-ads-filter).

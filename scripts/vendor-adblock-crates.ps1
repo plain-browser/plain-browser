@@ -1,5 +1,5 @@
 <# Vendor the adblock-rust crates into the ungoogled-chromium-windows tree and generate their GN targets.
-   Prerequisite: scripts\apply-draftway.ps1 has applied patches\series (including
+   Prerequisite: scripts\apply-plainbrowser.ps1 has applied patches\series (including
    30-adblock\0000-crate-config.patch). Needs network (cargo downloads ~18 crates).
    Order matters and each step below fixed a failure seen on Chromium 156.0.8078.47:
    1. .cargo\config.toml must exist (it makes cargo read crates from vendor\).
@@ -11,7 +11,7 @@
 param([string]$Src = "C:\dw-build\ucw\build\src", [string]$Ucw = "C:\dw-build\ucw")
 $ErrorActionPreference = "Stop"
 $crates = "$Src\third_party\rust\chromium_crates_io"
-if (-not (Select-String -Path "$crates\Cargo.toml" -Pattern "dependencies\.adblock" -Quiet)) { throw "Run scripts\apply-draftway.ps1 first (crate config patch missing)." }
+if (-not (Select-String -Path "$crates\Cargo.toml" -Pattern "dependencies\.adblock" -Quiet)) { throw "Run scripts\apply-plainbrowser.ps1 first (crate config patch missing)." }
 
 # 1. cargo source replacement (standard `cargo vendor` config)
 New-Item -ItemType Directory -Force "$crates\.cargo" | Out-Null

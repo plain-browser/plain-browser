@@ -1,4 +1,4 @@
-From: Draftway
+From: Plain Browser
 Subject: [MV2] Do not treat MV2 extensions as deprecated
 
 ungoogled-chromium's extensions-manifestv2.patch already stops Chromium from
@@ -40,7 +40,7 @@ Category: 40-mv2. Drop when upstream removes manifest_v2_util.
 -  // The extension is an MV2 (or lower) extension; we should warn the user
 -  // about it.
 -  return true;
-+  // Draftway: Manifest V2 is a supported extension format in this browser
++  // Plain Browser: Manifest V2 is a supported extension format in this browser
 +  // (see ungoogled-chromium's extensions-manifestv2.patch, which already keeps
 +  // MV2 extensions enabled). Report no extension as affected by the upstream
 +  // MV2 deprecation, so no deprecation warnings, badges or Safety Hub

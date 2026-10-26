@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Copy the Draftway layer into an ungoogled-chromium-windows checkout.
+"""Copy the Plain Browser layer into an ungoogled-chromium-windows checkout.
 
 usage: prepare.py <ungoogled-chromium-windows dir> <chromium src dir>
-Appends our patches to the ungoogled series and copies //draftway into src.
+Appends our patches to the ungoogled series and copies //plainbrowser into src.
 Fails loudly: never silently skips a missing target.
 """
 import shutil, sys
@@ -15,12 +15,12 @@ def main(ucw: Path, src: Path) -> int:
         print(f"error: {ucw} is not ungoogled-chromium-windows", file=sys.stderr); return 1
     if not src.is_dir():
         print(f"error: chromium src not found: {src}", file=sys.stderr); return 1
-    dst = src / "draftway"
+    dst = src / "plainbrowser"
     if dst.exists(): shutil.rmtree(dst)
-    shutil.copytree(ROOT / "src" / "draftway", dst, ignore=shutil.ignore_patterns("target", "*.lock.bak"))
+    shutil.copytree(ROOT / "src" / "plainbrowser", dst, ignore=shutil.ignore_patterns("target", "*.lock.bak"))
     series_lines = [l.strip() for l in (ROOT / "patches" / "series").read_text().splitlines()
                     if l.strip() and not l.startswith("#")]
-    out = ucw / "patches" / "draftway"
+    out = ucw / "patches" / "plainbrowser"
     if out.exists(): shutil.rmtree(out)
     for rel in series_lines:
         p = ROOT / "patches" / rel
@@ -30,9 +30,9 @@ def main(ucw: Path, src: Path) -> int:
         shutil.copy2(p, out / rel)
     series = ucw / "patches" / "series"
     existing = series.read_text().splitlines() if series.exists() else []
-    existing = [l for l in existing if not l.startswith("draftway/")]
-    series.write_text("\n".join(existing + [f"draftway/{r}" for r in series_lines]) + "\n")
-    print(f"ok: copied //draftway, {len(series_lines)} patches")
+    existing = [l for l in existing if not l.startswith("plainbrowser/")]
+    series.write_text("\n".join(existing + [f"plainbrowser/{r}" for r in series_lines]) + "\n")
+    print(f"ok: copied //plainbrowser, {len(series_lines)} patches")
     return 0
 
 if __name__ == "__main__":

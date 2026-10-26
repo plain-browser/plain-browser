@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Unattended Windows 11 Pro install for the Draftway build VM (Unraid/KVM, virtio).
+<!-- Unattended Windows 11 Pro install for the Plain Browser build VM (Unraid/KVM, virtio).
      Disk 0 is the USB stick carrying this file; the virtio system disk enumerates as disk 1.
      @@PASSWORD@@ is substituted at deploy time; never commit a real password. -->
 <unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
@@ -74,7 +74,7 @@
       <FirstLogonCommands>
         <SynchronousCommand wcm:action="add"><Order>1</Order>
           <CommandLine>cmd /c for %d in (D E F G H I) do @if exist %d:\firstboot.ps1 powershell -NoProfile -ExecutionPolicy Bypass -File %d:\firstboot.ps1</CommandLine>
-          <Description>Draftway first boot</Description></SynchronousCommand>
+          <Description>Plain Browser first boot</Description></SynchronousCommand>
       </FirstLogonCommands>
     </component>
   </settings>
