@@ -1,0 +1,18 @@
+From: Plain Browser
+Subject: [safebrowsing] prefs_util.cc: drop the signin_pref_names.h include that came back with the Safe Browsing prefs
+
+Category: 70-safebrowsing. ungoogled's remove-unused-preferences-fields.patch removes the Safe Browsing and
+the signin pref includes of this file in one hunk. We keep the Safe Browsing prefs (patches/upstream-revert.list
+drops that hunk), but signin_pref_names.h stays removed by other ungoogled patches, so this hunk takes the
+include out again. The signin allowlist entries are removed by a separate upstream hunk that still applies.
+---
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -66,7 +66,6 @@
+ #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
+ #include "components/saved_tab_groups/public/pref_names.h"
+ #include "components/search_engines/default_search_manager.h"
+-#include "components/signin/public/base/signin_pref_names.h"
+ #include "components/skills/public/skills_prefs.h"
+ #include "components/spellcheck/browser/pref_names.h"
+ #include "components/supervised_user/core/common/pref_names.h"

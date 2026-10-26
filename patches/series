@@ -23,5 +23,6 @@
 60-ui/0002-no-web-store-app.patch
 60-ui/0004-no-web-store-shortcut.patch
 70-safebrowsing/0001-proxy-and-client-header.patch
+70-safebrowsing/0002-prefs-util-no-signin-include.patch
 80-fingerprint/0001-renderer-agent.patch
 80-fingerprint/0002-browser-renderer-switches.patch
