@@ -18,10 +18,10 @@ Limits you should know about:
 
 `GET`/`POST` on `/v4/threatListUpdates:fetch`, `/v4/fullHashes:find`, `/v4/threatMatches:find`. Any other path is
 404. The query string is forwarded except `key`, which is always replaced by the server's key, and `$req`:
-Chromium sends the request as `GET ...?$req=<base64 protobuf>` with `X-HTTP-Method-Override: POST`, and Google
-answers that envelope with 403 "ThreatType is not accessible" unless the override header arrives (it is not on
-the proxy's allow-list). The proxy therefore decodes `$req` and sends Google an ordinary `POST` with the protobuf
-body, which is the form Google accepts from any client (verified 2026-10-26).
+Chromium sends the request as `GET ...?$req=<base64 protobuf>` with `X-HTTP-Method-Override: POST`; the proxy
+decodes `$req` and sends Google an ordinary `POST` with the protobuf body, so the override header (not on the
+allow-list) is never needed. Note: a 403 "ThreatType is not accessible" from Google means the request named a
+Chrome-only list; the browser side only asks for public lists (patches/70-safebrowsing/0003 and 0004).
 
 ## Deploy
 
