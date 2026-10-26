@@ -10,14 +10,21 @@ import shutil, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+from patchfilter import filter_patch  # noqa: E402
 
 def revert_list():
     out = []
     for line in (ROOT / "patches" / "upstream-revert.list").read_text().splitlines():
         line = line.strip()
         if line and not line.startswith("#"):
-            repo, rel = line.split(":", 1)
-            out.append((repo, rel))
+            if line.startswith("hunks:"):
+                _, repo, rest = line.split(":", 2)
+                rel, regex = rest.split(":", 1)
+                out.append(("hunks", (repo, rel, regex)))
+            else:
+                repo, rel = line.split(":", 1)
+                out.append((repo, rel))
     return out
 
 
@@ -58,6 +65,18 @@ def main(ucw: Path, src: Path) -> int:
         if n < 0:
             return 1
         print(f"ok: kept {n} files out of pruning.list")
+    for kind, spec in reverts:
+        if kind != "hunks":
+            continue
+        repo, rel, regex = spec
+        pf = (ucw / "ungoogled-chromium" / "patches" if repo == "uc" else ucw / "patches") / rel
+        if not pf.exists():
+            print(f"error: upstream patch not found: {pf}", file=sys.stderr); return 1
+        text, matched = filter_patch(pf.read_text(encoding="utf-8", errors="surrogateescape"), regex, keep=False)
+        if not matched:
+            print(f"error: no hunk of {rel} matches {regex!r} (upstream changed? update patches/upstream-revert.list)", file=sys.stderr); return 1
+        pf.write_text(text, encoding="utf-8", errors="surrogateescape", newline="")
+        print(f"ok: dropped {matched} hunks from {rel}")
     for repo, series_path in (("uc", ucw / "ungoogled-chromium" / "patches" / "series"), ("ucw", ucw / "patches" / "series")):
         drop = {rel for r, rel in reverts if r == repo}
         if drop:

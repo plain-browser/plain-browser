@@ -2,6 +2,8 @@
 # One entry per line, with a prefix:
 #   uc:<patch>    ungoogled-chromium/patches/<patch>          ucw:<patch>  ungoogled-chromium-windows/patches/<patch>
 #   prune:<file>  a Chromium file that ungoogled's pruning.list deletes and we need
+#   hunks:uc:<patch>:<regex>  only the hunks of that upstream patch whose changed lines match <regex>
+#                 (scripts/patchfilter.py); the rest of the patch stays applied
 # prepare.py drops the patches from the upstream series and the files from pruning.list before a fresh build;
 # apply-plainbrowser.ps1 reverses the patches (patch -R, last applied first) and restores the files (git checkout,
 # or a download from chromium.googlesource.com) on an already-built tree; check-patches.py skips the patches' hunks.
@@ -17,3 +19,6 @@ uc:core/inox-patchset/0001-fix-building-without-safebrowsing.patch
 prune:components/safe_browsing/core/common/safe_browsing_prefs.cc
 prune:components/safe_browsing/core/common/safe_browsing_prefs.h
 prune:components/safe_browsing/content/resources/empty_file_type_policy.pb
+# ungoogled removes the Safe Browsing preferences (registration, policy handlers, settings UI bindings, users)
+# together with other unused prefs in one patch. Only its Safe Browsing hunks are dropped; the rest stays.
+hunks:uc:core/ungoogled-chromium/remove-unused-preferences-fields.patch:safe_browsing|SafeBrowsing|safebrowsing

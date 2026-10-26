@@ -19,6 +19,7 @@ import argparse, base64, json, os, re, shutil, subprocess, sys, tempfile, urllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
 UCW_REPO = "ungoogled-software/ungoogled-chromium-windows"
 UC_REPO = "ungoogled-software/ungoogled-chromium"
 
@@ -149,10 +150,16 @@ def main():
         dest.write_bytes(base64.b64decode(data))
     print(f"fetched {len(our_files) - len(missing)} of {len(our_files)} files", file=sys.stderr)
 
-    reverted = set()
+    reverted, hunk_drops = set(), {}
     for line in (ROOT / "patches" / "upstream-revert.list").read_text().splitlines():
         line = line.strip()
-        if line and not line.startswith("#") and not line.startswith("prune:"):
+        if not line or line.startswith("#") or line.startswith("prune:"):
+            continue
+        if line.startswith("hunks:"):
+            _, repo, rest = line.split(":", 2)
+            rel, regex = rest.split(":", 1)
+            hunk_drops[(repo, rel)] = regex
+        else:
             reverted.add(tuple(line.split(":", 1)))
 
     upstream_notes = []
@@ -168,6 +175,10 @@ def main():
             text = http_get(raw + "patches/" + rel)
             if text is None:
                 upstream_notes.append(f"{name}/{rel}: not found"); continue
+            if (key, rel) in hunk_drops:
+                from patchfilter import filter_patch as drop_hunks
+                text, n = drop_hunks(text, hunk_drops[(key, rel)], keep=False)
+                upstream_notes.append(f"{name}/{rel}: {n} hunks dropped (patches/upstream-revert.list)")
             if not (touched_files(text) & our_files):
                 continue
             part = filter_patch(text, our_files)
