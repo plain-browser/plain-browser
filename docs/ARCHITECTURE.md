@@ -44,6 +44,11 @@ patches/
   80-fingerprint/        # wpięcie agenta fingerprintu i przekazanie klucza sesji do rendererów
 ```
 
+`patches/upstream-revert.list` wymienia patche ungoogled, których NIE nakładamy (w całości albo wybrane hunki,
+`scripts/patchfilter.py`) oraz pliki z `pruning.list`, które przywracamy; dziś służy to Safe Browsing.
+`prepare.py` filtruje tym upstreamową serię przed świeżym buildem, `apply-plainbrowser.ps1` odwraca je na gotowym
+drzewie, a `check-patches.py --export` potrafi wygenerować dokładną oczekiwaną treść plików.
+
 Poza `series` drzewo Chromium edytują jeszcze dwa skrypty (`scripts/apply-branding.py`, `scripts/post-gnrt-fixups.ps1`);
 są wymienione w komentarzu w `series`. Hunki nie mogą zawierać hostów Google: ungoogled podmienia je (domain
 substitution) po nałożeniu patchy, więc taki hunk wchodzi w jednym przepływie (`prepare.py`) i nie wchodzi w drugim

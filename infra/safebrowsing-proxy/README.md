@@ -17,8 +17,11 @@ Limits you should know about:
 ## Endpoints
 
 `GET`/`POST` on `/v4/threatListUpdates:fetch`, `/v4/fullHashes:find`, `/v4/threatMatches:find`. Any other path is
-404. The query string is forwarded (Chromium sends `$req` and `$ct`), except `key`, which is always replaced by
-the server's key.
+404. The query string is forwarded except `key`, which is always replaced by the server's key, and `$req`:
+Chromium sends the request as `GET ...?$req=<base64 protobuf>` with `X-HTTP-Method-Override: POST`, and Google
+answers that envelope with 403 "ThreatType is not accessible" unless the override header arrives (it is not on
+the proxy's allow-list). The proxy therefore decodes `$req` and sends Google an ordinary `POST` with the protobuf
+body, which is the form Google accepts from any client (verified 2026-10-26).
 
 ## Deploy
 
@@ -84,7 +87,11 @@ Done in `patches/70-safebrowsing/0001-proxy-and-client-header.patch`, on
 4. Enhanced Protection and extended reporting stay disabled and unselectable (they upload URLs and page data).
    Standard protection (local hash list) is the only mode that fits this design.
 
-Still open: ungoogled-chromium builds with `safe_browsing_mode=0` and patches the feature out
-(`fix-building-without-safebrowsing.patch`, `safe_browsing-disable-*.patch`). The patch above applies cleanly on
-that tree but has no effect until Safe Browsing is compiled back in (`safe_browsing_mode=1` in the flags override
-in `scripts/build.ps1`, and reverting those ungoogled patches). That is a separate, unestimated step.
+Safe Browsing is compiled back in since 2026-10-26: `patches/upstream-revert.list` drops ungoogled's three
+`fix-building-without-safebrowsing` patches, the Safe Browsing hunks of `remove-unused-preferences-fields.patch`
+and `move-js-optimizer-unfamiliar-sites.patch`, restores the pruned pref and ETW files, and the build runs with
+`safe_browsing_mode=1`. The two iridium patches that disable incident reporting and extended reporting stay.
+`patches/70-safebrowsing/0003` requests only the lists a public API key can fetch (MALWARE, SOCIAL_ENGINEERING,
+UNWANTED_SOFTWARE, CSD download allowlist); Google refuses the Chrome-only ones and fails the whole update
+otherwise. `scripts/test-safebrowsing.ps1` runs the browser headless with a NetLog and shows the update request
+going to `sb.plain-browser.app` with the `X-Client` header and no Google host contacted.

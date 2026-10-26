@@ -62,8 +62,37 @@ test("only Content-Type and a neutral User-Agent reach Google; client key is rep
   const u = new URL(calls[0].url);
   assert.equal(u.host, "safebrowsing.googleapis.com");
   assert.deepEqual(u.searchParams.getAll("key"), ["SERVER_KEY"]);
-  assert.equal(u.searchParams.get("$req"), "AAA");
+  assert.equal(u.searchParams.get("$ct"), "application/x-protobuf");
   assert.ok(!calls[0].url.includes("203.0.113.7") && !calls[0].url.includes("CLIENT_KEY"));
+});
+
+test("Chromium's GET + $req envelope is unwrapped into a protobuf POST", async () => {
+  const calls = mockUpstream();
+  const req = btoa("\x0a\x05hello"); // any bytes; Google parses the protobuf
+  const res = await handle(
+    new Request(`https://sb.example.com/v4/threatListUpdates:fetch?%24req=${encodeURIComponent(req)}&%24ct=application%2Fx-protobuf&key=dummytoken`, {
+      method: "GET",
+      headers: { "X-HTTP-Method-Override": "POST", "User-Agent": "HeadlessChrome/156" },
+    }),
+    env,
+  );
+  assert.equal(res.status, 200);
+  assert.equal(calls[0].init.method, "POST");
+  const u = new URL(calls[0].url);
+  assert.equal(u.searchParams.get("$req"), null);
+  assert.equal(u.searchParams.get("$ct"), "application/x-protobuf");
+  assert.deepEqual(u.searchParams.getAll("key"), ["SERVER_KEY"]);
+  const sent = new Headers(calls[0].init.headers);
+  assert.equal(sent.get("content-type"), "application/x-protobuf");
+  assert.equal(sent.get("x-http-method-override"), null);
+  assert.equal(new TextDecoder().decode(calls[0].init.body as ArrayBuffer), "\x0a\x05hello");
+});
+
+test("a GET with an undecodable $req is rejected without contacting Google", async () => {
+  const calls = mockUpstream();
+  const res = await handle(new Request("https://sb.example.com/v4/threatListUpdates:fetch?%24req=%25%25%25", { method: "GET" }), env);
+  assert.equal(res.status, 400);
+  assert.equal(calls.length, 0);
 });
 
 test("other paths and methods are rejected without contacting Google", async () => {

@@ -8,6 +8,7 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 |---|---|---|---|
 | Strip tracking parameters from links (`utm_*`, `fbclid`, ...) | `TrackingParamsNavigationThrottle`, `lists/plainbrowser-removeparam.txt`, `patches/30-adblock/0005` | done for navigations | **done**, verified headless on the build VM (`scripts/test-privacy.ps1`) |
 | Bypass tracking redirects ("debouncing") | See below | days | not started |
+| Safe Browsing (local hash database) through our proxy, no Google contact from the client | `patches/70-safebrowsing`, `patches/upstream-revert.list`, `infra/safebrowsing-proxy` | done | **built and verified headless** 2026-10-26: update request reaches `sb.plain-browser.app` with `X-Client`; needs the Worker redeployed (GET+`$req` unwrapping) for a 200 |
 | Fingerprint randomization with compatibility exceptions (for example online banking) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **done**, verified headless on the build VM; JS logic unit-tested in Node |
 
 ### Tracking parameters and redirects

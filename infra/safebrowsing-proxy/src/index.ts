@@ -61,7 +61,9 @@ export async function handle(request: Request, env: Env): Promise<Response> {
     }
   }
 
+  let method = request.method;
   let body: ArrayBuffer | undefined;
+  let bodyContentType = request.headers.get("Content-Type");
   if (request.method === "POST") {
     const declared = Number(request.headers.get("Content-Length") ?? "0");
     if (declared > MAX_BODY_BYTES) return text(413, "Payload too large");
@@ -69,22 +71,40 @@ export async function handle(request: Request, env: Env): Promise<Response> {
     if (body.byteLength > MAX_BODY_BYTES) return text(413, "Payload too large");
   }
 
-  // Keep the client's query ($req, $ct, alt, ...) but replace any key it sent with ours.
+  // Keep the client's query ($ct, alt, ...) but replace any key it sent with ours.
   const upstream = new URL(UPSTREAM + url.pathname);
   for (const [k, v] of url.searchParams) {
-    if (k.toLowerCase() !== "key") upstream.searchParams.append(k, v);
+    if (k.toLowerCase() !== "key" && k !== "$req") upstream.searchParams.append(k, v);
   }
   upstream.searchParams.set("key", env.GOOGLE_SB_KEY);
 
+  // Chromium sends the v4 request as GET with the protobuf in `$req` (base64) plus
+  // "X-HTTP-Method-Override: POST". Google answers that envelope with 403 "ThreatType is not
+  // accessible" unless the override header is there, and the header is not on our allow-list.
+  // So the proxy unwraps it: the decoded `$req` becomes the body of an ordinary POST, which is
+  // the same request Google accepts from any client.
+  const reqParam = url.searchParams.get("$req");
+  if (request.method === "GET" && reqParam !== null) {
+    let decoded: Uint8Array;
+    try {
+      decoded = Uint8Array.from(atob(reqParam.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+    } catch {
+      return text(400, "Bad $req");
+    }
+    if (decoded.byteLength > MAX_BODY_BYTES) return text(413, "Payload too large");
+    method = "POST";
+    body = decoded.buffer as ArrayBuffer;
+    bodyContentType = "application/x-protobuf";
+  }
+
   // Allow-list, not block-list: only these headers are ever sent.
   const headers = new Headers({ "User-Agent": NEUTRAL_USER_AGENT });
-  const contentType = request.headers.get("Content-Type");
-  if (contentType) headers.set("Content-Type", contentType);
+  if (bodyContentType) headers.set("Content-Type", bodyContentType);
 
   let res: Response;
   try {
     res = await fetch(upstream.toString(), {
-      method: request.method,
+      method,
       headers,
       body,
       redirect: "manual",

@@ -43,7 +43,7 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | MV2 | ungoogled-chromium already keeps MV2 enabled in 156; one small cleanup patch written and compiled, **no extension tested yet** |
 | Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) | Done: navigation throttle + `$removeparam` list, verified headless (`scripts/test-privacy.ps1`) |
 | Fingerprint protection (canvas, audio, WebGL strings, navigator) with a compatibility list of excepted sites (for example online banking) | Done as a first slice (page-world script, no Blink patches), verified headless; see `docs/FINGERPRINT.md` |
-| Safe Browsing through our proxy (`sb.plain-browser.app`, `X-Client: PlainBrowser/<version>`) | Patch written; Safe Browsing itself is still compiled out by ungoogled-chromium |
+| Safe Browsing through our proxy (`sb.plain-browser.app`, `X-Client: PlainBrowser/<version>`) | Compiled in (ungoogled's removal patches dropped via `patches/upstream-revert.list`), verified headless: the list update goes only to our proxy. Standard protection only; no reporting |
 | Branding, installer, updater, extension repository | Not started |
 
 Verified: same six requests with the filter on and off. On: the four EasyList hosts never reach the server, controls load.
