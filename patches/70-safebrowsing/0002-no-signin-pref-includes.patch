@@ -1,0 +1,58 @@
+From: Plain Browser
+Subject: [safebrowsing] Drop the signin_pref_names.h includes that come back with the Safe Browsing pref hunks
+
+Category: 70-safebrowsing. ungoogled's remove-unused-preferences-fields.patch removes the Safe Browsing and
+the signin pref includes in the same hunks. We keep the Safe Browsing prefs (patches/upstream-revert.list drops
+those hunks), but signin_pref_names.h stays deleted by other ungoogled patches, so these files lose that
+include again. The signin pref uses themselves are removed by separate upstream hunks that still apply.
+---
+--- a/chrome/browser/prefs/chrome_pref_service_factory.cc
++++ b/chrome/browser/prefs/chrome_pref_service_factory.cc
+@@ -57,7 +57,6 @@
+ #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
+ #include "components/search_engines/default_search_manager.h"
+ #include "components/search_engines/search_engines_pref_names.h"
+-#include "components/signin/public/base/signin_pref_names.h"
+ #include "components/signin/public/base/signin_switches.h"
+ #include "components/supervised_user/core/browser/device_parental_controls.h"
+ #include "components/supervised_user/core/browser/supervised_user_pref_store.h"
+--- a/chrome/browser/ui/hats/trust_safety_sentiment_service.cc
++++ b/chrome/browser/ui/hats/trust_safety_sentiment_service.cc
+@@ -31,7 +31,6 @@
+ #include "components/privacy_sandbox/privacy_sandbox_prefs.h"
+ #include "components/safe_browsing/core/browser/db/sb_protocol_manager_util.h"
+ #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
+-#include "components/signin/public/base/signin_pref_names.h"
+ #include "components/unified_consent/pref_names.h"
+ #include "components/version_info/channel.h"
+ 
+--- a/chrome/browser/policy/configuration_policy_handler_list_factory.cc
++++ b/chrome/browser/policy/configuration_policy_handler_list_factory.cc
+@@ -137,7 +137,6 @@
+ #include "components/security_interstitials/core/https_only_mode_policy_handler.h"
+ #include "components/security_interstitials/core/pref_names.h"
+ #include "components/signin/public/base/signin_buildflags.h"
+-#include "components/signin/public/base/signin_pref_names.h"
+ #include "components/skills/internal/enterprise_published_skills_policy_handler.h"
+ #include "components/skills/public/skills_prefs.h"
+ #include "components/spellcheck/spellcheck_buildflags.h"
+--- a/chrome/browser/safe_browsing/chrome_password_protection_service_sync_browsertest.cc
++++ b/chrome/browser/safe_browsing/chrome_password_protection_service_sync_browsertest.cc
+@@ -29,7 +29,6 @@
+ #include "components/safe_browsing/content/browser/password_protection/password_protection_request_content.h"
+ #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
+ #include "components/security_state/core/security_state.h"
+-#include "components/signin/public/base/signin_pref_names.h"
+ #include "components/signin/public/identity_manager/identity_manager.h"
+ #include "components/signin/public/identity_manager/identity_test_utils.h"
+ #include "components/sync/service/sync_service.h"
+--- a/components/password_manager/core/browser/sync_credentials_filter_unittest.cc
++++ b/components/password_manager/core/browser/sync_credentials_filter_unittest.cc
+@@ -33,7 +33,6 @@
+ #include "components/prefs/pref_registry_simple.h"
+ #include "components/prefs/testing_pref_service.h"
+ #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
+-#include "components/signin/public/base/signin_pref_names.h"
+ #include "components/signin/public/identity_manager/identity_manager.h"
+ #include "testing/gtest/include/gtest/gtest.h"
+ 
