@@ -6,9 +6,9 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 
 | Feature | Plan | Effort | Status |
 |---|---|---|---|
-| Strip tracking parameters from links (`utm_*`, `fbclid`, ...) | `TrackingParamsNavigationThrottle`, `lists/plainbrowser-removeparam.txt`, `patches/30-adblock/0005` | done for navigations | **written, not yet compiled or run** (needs the Windows builder) |
+| Strip tracking parameters from links (`utm_*`, `fbclid`, ...) | `TrackingParamsNavigationThrottle`, `lists/plainbrowser-removeparam.txt`, `patches/30-adblock/0005` | done for navigations | **done**, verified headless on the build VM (`scripts/test-privacy.ps1`) |
 | Bypass tracking redirects ("debouncing") | See below | days | not started |
-| Fingerprint randomization with per-site exceptions (banks) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **written, not yet compiled or run**; JS logic unit-tested in Node |
+| Fingerprint randomization with per-site exceptions (banks) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **done**, verified headless on the build VM; JS logic unit-tested in Node |
 
 ### Tracking parameters and redirects
 - adblock-rust already understands the uBlock-style `removeparam` filter option and returns a rewritten URL in its result

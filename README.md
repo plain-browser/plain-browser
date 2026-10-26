@@ -41,8 +41,8 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | Browser/renderer adblock code (service, mojo filter, request throttle, cosmetic agent) | Compiles, links and **blocks**: headless test (`scripts/test-adblock.ps1`) blocks four ad hosts, passes controls, and with `--disable-features=PlainBrowserAdblock` lets all through without hanging |
 | Vendoring the adblock crates into Chromium's GN build (gnrt) | Done, scripted (`scripts/vendor-adblock-crates.ps1`) |
 | MV2 | ungoogled-chromium already keeps MV2 enabled in 156; one small cleanup patch written and compiled, **no extension tested yet** |
-| Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) | Written (navigation throttle + `$removeparam` list), **not compiled or run yet** |
-| Fingerprint protection (canvas, audio, WebGL strings, navigator) with bank exceptions | Written (page-world script, no Blink patches), **not compiled or run yet**; see `docs/FINGERPRINT.md` |
+| Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) | Done: navigation throttle + `$removeparam` list, verified headless (`scripts/test-privacy.ps1`) |
+| Fingerprint protection (canvas, audio, WebGL strings, navigator) with bank exceptions | Done as a first slice (page-world script, no Blink patches), verified headless; see `docs/FINGERPRINT.md` |
 | Safe Browsing through our proxy (`sb.plain-browser.app`, `X-Client: PlainBrowser/<version>`) | Patch written; Safe Browsing itself is still compiled out by ungoogled-chromium |
 | Branding, installer, updater, extension repository | Not started |
 

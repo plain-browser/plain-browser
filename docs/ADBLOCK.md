@@ -47,5 +47,6 @@ Security note: adblock parses untrusted filter lists in the browser process; mov
 - Navigation (`$document`) blocking; requests started from the browser process.
 - `$removeparam` on subresources: the renderer throttle decides asynchronously and a deferred request's URL may
   only be edited synchronously (`URLLoaderThrottle::WillStartRequest`), so only navigations are cleaned today.
-- The tracking-parameter throttle and the removeparam list were written against the Chromium 156 headers but have
-  not been compiled or run yet (status 2026-10-26).
+- Tracking-parameter stripping verified 2026-10-26 with `scripts/test-privacy.ps1` (headless, local server): the
+  original URL never reaches the server, the re-issued navigation carries only the remaining parameters, and both
+  kill switches leave the URL untouched.

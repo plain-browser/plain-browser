@@ -1,7 +1,8 @@
 # Fingerprint protection
 
-Status 2026-10-26: written against the Chromium 156 headers, JS logic unit-tested in Node, **not compiled or run in
-the browser yet**.
+Status 2026-10-26: builds on Chromium 156 and verified headless on the build VM with `scripts/test-privacy.ps1`:
+`hardwareConcurrency` 2 instead of 12, generic WebGL renderer string, native-looking `toString`; a site from the
+exception list (mbank.pl) sees the real values; the kill switch restores everything.
 
 ## What it does
 `src/plainbrowser/fingerprint` injects `renderer/fingerprint_script.js` into the main world of every document, from
@@ -52,5 +53,7 @@ node src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js src/plainb
 ```
 The Node harness (stubbed `navigator`, canvas, audio and WebGL) checks determinism per seed, difference between
 seeds, that only low bits change in few pixels, native-looking `toString`, and single application of the audio
-factor. In the browser: open `https://browserleaks.com/canvas` in two tabs (same hash) and after a restart
-(different hash); open a bank from the list (hash equals a stock ungoogled-chromium).
+factor. In the browser: `scripts/test-privacy.ps1` on the build VM (headless, see its header for the expected output), or open
+`https://browserleaks.com/canvas` in two tabs (same hash) and after a restart (different hash); open a bank from
+the list (hash equals a stock ungoogled-chromium). `navigator.deviceMemory` only exists in secure contexts, so
+an http:// test page cannot show it.
