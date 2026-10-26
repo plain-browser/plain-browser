@@ -16,10 +16,11 @@ namespace plainbrowser::fingerprint {
 
 namespace {
 
-// Built-in exceptions: online banking and payment sites (Polish market first).
-// Banks fingerprint the device as part of fraud detection and strong customer
-// authentication; a fingerprint that changes every session triggers extra
-// verification or blocks the login. Keep sorted; eTLD+1 only, lower case.
+// Built-in compatibility list: sites that need a stable device fingerprint to
+// work. Typical example: online banking and payment services, which fingerprint
+// the device for fraud detection and strong customer authentication; a
+// fingerprint that changes every session triggers extra verification or blocks
+// the login. Polish market first. Keep sorted; eTLD+1 only, lower case.
 constexpr std::array<std::string_view, 36> kBuiltInExceptions = {
     "aliorbank.pl",      "bankmillennium.pl", "blik.com",
     "bnpparibas.pl",     "bosbank.pl",        "bps.pl",

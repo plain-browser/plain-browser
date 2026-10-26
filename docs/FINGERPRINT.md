@@ -2,7 +2,7 @@
 
 Status 2026-10-26: builds on Chromium 156 and verified headless on the build VM with `scripts/test-privacy.ps1`:
 `hardwareConcurrency` 2 instead of 12, generic WebGL renderer string, native-looking `toString`; a site from the
-exception list (mbank.pl) sees the real values; the kill switch restores everything.
+compatibility list (mbank.pl) sees the real values; the kill switch restores everything.
 
 ## What it does
 `src/plainbrowser/fingerprint` injects `renderer/fingerprint_script.js` into the main world of every document, from
@@ -24,10 +24,12 @@ tracker frame sees the noise of the page it is on, not its own.
 
 Wrappers report `[native code]` from `Function.prototype.toString` and keep the original `name` and `length`.
 
-## Exceptions (banks)
-Banks fingerprint the device for fraud detection; a fingerprint that changes every session triggers extra
-verification or blocks the login. Sites on the exception list get no script at all:
-- built-in list in `renderer/fingerprint_exceptions.cc` (Polish banks, BLIK, Przelewy24, PayU, PayPal, Revolut, Wise);
+## Compatibility exceptions
+Some sites need a stable device fingerprint to work: they use it for fraud detection or strong customer
+authentication, and a fingerprint that changes every session triggers extra verification or blocks the login.
+Online banking and payment services are the typical example. Sites on the compatibility list get no script at all:
+- built-in list in `renderer/fingerprint_exceptions.cc` (today: Polish banks, BLIK, Przelewy24, PayU, PayPal,
+  Revolut, Wise; any site with the same problem belongs there);
 - `--fingerprint-exceptions=mbank.pl,example.com` (eTLD+1, comma-separated) is forwarded to renderers.
 
 Kill switch: `--disable-features=PlainBrowserFingerprintProtection`.
@@ -54,6 +56,6 @@ node src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js src/plainb
 The Node harness (stubbed `navigator`, canvas, audio and WebGL) checks determinism per seed, difference between
 seeds, that only low bits change in few pixels, native-looking `toString`, and single application of the audio
 factor. In the browser: `scripts/test-privacy.ps1` on the build VM (headless, see its header for the expected output), or open
-`https://browserleaks.com/canvas` in two tabs (same hash) and after a restart (different hash); open a bank from
-the list (hash equals a stock ungoogled-chromium). `navigator.deviceMemory` only exists in secure contexts, so
+`https://browserleaks.com/canvas` in two tabs (same hash) and after a restart (different hash); open a site from
+the compatibility list, for example a bank (hash equals a stock ungoogled-chromium). `navigator.deviceMemory` only exists in secure contexts, so
 an http:// test page cannot show it.

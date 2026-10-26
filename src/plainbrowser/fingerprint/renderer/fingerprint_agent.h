@@ -14,8 +14,9 @@ namespace plainbrowser::fingerprint {
 // document is created (before any page script runs) it injects
 // fingerprint_script.js with a seed derived from the session key and the
 // top-level site (eTLD+1), so one site sees the same noise for the whole
-// session and two sites see different noise. Sites on the exception list
-// (banks) get nothing. Self-owned; deleted in OnDestruct().
+// session and two sites see different noise. Sites on the compatibility list
+// (sites that need a stable fingerprint, for example online banking) get
+// nothing. Self-owned; deleted in OnDestruct().
 class FingerprintAgent : public content::RenderFrameObserver {
  public:
   static void Create(content::RenderFrame* render_frame);

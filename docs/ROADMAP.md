@@ -8,7 +8,7 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 |---|---|---|---|
 | Strip tracking parameters from links (`utm_*`, `fbclid`, ...) | `TrackingParamsNavigationThrottle`, `lists/plainbrowser-removeparam.txt`, `patches/30-adblock/0005` | done for navigations | **done**, verified headless on the build VM (`scripts/test-privacy.ps1`) |
 | Bypass tracking redirects ("debouncing") | See below | days | not started |
-| Fingerprint randomization with per-site exceptions (banks) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **done**, verified headless on the build VM; JS logic unit-tested in Node |
+| Fingerprint randomization with compatibility exceptions (for example online banking) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **done**, verified headless on the build VM; JS logic unit-tested in Node |
 
 ### Tracking parameters and redirects
 - adblock-rust already understands the uBlock-style `removeparam` filter option and returns a rewritten URL in its result
@@ -28,11 +28,11 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
   hardware values. Noise must stay inside plausible ranges: arbitrary random values are themselves a fingerprint.
 - The code lives in Blink and touches many files, so patches break often on rebase. Of everything in this document this
   is the most expensive to maintain against the "small, rebase-friendly patch set" goal.
-- Exceptions ("banks"): one per-site content setting, shared with the adblock and parameter-stripping toggles. Needs a
+- Compatibility exceptions (for example banks): one per-site content setting, shared with the adblock and parameter-stripping toggles. Needs a
   settings page and a toolbar control that do not exist yet.
 - Done as a first slice without Blink patches: a script injected into every page's main world (canvas, audio,
-  WebGL strings, hardwareConcurrency, deviceMemory) with a per-site, per-session seed; built-in exception list of
-  banks plus `--fingerprint-exceptions=a.pl,b.pl`. Details and limits in [FINGERPRINT.md](FINGERPRINT.md).
+  WebGL strings, hardwareConcurrency, deviceMemory) with a per-site, per-session seed; built-in compatibility list of
+  sites that need a stable fingerprint (online banking, payments) plus `--fingerprint-exceptions=a.pl,b.pl`. Details and limits in [FINGERPRINT.md](FINGERPRINT.md).
   Next: a settings page for the exception list, then Blink-level farbling for the surfaces where a page-world
   override is too easy to detect.
 

@@ -7,8 +7,9 @@
 namespace plainbrowser::fingerprint {
 
 // True when `site` (an eTLD+1 such as "mbank.pl") must not get fingerprint
-// noise: it is in the built-in list (banks and payment services whose fraud
-// checks break on a changing device fingerprint) or in the
+// noise: it is on the built-in compatibility list (sites that need a stable
+// device fingerprint to work, for example online banking and payment services
+// whose fraud checks break on a changing fingerprint) or in the
 // --fingerprint-exceptions switch.
 bool IsExceptedSite(std::string_view site);
 

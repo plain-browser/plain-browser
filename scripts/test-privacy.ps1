@@ -7,7 +7,7 @@
    handler gives up when the first navigation is cancelled and re-issued.
    Expected:
      params      GET /fp.html?id=7            hwc=2|4|8 (bucketed)
-     bank        GET /fp.html?id=7            hwc=<real>  (mbank.pl is on the exception list)
+     compat      GET /fp.html?id=7            hwc=<real>  (mbank.pl is on the compatibility list)
      params-off  GET /fp.html?utm_source=..   (kill switch PlainBrowserTrackingParams)
      fp-off      GET /fp.html?id=7            hwc=<real>  (kill switch PlainBrowserFingerprintProtection)
    Usage: powershell -File scripts\test-privacy.ps1 [-Exe <chrome.exe>] #>
@@ -29,7 +29,7 @@ $srv = Start-Process $py -ArgumentList "-u -m http.server 8011 --bind 127.0.0.1"
 Start-Sleep 2
 $cases = @(
   @{ n = "params";     u = "http://site.test:8011/fp.html?utm_source=nl&fbclid=abc&id=7"; x = @() },
-  @{ n = "bank";       u = "http://mbank.pl:8011/fp.html?utm_source=nl&id=7";            x = @() },
+  @{ n = "compat";     u = "http://mbank.pl:8011/fp.html?utm_source=nl&id=7";            x = @() },
   @{ n = "params-off"; u = "http://site.test:8011/fp.html?utm_source=nl&id=7";           x = @("--disable-features=PlainBrowserTrackingParams") },
   @{ n = "fp-off";     u = "http://site.test:8011/fp.html?id=7";                         x = @("--disable-features=PlainBrowserFingerprintProtection") }
 )

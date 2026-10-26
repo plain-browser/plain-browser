@@ -10,9 +10,10 @@ namespace plainbrowser::fingerprint::switches {
 inline constexpr char kFingerprintSessionKey[] =
     "plainbrowser-fingerprint-session-key";
 
-// User-settable, forwarded to renderers: comma-separated list of sites
-// (eTLD+1, e.g. "mbank.pl,ing.pl") that get no fingerprint noise, in addition
-// to the built-in list (renderer/fingerprint_exceptions.cc).
+// User-settable, forwarded to renderers: comma-separated compatibility list of
+// sites (eTLD+1, e.g. "mbank.pl,ing.pl") that get no fingerprint noise because
+// they need a stable fingerprint, in addition to the built-in list
+// (renderer/fingerprint_exceptions.cc).
 inline constexpr char kFingerprintExceptions[] = "fingerprint-exceptions";
 
 }  // namespace plainbrowser::fingerprint::switches
