@@ -31,15 +31,22 @@ Set-Location $Src
 foreach ($d in "seahash-v4","flatbuffers-v25") { $p = "$crates\vendor\$d"; if ((Test-Path $p) -and -not (Test-Path "$p\LICENSE")) { Remove-Item $p -Recurse -Force } }
 
 # 2. vendor
-& $py tools\crates\run_gnrt.py vendor
-if ($LASTEXITCODE) { throw "gnrt vendor failed" }
+$eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+& $py tools\crates\run_gnrt.py vendor 2>&1 | ForEach-Object { "$_" }
+$vendorrc = $LASTEXITCODE
+$ErrorActionPreference = $eap
+if ($vendorrc) { throw "gnrt vendor failed ($vendorrc)" }
 
 # 3. no checksums in Chromium's Cargo.lock
 $lock = [IO.File]::ReadAllText("$crates\Cargo.lock")
 [IO.File]::WriteAllText("$crates\Cargo.lock", [regex]::Replace($lock, "(?m)^checksum = .*\r?\n", ""))
 
 # 4. gen and fixups
-& $py tools\crates\run_gnrt.py gen 2>&1 | Where-Object { $_ -notmatch "gen\.rs:324|Error formatting|Please format" }
-if ($LASTEXITCODE) { throw "gnrt gen failed" }
+# cargo reports progress on stderr; Windows PowerShell 5.1 raises a terminating error for that under "Stop".
+$eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+& $py tools\crates\run_gnrt.py gen 2>&1 | ForEach-Object { "$_" } | Where-Object { $_ -notmatch "gen\.rs:324|Error formatting|Please format" }
+$genrc = $LASTEXITCODE
+$ErrorActionPreference = $eap
+if ($genrc) { throw "gnrt gen failed ($genrc)" }
 & "$PSScriptRoot\post-gnrt-fixups.ps1" -Src $Src -Ucw $Ucw
 Write-Host "Done. Now regenerate the build files: out\Default\gn.exe gen out\Default, then build."
