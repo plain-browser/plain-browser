@@ -34,8 +34,8 @@ def drop_from_series(series: Path, drop: set) -> int:
     kept = [l for l in lines if l.strip() not in drop]
     missing = drop - {l.strip() for l in lines}
     if missing:
-        print(f"error: not in {series}: {sorted(missing)} (upstream renamed it? update patches/upstream-revert.list)", file=sys.stderr)
-        return -1
+        # Already dropped on a re-run, or renamed upstream: check-patches.py (CI) reports the latter.
+        print(f"note: not in {series.name}: {sorted(missing)} (already dropped, or renamed upstream)")
     series.write_text("\n".join(kept) + "\n")
     return len(lines) - len(kept)
 
@@ -43,11 +43,12 @@ def drop_from_series(series: Path, drop: set) -> int:
 def main(ucw: Path, src: Path) -> int:
     if not (ucw / "build.py").exists():
         print(f"error: {ucw} is not ungoogled-chromium-windows", file=sys.stderr); return 1
-    if not src.is_dir():
-        print(f"error: chromium src not found: {src}", file=sys.stderr); return 1
     dst = src / "plainbrowser"
-    if dst.exists(): shutil.rmtree(dst)
-    shutil.copytree(ROOT / "src" / "plainbrowser", dst, ignore=shutil.ignore_patterns("target", "*.lock.bak"))
+    if src.is_dir():
+        if dst.exists(): shutil.rmtree(dst)
+        shutil.copytree(ROOT / "src" / "plainbrowser", dst, ignore=shutil.ignore_patterns("target", "*.lock.bak"))
+    else:
+        print("note: chromium src not there yet; //plainbrowser is copied later by apply-plainbrowser.ps1")
     series_lines = [l.strip() for l in (ROOT / "patches" / "series").read_text().splitlines()
                     if l.strip() and not l.startswith("#")]
     out = ucw / "patches" / "plainbrowser"
@@ -79,7 +80,8 @@ def main(ucw: Path, src: Path) -> int:
             print(f"error: upstream patch not found: {pf}", file=sys.stderr); return 1
         text, matched = filter_patch(pf.read_text(encoding="utf-8", errors="surrogateescape"), regex, keep=False, exclude_path=exclude)
         if not matched:
-            print(f"error: no hunk of {rel} matches {regex!r} (upstream changed? update patches/upstream-revert.list)", file=sys.stderr); return 1
+            print(f"note: no hunk of {rel} matches {regex!r} (already dropped on a re-run, or upstream changed)")
+            continue
         pf.write_text(text, encoding="utf-8", errors="surrogateescape", newline="")
         print(f"ok: dropped {matched} hunks from {rel}")
     for repo, series_path in (("uc", ucw / "ungoogled-chromium" / "patches" / "series"), ("ucw", ucw / "patches" / "series")):

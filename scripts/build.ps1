@@ -1,4 +1,5 @@
-<# Phase 0: build stock ungoogled-chromium-windows at the tag pinned in versions.toml.
+<# Full Plain Browser build: ungoogled-chromium-windows at the tag pinned in versions.toml plus our layer
+   (patches/, patches/upstream-revert.list, src/plainbrowser, adblock crates, branding), signed and packaged.
    Self-elevates (the upstream build must run as administrator in a VS developer environment).
    Profiles:
      alpha    (default) is_official_build=false, no PGO/LTO, no PCH (PCH breaks with clang modules). Fits 32 GB RAM. Not for releases.
@@ -60,18 +61,50 @@ try {
   }
   Set-Content $flags -Value $content -NoNewline
 
+  # Plain Browser layer, part 1: upstream series minus patches/upstream-revert.list, pruning.list without the
+  # files we keep, safe_browsing_mode=1, our patches appended to the Windows series (all in the ucw work copy).
+  & python3 -I "$root\scripts\prepare.py" $ucw "$ucw\build\src"
+  if ($LASTEXITCODE) { throw "prepare.py failed" }
+
   # gn bootstrap looks for ninja via %NINJA% or PATH; use the copy shipped in the Chromium tree.
   $env:NINJA = "$ucw\build\src\third_party\ninja\ninja.exe"
   # --ci makes build.py resumable: finished steps (clone, patches, gn, bindgen) are skipped on re-run.
   # Its ninja step stops after 3.5 h with exit code 124; we simply resume. On success it runs package.py.
   $b = @("build.py","--ci"); if ($Jobs -gt 0) { $b += @("-j",$Jobs) }
-  for ($pass = 1; $pass -le 30; $pass++) {
-    Write-Host "Running: python3 $($b -join ' ')  pass $pass  ($(Get-Date))"
-    & python3 @b
-    $rc = $LASTEXITCODE
-    if ($rc -ne 124) { break }
-    Write-Host "ninja time slice ended, resuming"
+  function Invoke-BuildPy {
+    for ($pass = 1; $pass -le 30; $pass++) {
+      Write-Host "Running: python3 $($b -join ' ')  pass $pass  ($(Get-Date))"
+      & python3 @b
+      $script:rc = $LASTEXITCODE
+      if ($script:rc -ne 124) { return }
+      Write-Host "ninja time slice ended, resuming"
+    }
   }
+  $src = "$ucw\build\src"
+  $layered = Test-Path "$src\plainbrowser\BUILD.gn"
+  # Phase 1 (fresh tree only): sources, pruning, patches (ours included), domain substitution, Rust toolchain,
+  # args.gn, gn bootstrap. gn gen then fails because //plainbrowser and the vendored adblock crates are not
+  # in the tree yet; that is the expected stop.
+  if (-not $layered) {
+    Invoke-BuildPy
+    if ($rc -ne 0) {
+      if (-not (Test-Path "$src\out\Default\gn.exe")) { throw "build.py failed before gn bootstrap (exit $rc); see the log above" }
+      Write-Host "build.py stopped at gn gen (expected on a fresh tree)"
+    }
+  }
+  # Phase 2 (idempotent): //plainbrowser, branding strings, adblock crates, gn gen.
+  & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\apply-plainbrowser.ps1" -Src $src -Repo $root -Ucw $ucw
+  if ($LASTEXITCODE) { throw "apply-plainbrowser.ps1 failed" }
+  & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\vendor-adblock-crates.ps1" -Src $src -Ucw $ucw
+  if ($LASTEXITCODE) { throw "vendor-adblock-crates.ps1 failed" }
+  $env:DEPOT_TOOLS_WIN_TOOLCHAIN = "0"
+  Push-Location $src
+  & "$src\out\Default\gn.exe" gen out\Default --fail-on-unused-args
+  $gnrc = $LASTEXITCODE
+  Pop-Location
+  if ($gnrc) { throw "gn gen failed ($gnrc)" }
+  # Phase 3: bindgen, ninja (chrome, chromedriver, mini_installer), upstream package.py.
+  Invoke-BuildPy
   if ($rc) { throw "build.py failed (exit $rc). Re-run the script to resume incrementally." }
   # Authenticode: inner binaries must be signed before packaging, the installer after. No-op without a certificate.
   & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\sign-windows.ps1" -Out "$ucw\build\src\out\Default" -Dist "$ucw\build"
