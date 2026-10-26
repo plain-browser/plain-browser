@@ -1,6 +1,17 @@
 {
   "name": "plainbrowser-site-api",
   "private": true,
-  "scripts": { "deploy": "wrangler deploy", "dev": "wrangler dev", "types": "wrangler types", "check": "wrangler types && tsc -p ." },
-  "devDependencies": { "wrangler": "^4", "typescript": "^5" }
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "types": "wrangler types",
+    "check": "wrangler types && tsc -p ."
+  },
+  "devDependencies": {
+    "wrangler": "^4",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "undici": "7.30.1"
+  }
 }
