@@ -1,6 +1,8 @@
 <# Apply the Plain Browser layer to an already-built ungoogled-chromium-windows tree (build VM).
    Copies src\plainbrowser to <src>\plainbrowser and applies patches\series with the tree's patch.exe.
-   Idempotent: a patch that is already applied (reverse dry-run succeeds) is skipped.
+   Idempotent: a patch that is already applied (reverse dry-run succeeds) is skipped. A patch whose files are
+   edited further after it is applied (cargo rewrites Cargo.toml after 30-adblock/0000) declares in its header
+   "Applied-Marker: <file>:<substring>"; it is skipped when that file contains the substring.
    Usage: powershell -File scripts\apply-plainbrowser.ps1 [-Src C:\dw-build\ucw\build\src] [-Repo C:\dw-build\repo] #>
 param([string]$Src = "C:\dw-build\ucw\build\src", [string]$Repo = (Split-Path -Parent $PSScriptRoot))
 $ErrorActionPreference = "Stop"
@@ -18,6 +20,11 @@ $series = Get-Content "$Repo\patches\series" | Where-Object { $_.Trim() -and -no
 foreach ($rel in $series) {
   $file = Join-Path "$Repo\patches" $rel
   if (-not (Test-Path $file)) { throw "missing patch $rel" }
+  $marker = Select-String -Path $file -Pattern '^Applied-Marker: ([^:]+):(.+)$' | Select-Object -First 1
+  if ($marker) {
+    $mfile = Join-Path $Src $marker.Matches[0].Groups[1].Value; $mtext = $marker.Matches[0].Groups[2].Value
+    if ((Test-Path $mfile) -and ((Get-Content $mfile -Raw).Contains($mtext))) { Write-Host "[skip] $rel (marker present)"; continue }
+  }
   & $patch -d $Src -p1 -R --dry-run --silent -i $file *> $null
   if ($LASTEXITCODE -eq 0) { Write-Host "[skip] $rel (already applied)"; continue }
   & $patch -d $Src -p1 --forward --no-backup-if-mismatch -i $file

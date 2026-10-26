@@ -1,5 +1,6 @@
 From: Plain Browser
 Subject: [adblock] Vendor the adblock-rust crates into third_party/rust (config only)
+Applied-Marker: third_party/rust/chromium_crates_io/Cargo.toml:[dependencies.adblock]
 
 Adds adblock 0.13.3 to chromium_crates_io/Cargo.toml and the matching gnrt_config.toml
 entries: allow_unsafe for the nine crates that really use unsafe code, regex moved from the

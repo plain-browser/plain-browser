@@ -32,4 +32,13 @@ jobs:
             case "$f" in *.bundle) continue;; esac
             cosign sign-blob --yes --bundle "$f.bundle" "$f"
           done
+          # Verify every bundle with the exact command SECURITY.md gives users, before anything is uploaded.
+          for f in *; do
+            case "$f" in *.bundle) continue;; esac
+            cosign verify-blob --bundle "$f.bundle" \
+              --certificate-identity "https://github.com/$REPO/.github/workflows/sign-release.yml@$GITHUB_REF" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com "$f"
+          done
+          sha256sum -c SHA256SUMS.txt
           gh release upload "$TAG" --repo "$REPO" --clobber SHA256SUMS.txt *.bundle
+          echo "signed and verified: $(ls *.bundle | wc -l) files" >> "$GITHUB_STEP_SUMMARY"

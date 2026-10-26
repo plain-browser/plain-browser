@@ -1,6 +1,8 @@
 name: upstream-watch
-# Opens an issue when ungoogled-chromium-windows publishes a tag newer than the one pinned in versions.toml.
-# Stale Chromium is the main security risk of this project; the goal is to ship within a few days of an upstream tag.
+# Opens an issue when ungoogled-chromium-windows publishes a tag newer than the one pinned in versions.toml,
+# with a dry-run of patches/series against that tag (scripts/check-patches.py) so the issue already says which
+# patches need work. Stale Chromium is the main security risk of this project; the goal is to ship within a few
+# days of an upstream tag.
 on:
   schedule:
     - cron: "17 5 * * *"
@@ -31,6 +33,13 @@ jobs:
           if [ -n "$(gh issue list --state open --search "$title in:title" --json number --jq '.[].number')" ]; then
             echo "issue already open"; exit 0
           fi
-          gh issue create --title "$title" --body "Pinned: \`$current\`. Latest upstream tag: \`$latest\`.
-
-          Steps: bump versions.toml, run scripts/apply-draftway.ps1 (all patches must apply), rerun scripts/vendor-adblock-crates.ps1, build, run scripts/test-adblock.ps1. Check the upstream Chromium release notes for security fixes that our patches could interfere with."
+          # Dry-run our patches against the new tag; a failure here is the content of the issue, not an error.
+          python3 -I scripts/check-patches.py --tag "$latest" --report report.md || true
+          {
+            echo "Pinned: \`$current\`. Latest upstream tag: \`$latest\`."
+            echo
+            echo "Steps: bump versions.toml, run scripts/apply-plainbrowser.ps1 (all patches must apply), rerun scripts/vendor-adblock-crates.ps1, build, run scripts/test-adblock.ps1. Check the upstream Chromium release notes for security fixes that our patches could interfere with."
+            echo
+            cat report.md
+          } > body.md
+          gh issue create --title "$title" --body-file body.md

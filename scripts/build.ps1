@@ -54,9 +54,9 @@ try {
 
   # Local flag overrides (work copy only; marker keeps this idempotent).
   $flags = "$ucw\flags.windows.gn"
-  $content = (Get-Content $flags -Raw) -replace '(?s)\r?\n# DRAFTWAY-OVERRIDE-BEGIN.*?# DRAFTWAY-OVERRIDE-END\r?\n',''
+  $content = (Get-Content $flags -Raw) -replace '(?s)\r?\n# PLAINBROWSER-OVERRIDE-BEGIN.*?# PLAINBROWSER-OVERRIDE-END\r?\n',''
   if ($Profile -eq "alpha") {
-    $content += "`n# DRAFTWAY-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`ngenerate_about_credits=true`n# DRAFTWAY-OVERRIDE-END`n"
+    $content += "`n# PLAINBROWSER-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`ngenerate_about_credits=true`n# PLAINBROWSER-OVERRIDE-END`n"
   }
   Set-Content $flags -Value $content -NoNewline
 
@@ -73,8 +73,18 @@ try {
     Write-Host "ninja time slice ended, resuming"
   }
   if ($rc) { throw "build.py failed (exit $rc). Re-run the script to resume incrementally." }
+  # Authenticode: inner binaries must be signed before packaging, the installer after. No-op without a certificate.
+  & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\sign-windows.ps1" -Out "$ucw\build\src\out\Default" -Dist "$ucw\build"
+  if ($LASTEXITCODE) { throw "sign-windows.ps1 failed (inner binaries)" }
+  if ($env:PLAINBROWSER_SIGN_THUMBPRINT -or $env:PLAINBROWSER_SIGN_PFX) {
+    # The installer embeds chrome.7z, packed from the out dir: repack it so it carries the signed binaries.
+    & $env:NINJA -C "$ucw\build\src\out\Default" mini_installer
+    if ($LASTEXITCODE) { throw "ninja mini_installer (repack after signing) failed" }
+  }
   & python3 "$root\scripts\package-plainbrowser.py"
   if ($LASTEXITCODE) { throw "package-plainbrowser.py failed" }
+  & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\sign-windows.ps1" -Out "$ucw\build\src\out\Default" -Dist "$ucw\build"
+  if ($LASTEXITCODE) { throw "sign-windows.ps1 failed (installer)" }
   Pop-Location
   Write-Host "BUILD OK $(Get-Date). Artifacts:"; Get-ChildItem $ucw\build -Filter "PlainBrowser_*" -File | ForEach-Object { Write-Host "  $($_.FullName)  $([math]::Round($_.Length/1MB)) MB" }
 } catch {

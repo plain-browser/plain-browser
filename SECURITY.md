@@ -27,5 +27,9 @@ sha256sum -c SHA256SUMS.txt
 ```
 
 The signature shows who published the file and that it was not changed afterwards. It does not prove how the binary was
-built, and Windows code signing (Authenticode) is a separate, still open item: until it is done, SmartScreen and Smart App
-Control will warn about or refuse our installers. No release in this repository is signed yet.
+built. Windows code signing (Authenticode) is wired into the build (`scripts/sign-windows.ps1`, run by `build.ps1`)
+but waits for a certificate: until one is configured, SmartScreen and Smart App Control will warn about or refuse our
+installers. No release in this repository is signed yet.
+
+Commits on `main` are signed with the maintainer's SSH key; `scripts/github-protect-main.sh` sets the branch rules
+(no force-push, no deletion, linear history, signed commits required).

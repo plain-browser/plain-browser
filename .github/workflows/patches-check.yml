@@ -1,0 +1,34 @@
+name: patches-check
+# Dry-run of patches/series against the pinned ungoogled-chromium-windows tag, on the files our patches touch only.
+# Catches a patch that no longer applies before anyone spends hours on the Windows builder.
+on:
+  push:
+    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
+  pull_request:
+    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "ungoogled-chromium-windows tag (default: pinned in versions.toml)"
+        required: false
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: version.h matches versions.toml
+        run: python3 -I scripts/sync-version.py --check
+      - name: Apply the series to the files it touches
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          python3 -I scripts/check-patches.py ${TAG:+--tag "$TAG"} --report report.md
+      - name: Summary
+        if: always()
+        run: cat report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
