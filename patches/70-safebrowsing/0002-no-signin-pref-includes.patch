@@ -4,7 +4,8 @@ Subject: [safebrowsing] Drop the signin_pref_names.h includes that come back wit
 Category: 70-safebrowsing. ungoogled's remove-unused-preferences-fields.patch removes the Safe Browsing and
 the signin pref includes in the same hunks. We keep the Safe Browsing prefs (patches/upstream-revert.list drops
 those hunks), but signin_pref_names.h stays deleted by other ungoogled patches, so these files lose that
-include again. The signin pref uses themselves are removed by separate upstream hunks that still apply.
+include again. The signin pref uses themselves are removed by separate upstream hunks that still apply, except the two
+tracked-pref entries in chrome_pref_service_factory.cc, which shared a hunk with a Safe Browsing entry.
 ---
 --- a/chrome/browser/prefs/chrome_pref_service_factory.cc
 +++ b/chrome/browser/prefs/chrome_pref_service_factory.cc
@@ -56,3 +57,23 @@ include again. The signin pref uses themselves are removed by separate upstream 
  #include "components/signin/public/identity_manager/identity_manager.h"
  #include "testing/gtest/include/gtest/gtest.h"
  
+--- a/chrome/browser/prefs/chrome_pref_service_factory.cc
++++ b/chrome/browser/prefs/chrome_pref_service_factory.cc
+@@ -154,17 +154,12 @@
+     // releases after M50.
+     {18, prefs::kSafeBrowsingIncidentsSent, EnforcementLevel::ENFORCE_ON_LOAD,
+      PrefTrackingStrategy::ATOMIC, ValueType::IMPERSONAL},
+-    {23, prefs::kGoogleServicesAccountId, EnforcementLevel::ENFORCE_ON_LOAD,
+-     PrefTrackingStrategy::ATOMIC, ValueType::PERSONAL},
+     {29, prefs::kMediaStorageIdSalt, EnforcementLevel::ENFORCE_ON_LOAD,
+      PrefTrackingStrategy::ATOMIC, ValueType::IMPERSONAL},
+ #if BUILDFLAG(IS_WIN)
+     {32, prefs::kMediaCdmOriginData, EnforcementLevel::ENFORCE_ON_LOAD,
+      PrefTrackingStrategy::ATOMIC, ValueType::IMPERSONAL},
+ #endif  // BUILDFLAG(IS_WIN)
+-    {33, prefs::kGoogleServicesLastSignedInUsername,
+-     EnforcementLevel::ENFORCE_ON_LOAD, PrefTrackingStrategy::ATOMIC,
+-     ValueType::PERSONAL},
+     {34, enterprise_signin::prefs::kPolicyRecoveryToken,
+      EnforcementLevel::ENFORCE_ON_LOAD, PrefTrackingStrategy::ATOMIC,
+      ValueType::IMPERSONAL},
