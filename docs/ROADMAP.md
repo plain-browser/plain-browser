@@ -46,11 +46,12 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 | Upstream tracking: issue when a newer ungoogled-chromium-windows tag exists | `upstream-watch.yml` | **done**, logic dry-run on real data, not yet run on GitHub |
 | Signed releases: SHA256SUMS plus keyless cosign bundles | `sign-release.yml`, `SECURITY.md` | written; the workflow now verifies every bundle before uploading, so the first run on a release is the test |
 | Security policy | `SECURITY.md` | done; needs private vulnerability reporting enabled |
-| Branch protection (no force-push, no deletion, linear history, signed commits) | `scripts/github-protect-main.sh` | **run it yourself**: the assistant's token cannot change repository rules |
+| Branch protection (no force-push, no deletion, linear history, signed commits) | `scripts/github-protect-main.sh` | **run it yourself**: the assistant's token cannot change repository rules. Step-by-step list in `docs/GITHUB_SETUP.md` |
 | Secret scanning, push protection, Dependabot alerts | GitHub settings | to confirm in Settings, Code security |
 | GPG/SSH signing of commits and tags | local git config (`gpg.format=ssh`, `commit.gpgsign=true`, key `~/.ssh/id_ed25519.pub`) | **configured in this checkout**; register the key as a signing key on GitHub (`scripts/github-protect-main.sh` does it) so commits show as Verified |
-| Windows code signing (Authenticode) | `scripts/sign-windows.ps1`, called by `build.ps1` | script ready (signtool, SHA-256, RFC 3161 timestamp); **no certificate yet**, so it signs nothing. Eligibility for a Polish individual/company not confirmed |
-| Org-level 2FA, separate CI accounts | GitHub org | the repo is under a personal account: create an organization first if more people join |
+| Windows code signing (Authenticode) | `scripts/sign-windows.ps1` | **dropped 2026-10-26**: Plain Browser ships only as an MSIX through the Microsoft Store, which signs the package itself. The script stays for a possible future direct-download channel |
+| Updates | Microsoft Store | **covered by the Store** (automatic app updates, usually within a day of certification). No own updater while the Store is the only channel; see `docs/GITHUB_SETUP.md`, section 6 |
+| Org-level 2FA, second owner, separate CI account | GitHub org `plain-browser` | organization exists; 2FA requirement, second owner and bot account still to set up (`docs/GITHUB_SETUP.md`, section 3) |
 | Reproducible builds | build pipeline | long-term. Not realistic soon: our profile differs from upstream's and builds are not bit-identical. First goal is verifiable releases (above), then deterministic flags. |
 | Patches apply on the next upstream tag | `scripts/check-patches.py`, `patches-check.yml`, `upstream-watch.yml` | **done**: dry-run without a Chromium checkout on every change to `patches/` and on every new upstream tag |
 | CVE regression check for our patches | CI | needs a list of security-relevant files our patches touch, compared against upstream commits |

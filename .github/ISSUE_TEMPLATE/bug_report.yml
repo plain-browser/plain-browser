@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in Plain Browser does not work as described.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Plain Browser version
+      description: From chrome://version (Plain Browser and Chromium version) or the Store listing.
+      placeholder: 0.1.0-alpha.1 (Chromium 156.0.8078.47)
+    validations: { required: true }
+  - type: dropdown
+    id: install
+    attributes:
+      label: How was it installed?
+      options: [Microsoft Store (MSIX), Portable zip, Installer exe, Own build]
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open ...\n2. Click ...\n3. See ..."
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behaviour
+    validations: { required: true }
+  - type: dropdown
+    id: upstream
+    attributes:
+      label: Does it also happen in ungoogled-chromium of the same version?
+      options: [Not checked, "Yes (then it is a Chromium or ungoogled bug)", "No (Plain Browser only)"]
+    validations: { required: true }
+  - type: textarea
+    id: killswitch
+    attributes:
+      label: Does it change with a feature switched off?
+      description: >
+        Try `--disable-features=PlainBrowserAdblock`, `--disable-features=PlainBrowserTrackingParams`,
+        `--disable-features=PlainBrowserFingerprintProtection` and say which one changes the result.
+  - type: textarea
+    id: extensions
+    attributes:
+      label: Installed extensions

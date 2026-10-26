@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a change or a new feature.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or impossible today?
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations: { required: true }
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Network and privacy impact
+      description: Would the browser make any new request? To whom, with what data? See docs/PRIVACY.md.
+    validations: { required: true }
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

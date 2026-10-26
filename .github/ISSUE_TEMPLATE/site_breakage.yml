@@ -1,0 +1,32 @@
+name: Site breakage
+description: A website does not work because of the ad blocker, parameter stripping or fingerprint protection.
+labels: [site-breakage]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: Site URL
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Plain Browser version
+    validations: { required: true }
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Which switch fixes it?
+      description: Start the browser with the flag and retry.
+      options:
+        - "--disable-features=PlainBrowserAdblock"
+        - "--disable-features=PlainBrowserTrackingParams"
+        - "--disable-features=PlainBrowserFingerprintProtection"
+        - None of them
+        - Not checked
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What breaks
+      placeholder: Login loops, blank page, video does not play, ...
+    validations: { required: true }
