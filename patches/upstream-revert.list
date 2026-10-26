@@ -25,6 +25,9 @@ prune:chrome/app/etw_events/MSG00001.bin
 prune:chrome/app/etw_events/chrome_events_winTEMP.BIN
 # ungoogled removes the Safe Browsing preferences (registration, policy handlers, settings UI bindings, users)
 # together with other unused prefs in one patch. Only its Safe Browsing hunks are dropped; the rest stays.
-# generated_javascript_optimizer_pref.cc is excluded: it does not use the prefs, and the later upstream patch
-# move-js-optimizer-unfamiliar-sites.patch expects the include gone.
-hunks:uc:core/ungoogled-chromium/remove-unused-preferences-fields.patch:safe_browsing|SafeBrowsing|safebrowsing:!generated_javascript_optimizer_pref\.cc
+# The regex also catches the reporting and password-protection prefs that live outside the safe_browsing dirs
+# (security_interstitials controller clients, policy handler list, settings UI).
+hunks:uc:core/ungoogled-chromium/remove-unused-preferences-fields.patch:safe_browsing|SafeBrowsing|safebrowsing|ExtendedReporting|PasswordProtection|EnhancedProtection
+# Moves kJavascriptOptimizerBlockedForUnfamiliarSites out of the (pruned) Safe Browsing prefs; with those prefs
+# back the upstream code is right and the move would define the constant twice.
+uc:core/ungoogled-chromium/move-js-optimizer-unfamiliar-sites.patch
