@@ -1,0 +1,13 @@
+From: Plain Browser
+Subject: [ui] Do not open the ungoogled-chromium first-run page
+---
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -1331,7 +1331,6 @@
+   if (first_run::IsChromeFirstRun()) {
+     if (!base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kApp) &&
+         !base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kAppId)) {
+-      browser_creator_->AddFirstRunTabs({GURL("chrome://ungoogled-first-run")});
+       browser_creator_->AddFirstRunTabs(master_prefs_->new_tabs);
+     }
+   }

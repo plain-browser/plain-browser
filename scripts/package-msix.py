@@ -100,6 +100,11 @@ def main():
     if not os.path.isdir(ASSETS):
         raise SystemExit("logo assets missing: %s (run branding/make-icons.py)" % ASSETS)
     shutil.copytree(ASSETS, os.path.join(stage, "Assets"))
+    # A packaged app cannot register itself as the default browser the way the installer does (no registry
+    # ProgIDs); the manifest's http/https associations make it appear under Settings > Default apps instead.
+    # So the in-browser "make default" infobar is switched off for the Store build.
+    with open(os.path.join(stage, "initial_preferences"), "w", encoding="utf-8") as f:
+        f.write('{"browser": {"check_default_browser": false}}\n')
     with open(os.path.join(stage, "AppxManifest.xml"), "w", encoding="utf-8") as f:
         f.write(MANIFEST.format(name=escape(a.identity_name), publisher=escape(a.publisher, {'"': "&quot;"}),
                                 version=a.version, publisher_display=escape(a.publisher_display),

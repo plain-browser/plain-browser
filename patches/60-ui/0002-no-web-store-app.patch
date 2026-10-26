@@ -1,0 +1,14 @@
+From: Plain Browser
+Subject: [ui] Do not load the Chrome Web Store app (dead New Tab shortcut)
+---
+--- a/chrome/browser/extensions/component_loader.cc
++++ b/chrome/browser/extensions/component_loader.cc
+@@ -682,7 +682,7 @@
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ 
+   if (!skip_session_components) {
+-    AddWebStoreApp();
++    // Plain Browser has no Chrome Web Store: skip the app and its New Tab shortcut.
+ #if BUILDFLAG(IS_CHROMEOS)
+     AddChromeApp();
+ #endif  // BUILDFLAG(IS_CHROMEOS)

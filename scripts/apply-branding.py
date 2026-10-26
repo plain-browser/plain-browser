@@ -64,14 +64,18 @@ def attribution_pl(body, new):
 
 # Logo files (branding/icons, drawn by branding/make-icons.py) -> chrome/app/theme/chromium/<dest>.
 ICON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "branding", "icons")
-ICON_DEST = "chrome/app/theme/chromium"
+ICON_DEST = "chrome/app/theme"
 ICON_FILES = {
-    "product_logo.svg": "product_logo.svg",
-    **{"product_logo_%d.png" % n: "product_logo_%d.png" % n for n in (16, 24, 48, 64, 128, 256)},
-    "product_logo_22_mono.png": "product_logo_22_mono.png",
-    **{n: "win/" + n for n in ("chromium.ico", "chromium_doc.ico", "chromium_pdf.ico", "app_list.ico")},
-    "tiles/Logo.png": "win/tiles/Logo.png",
-    "tiles/SmallLogo.png": "win/tiles/SmallLogo.png",
+    "product_logo.svg": "chromium/product_logo.svg",
+    **{"product_logo_%d.png" % n: "chromium/product_logo_%d.png" % n for n in (16, 24, 48, 64, 128, 256)},
+    "product_logo_22_mono.png": "chromium/product_logo_22_mono.png",
+    **{n: "chromium/win/" + n for n in ("chromium.ico", "chromium_doc.ico", "chromium_pdf.ico", "app_list.ico")},
+    "tiles/Logo.png": "chromium/win/tiles/Logo.png",
+    "tiles/SmallLogo.png": "chromium/win/tiles/SmallLogo.png",
+    # In-browser images: infobars, About page, New Tab Page.
+    **{"theme/default_%s_percent/%s" % (pct, n): "default_%s_percent/chromium/%s" % (pct, n)
+       for pct in ("100", "200")
+       for n in ("product_logo_16.png", "product_logo_32.png", "product_logo_name_22.png", "product_logo_name_22_white.png")},
 }
 
 

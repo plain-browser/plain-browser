@@ -2,7 +2,7 @@
 Needs Pillow. The mark is a white geometric "P" on a blue disc: a stem and a bowl made of one disc.
 Usage: python branding/make-icons.py"""
 import os
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 BLUE = (45, 108, 223, 255)
 WHITE = (255, 255, 255, 255)
@@ -69,6 +69,39 @@ def save_on_background(path, size, mark_size, bg=(243, 246, 251, 255)):
     img.save(path)
 
 
+def wordmark(height, white):
+    """Mark plus "Plain Browser" in Segoe UI (or any available font), `height` px tall, on transparent."""
+    mark = draw_mark(height)
+    font = None
+    for name in (r"C:\Windows\Fonts\segoeuib.ttf", r"C:\Windows\Fonts\segoeui.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans.ttf"):
+        try:
+            font = ImageFont.truetype(name, int(height * 0.62))
+            break
+        except OSError:
+            continue
+    if font is None:
+        font = ImageFont.load_default()
+    text = "Plain Browser"
+    box = font.getbbox(text)
+    tw, th = box[2] - box[0], box[3] - box[1]
+    gap = max(4, height // 4)
+    img = Image.new("RGBA", (height + gap + tw + 2, height), (0, 0, 0, 0))
+    img.paste(mark, (0, 0), mark)
+    color = (255, 255, 255, 255) if white else (60, 64, 67, 255)
+    ImageDraw.Draw(img).text((height + gap - box[0], (height - th) // 2 - box[1]), text, font=font, fill=color)
+    return img
+
+
+def write_theme_images():
+    """Replacements for chrome/app/theme/default_{100,200}_percent/chromium/ (infobars, About page, New Tab)."""
+    for pct, scale in (("100", 1), ("200", 2)):
+        d = os.path.join(OUT, "theme", "default_%s_percent" % pct)
+        save_png(os.path.join(d, "product_logo_16.png"), 16 * scale)
+        save_png(os.path.join(d, "product_logo_32.png"), 32 * scale)
+        wordmark(22 * scale, False).save(os.path.join(d, "product_logo_name_22.png"))
+        wordmark(22 * scale, True).save(os.path.join(d, "product_logo_name_22_white.png"))
+
+
 def write_store_images():
     """Optional Partner Center images: app tile icons and 1:1 box art."""
     d = os.path.join(OUT, "store")
@@ -95,6 +128,7 @@ def write_msix_assets():
 def main():
     write_msix_assets()
     write_store_images()
+    write_theme_images()
     for s in (16, 24, 32, 48, 64, 128, 192, 256):
         save_png(os.path.join(OUT, "product_logo_%d.png" % s), s)
     save_png(os.path.join(OUT, "product_logo_22_mono.png"), 22, disc=False)

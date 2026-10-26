@@ -1,0 +1,17 @@
+From: Plain Browser
+Subject: [ui] Never show the Chrome Web Store shortcut on the New Tab page
+---
+--- a/chrome/browser/history/top_sites_factory.cc
++++ b/chrome/browser/history/top_sites_factory.cc
+@@ -65,9 +65,8 @@
+     history::PrepopulatedPageList* prepopulated_pages) {
+ #if !BUILDFLAG(IS_ANDROID)
+   DCHECK(prepopulated_pages);
+-  PrefService* pref_service = profile->GetPrefs();
+-  bool hide_web_store_icon =
+-      pref_service->GetBoolean(policy::policy_prefs::kHideWebStoreIcon);
++  // Plain Browser has no Chrome Web Store: never show its New Tab shortcut.
++  const bool hide_web_store_icon = true;
+ 
+   prepopulated_pages->reserve(std::size(kRawPrepopulatedPages));
+   for (size_t i = 0; i < std::size(kRawPrepopulatedPages); ++i) {
