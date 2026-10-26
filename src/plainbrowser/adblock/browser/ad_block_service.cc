@@ -75,7 +75,7 @@ GURL AdBlockService::RewrittenUrl(const GURL& url,
   // Only ever drop query parameters: anything else from the engine is ignored.
   if (!rewritten.is_valid() || rewritten == url ||
       rewritten.GetWithEmptyPath() != url.GetWithEmptyPath() ||
-      rewritten.path_piece() != url.path_piece()) {
+      rewritten.path() != url.path()) {
     return GURL();
   }
   return rewritten;

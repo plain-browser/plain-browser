@@ -109,7 +109,7 @@ void FingerprintAgent::DidCreateScriptContext(v8::Local<v8::Context> context,
       &script, 0, "__PB_SEED_LO__",
       base::NumberToString(static_cast<uint32_t>(seed & 0xffffffffu)));
 
-  v8::Isolate* isolate = context->GetIsolate();
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(context);
   v8::MicrotasksScope microtasks(context,
