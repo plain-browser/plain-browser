@@ -25,8 +25,10 @@ foreach ($line in $reverts) {
     $pf = if ($r -eq "uc") { Join-Path "$Ucw\ungoogled-chromium\patches" $prel } else { Join-Path "$Ucw\patches" $prel }
     $filtered = Join-Path $env:TEMP ("pb-hunks-" + ($prel -replace '[\\/]', '_'))
     $fa = @($pf, $regex, "--keep", "-o", $filtered); if ($exclude) { $fa += @("--exclude-path", $exclude) }
-    & $py -I "$Repo\scripts\patchfilter.py" @fa
-    if ($LASTEXITCODE) { throw "patchfilter found no hunk of $prel matching $regex" }
+    & $py -I "$Repo\scripts\patchfilter.py" @fa 2>$null
+    # Exit 3 = no matching hunk: on a fresh tree prepare.py already cut them out of the patch file, nothing to reverse.
+    if ($LASTEXITCODE -eq 3) { Write-Host "[skip] revert hunks of $prel (already dropped by prepare.py)"; continue }
+    if ($LASTEXITCODE) { throw "patchfilter failed on $prel (exit $LASTEXITCODE)" }
     $file = $filtered; $rel = "$prel (hunks: $regex)"
   } elseif ($repoName -eq "prune") {
     $dest = Join-Path $Src $rel
@@ -52,7 +54,7 @@ foreach ($line in $reverts) {
   & $patch -d $Src -p1 --dry-run --silent -i $file *> $null
   if ($LASTEXITCODE -ne 0) {
     # Expected when the patch depended on another patch reverted just before it (its context is gone with it).
-    Write-Host "[warn] $rel: $reversed file(s) reversed, forward dry-run does not match (context from an earlier reverted patch); check git diff on its files"
+    Write-Host "[warn] ${rel}: ${reversed} file(s) reversed, forward dry-run does not match (context from an earlier reverted patch); check git diff on its files"
   } else { Write-Host "[ok]   reverted $rel" }
 }
 # 1. //plainbrowser sources (mirror; rust target dirs excluded)
