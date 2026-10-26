@@ -4,8 +4,11 @@
    Idempotent: a patch that is already applied (reverse dry-run succeeds) is skipped. A patch whose files are
    edited further after it is applied (cargo rewrites Cargo.toml after 30-adblock/0000) declares in its header
    "Applied-Marker: <file>:<substring>"; it is skipped when that file contains the substring.
-   Usage: powershell -File scripts\apply-plainbrowser.ps1 [-Src C:\dw-build\ucw\build\src] [-Repo C:\dw-build\repo] [-Ucw C:\dw-build\ucw] #>
-param([string]$Src = "C:\dw-build\ucw\build\src", [string]$Repo = (Split-Path -Parent $PSScriptRoot), [string]$Ucw = "C:\dw-build\ucw")
+   -FromPrepare: the tree was built from a fresh clone by build.ps1, where prepare.py already put our series and the
+   upstream-revert.list into build.py's patch run. Then the revert step (0) and the series (2) are skipped: those
+   patches are applied, and the "already applied" check cannot tell (a later patch can change the same lines).
+   Usage: powershell -File scripts\apply-plainbrowser.ps1 [-Src C:\dw-build\ucw\build\src] [-Repo C:\dw-build\repo] [-Ucw C:\dw-build\ucw] [-FromPrepare] #>
+param([string]$Src = "C:\dw-build\ucw\build\src", [string]$Repo = (Split-Path -Parent $PSScriptRoot), [string]$Ucw = "C:\dw-build\ucw", [switch]$FromPrepare)
 $ErrorActionPreference = "Stop"
 $patch = Join-Path $Src "third_party\git\usr\bin\patch.exe"
 if (-not (Test-Path $patch)) { throw "patch.exe not found at $patch" }
@@ -15,6 +18,7 @@ $py = (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe","$e
 if (-not $py) { throw "Python 3 not found (needed for patchfilter.py and apply-branding.py)" }
 # 0. upstream patches we do not want, reversed in reverse order of application (ucw after uc)
 $reverts = Get-Content "$Repo\patches\upstream-revert.list" | Where-Object { $_.Trim() -and -not $_.StartsWith("#") }
+if ($FromPrepare) { $reverts = @(); Write-Host "[skip] upstream reverts and patch series (applied by build.py via prepare.py)" }
 $chromiumVersion = (Get-Content "$Ucw\ungoogled-chromium\chromium_version.txt" -Raw).Trim()
 foreach ($line in $reverts) {
   $repoName, $rel = $line.Split(":", 2)
@@ -55,14 +59,17 @@ foreach ($line in $reverts) {
   $eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
   $out = & $patch -d $Src -p1 -R --forward --no-backup-if-mismatch -i $file 2>&1
   $ErrorActionPreference = $eap
-  $reversed = @($out | Where-Object { $_ -match "^patching file" }).Count
+  # Hunks in the patch vs hunks patch refused with "Unreversed patch detected": the difference was reversed.
+  $hunks = @(Get-Content $file | Where-Object { $_ -match "^@@ " }).Count
+  $unrev = @($out | Where-Object { $_ -match "Unreversed patch detected" }).Count
+  $reversed = $hunks - $unrev
   Get-ChildItem $Src -Recurse -Filter *.rej -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $before } | Remove-Item -Force
-  if ($reversed -eq 0) { Write-Host "[skip] revert $rel (not applied)"; continue }
+  if ($reversed -le 0) { Write-Host "[skip] revert $rel (not applied)"; continue }
   & $patch -d $Src -p1 --dry-run --silent -i $file *> $null
   if ($LASTEXITCODE -ne 0) {
     # Expected when the patch depended on another patch reverted just before it (its context is gone with it).
-    Write-Host "[warn] ${rel}: ${reversed} file(s) reversed, forward dry-run does not match (context from an earlier reverted patch); check git diff on its files"
-  } else { Write-Host "[ok]   reverted $rel" }
+    Write-Host "[warn] ${rel}: ${reversed} of ${hunks} hunks reversed, forward dry-run does not match (context from an earlier reverted patch); check git diff on its files"
+  } else { Write-Host "[ok]   reverted $rel ($reversed hunks)" }
 }
 # 1. //plainbrowser sources (mirror; rust target dirs excluded)
 robocopy "$Repo\src\plainbrowser" "$Src\plainbrowser" /MIR /XD target vendor /NFL /NDL /NJH /NJS /NP | Out-Null
@@ -71,6 +78,7 @@ Write-Host "copied //plainbrowser"
 
 # 2. patches in series order
 $series = Get-Content "$Repo\patches\series" | Where-Object { $_.Trim() -and -not $_.StartsWith("#") }
+if ($FromPrepare) { $series = @() }
 foreach ($rel in $series) {
   $file = Join-Path "$Repo\patches" $rel
   if (-not (Test-Path $file)) { throw "missing patch $rel" }

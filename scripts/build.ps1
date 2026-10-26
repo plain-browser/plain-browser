@@ -94,7 +94,7 @@ try {
     }
   }
   # Phase 2 (idempotent): //plainbrowser, branding strings, adblock crates, gn gen.
-  & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\apply-plainbrowser.ps1" -Src $src -Repo $root -Ucw $ucw
+  & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\apply-plainbrowser.ps1" -Src $src -Repo $root -Ucw $ucw -FromPrepare
   if ($LASTEXITCODE) { throw "apply-plainbrowser.ps1 failed" }
   & powershell -NoProfile -ExecutionPolicy Bypass -File "$root\scripts\vendor-adblock-crates.ps1" -Src $src -Ucw $ucw
   if ($LASTEXITCODE) { throw "vendor-adblock-crates.ps1 failed" }
