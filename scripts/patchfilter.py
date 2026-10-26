@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Split a unified diff by hunk: keep or drop the hunks whose changed lines match a regex.
 
-usage: patchfilter.py <patch> <regex> --keep|--drop [-o OUT]
---keep writes only the hunks whose added/removed lines match the regex, --drop writes the others.
+usage: patchfilter.py <patch> <regex> --keep|--drop [-o OUT] [--exclude-path REGEX]
+--keep writes only the hunks whose added/removed lines, or whose file path, match the regex; --drop writes the
+others. (The path match makes every hunk in components/safe_browsing/ count for a regex like "safe_browsing".)
+Files whose path matches --exclude-path never count as matching (their hunks stay with the "others").
 A file section is written only when at least one of its hunks is written. Used for
 patches/upstream-revert.list "hunks:" entries: an upstream patch that mixes changes we want with changes we
 do not (ungoogled's remove-unused-preferences-fields.patch deletes Safe Browsing prefs alongside others).
@@ -31,13 +33,17 @@ def split(text):
     return files
 
 
-def filter_patch(text, regex, keep):
+def filter_patch(text, regex, keep, exclude_path=None):
     pat = re.compile(regex)
+    excl = re.compile(exclude_path) if exclude_path else None
     out, matched = [], 0
     for header, hunks in split(text):
         chosen = []
+        path = header[1][4:].strip()
+        excluded = bool(excl and excl.search(path))
+        path_hit = not excluded and bool(pat.search(path))
         for hunk in hunks:
-            hit = any(pat.search(l) for l in hunk[1:] if l[:1] in "+-")
+            hit = not excluded and (path_hit or any(pat.search(l) for l in hunk[1:] if l[:1] in "+-"))
             matched += hit
             if hit == keep:
                 chosen.append(hunk)
@@ -56,9 +62,10 @@ def main():
     g.add_argument("--keep", action="store_true")
     g.add_argument("--drop", action="store_true")
     ap.add_argument("-o", "--out", default=None, help="output file (default: stdout)")
+    ap.add_argument("--exclude-path", default=None, help="regex on file paths that never match")
     a = ap.parse_args()
     text = open(a.patch, encoding="utf-8", errors="surrogateescape").read()
-    result, matched = filter_patch(text, a.regex, a.keep)
+    result, matched = filter_patch(text, a.regex, a.keep, a.exclude_path)
     if a.out:
         open(a.out, "w", encoding="utf-8", errors="surrogateescape", newline="").write(result)
     else:

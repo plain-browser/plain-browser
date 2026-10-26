@@ -21,9 +21,11 @@ foreach ($line in $reverts) {
   if ($repoName -eq "hunks") {
     # hunks:uc:<patch>:<regex> -> reverse only the matching hunks (filtered with scripts/patchfilter.py)
     $r, $rest = $rel.Split(":", 2); $prel, $regex = $rest.Split(":", 2)
+    $exclude = $null; if ($regex -match '^(.*):!(.*)$') { $regex = $Matches[1]; $exclude = $Matches[2] }
     $pf = if ($r -eq "uc") { Join-Path "$Ucw\ungoogled-chromium\patches" $prel } else { Join-Path "$Ucw\patches" $prel }
     $filtered = Join-Path $env:TEMP ("pb-hunks-" + ($prel -replace '[\\/]', '_'))
-    & $py -I "$Repo\scripts\patchfilter.py" $pf $regex --keep -o $filtered
+    $fa = @($pf, $regex, "--keep", "-o", $filtered); if ($exclude) { $fa += @("--exclude-path", $exclude) }
+    & $py -I "$Repo\scripts\patchfilter.py" @fa
     if ($LASTEXITCODE) { throw "patchfilter found no hunk of $prel matching $regex" }
     $file = $filtered; $rel = "$prel (hunks: $regex)"
   } elseif ($repoName -eq "prune") {

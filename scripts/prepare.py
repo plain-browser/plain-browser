@@ -21,7 +21,8 @@ def revert_list():
             if line.startswith("hunks:"):
                 _, repo, rest = line.split(":", 2)
                 rel, regex = rest.split(":", 1)
-                out.append(("hunks", (repo, rel, regex)))
+                regex, _, exclude = regex.partition(":!")
+                out.append(("hunks", (repo, rel, regex, exclude or None)))
             else:
                 repo, rel = line.split(":", 1)
                 out.append((repo, rel))
@@ -68,11 +69,11 @@ def main(ucw: Path, src: Path) -> int:
     for kind, spec in reverts:
         if kind != "hunks":
             continue
-        repo, rel, regex = spec
+        repo, rel, regex, exclude = spec
         pf = (ucw / "ungoogled-chromium" / "patches" if repo == "uc" else ucw / "patches") / rel
         if not pf.exists():
             print(f"error: upstream patch not found: {pf}", file=sys.stderr); return 1
-        text, matched = filter_patch(pf.read_text(encoding="utf-8", errors="surrogateescape"), regex, keep=False)
+        text, matched = filter_patch(pf.read_text(encoding="utf-8", errors="surrogateescape"), regex, keep=False, exclude_path=exclude)
         if not matched:
             print(f"error: no hunk of {rel} matches {regex!r} (upstream changed? update patches/upstream-revert.list)", file=sys.stderr); return 1
         pf.write_text(text, encoding="utf-8", errors="surrogateescape", newline="")

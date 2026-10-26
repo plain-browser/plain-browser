@@ -10,7 +10,12 @@ Not simulated: ungoogled's domain substitution (runs after all patches, so keep 
 hunks; see patches/series), binary pruning, and the two scripts that edit the tree outside patches/series
 (scripts/apply-branding.py, scripts/post-gnrt-fixups.ps1).
 
-usage: check-patches.py [--tag 156.0.8078.47-1.1] [--work DIR] [--report FILE] [--regenerate]
+usage: check-patches.py [--tag TAG] [--work DIR] [--report FILE] [--regenerate]
+                        [--extra-upstream uc:<patch> ...] [--export DIR]
+--extra-upstream adds the files touched by that upstream patch (uc: or ucw:) to the set that is fetched and
+replayed, e.g. the patches listed in upstream-revert.list, to see what their files look like without them.
+--export writes every replayed file, with ungoogled's domain substitution applied where upstream applies it,
+into DIR: the exact content an already-built tree should have for those files (copy it over the tree).
 --regenerate rewrites every patch in patches/ that applied (with or without offset) so that its hunks and
 context match the tag exactly (header kept, body regenerated with difflib, no timestamps). Review the diff
 before committing. Exit code 1 when any of our patches fails, 2 on a setup error (network, bad tag).
@@ -29,14 +34,38 @@ def http_get(url, binary=False):
     token = os.environ.get("GITHUB_TOKEN")
     if token and url.startswith("https://api.github.com/"):
         req.add_header("Authorization", "Bearer " + token)
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            data = r.read()
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return None
-        raise
+    import time
+    for attempt in range(6):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                data = r.read()
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            if e.code == 429 and attempt < 5:  # googlesource rate limit: back off and retry
+                time.sleep(10 * (attempt + 1))
+                continue
+            raise
     return data if binary else data.decode("utf-8")
+
+
+def fetch_chromium_file(chromium, path, cache_dir):
+    """Base64 TEXT fetch from googlesource, cached on disk (None when the file does not exist upstream)."""
+    cached = cache_dir / chromium / path
+    missing = cache_dir / chromium / (path + ".missing")
+    if cached.exists():
+        return cached.read_bytes()
+    if missing.exists():
+        return None
+    data = http_get(f"https://chromium.googlesource.com/chromium/src/+/refs/tags/{chromium}/{path}?format=TEXT")
+    cached.parent.mkdir(parents=True, exist_ok=True)
+    if data is None:
+        missing.write_bytes(b"")
+        return None
+    raw = base64.b64decode(data)
+    cached.write_bytes(raw)
+    return raw
 
 
 def pinned_tag():
@@ -103,6 +132,32 @@ def regenerate(patch_file, src, before):
         patch_file.write_text(header + "".join(body), newline="\n")
 
 
+def export_tree(src, files, out_dir, uc_raw):
+    """Copy the replayed files to out_dir, applying ungoogled's domain substitution to the ones it lists."""
+    regexes = []
+    for line in filter(len, http_get(uc_raw + "domain_regex.list").splitlines()):
+        pattern, replacement = line.split("#", 1)
+        regexes.append((re.compile(pattern), replacement))
+    listed = set(l.strip() for l in http_get(uc_raw + "domain_substitution.list").splitlines() if l.strip())
+    n = substituted = 0
+    for path in sorted(files):
+        f = src / path
+        if not f.exists():
+            continue
+        data = f.read_bytes()
+        if path in listed:
+            text = data.decode("utf-8", errors="surrogateescape")
+            for rx, repl in regexes:
+                text = rx.sub(repl, text)
+            data = text.encode("utf-8", errors="surrogateescape")
+            substituted += 1
+        dest = out_dir / path
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        n += 1
+    print(f"exported {n} files to {out_dir} ({substituted} domain-substituted)", file=sys.stderr)
+
+
 def run_patch(src, patch_file, dry_run=False):
     cmd = ["patch", "-p1", "--forward", "--no-backup-if-mismatch", "-d", str(src), "-i", str(patch_file)]
     if dry_run:
@@ -117,6 +172,8 @@ def main():
     ap.add_argument("--work", default=None, help="work directory (default: a temporary one, deleted afterwards)")
     ap.add_argument("--report", default=None, help="write the markdown report here as well as to stdout")
     ap.add_argument("--regenerate", action="store_true", help="rewrite the bodies of our patches to match the tag")
+    ap.add_argument("--extra-upstream", action="append", default=[], help="uc:<patch> or ucw:<patch> whose files to include")
+    ap.add_argument("--export", default=None, help="write the replayed files (domain-substituted) into this directory")
     a = ap.parse_args()
     tag = a.tag or pinned_tag()
     work = Path(a.work) if a.work else Path(tempfile.mkdtemp(prefix="check-patches-"))
@@ -138,16 +195,23 @@ def main():
     our_files = set()
     for rel in ours:
         our_files |= touched_files((ROOT / "patches" / rel).read_text())
+    for spec in a.extra_upstream:
+        repo, rel = spec.split(":", 1)
+        text = http_get((uc_raw if repo == "uc" else ucw_raw) + "patches/" + rel)
+        if text is None:
+            raise SystemExit(f"--extra-upstream: {spec} not found")
+        our_files |= touched_files(text)
 
     missing = []
+    cache_dir = (Path(a.work) if a.work else work) / "cache"
     for path in sorted(our_files):
-        data = http_get(f"https://chromium.googlesource.com/chromium/src/+/refs/tags/{chromium}/{path}?format=TEXT")
-        if data is None:
+        raw = fetch_chromium_file(chromium, path, cache_dir)
+        if raw is None:
             missing.append(path)  # may be a file our patch creates; patch will tell
             continue
         dest = src / path
         dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_bytes(base64.b64decode(data))
+        dest.write_bytes(raw)
     print(f"fetched {len(our_files) - len(missing)} of {len(our_files)} files", file=sys.stderr)
 
     reverted, hunk_drops = set(), {}
@@ -158,7 +222,8 @@ def main():
         if line.startswith("hunks:"):
             _, repo, rest = line.split(":", 2)
             rel, regex = rest.split(":", 1)
-            hunk_drops[(repo, rel)] = regex
+            regex, _, exclude = regex.partition(":!")
+            hunk_drops[(repo, rel)] = (regex, exclude or None)
         else:
             reverted.add(tuple(line.split(":", 1)))
 
@@ -177,7 +242,8 @@ def main():
                 upstream_notes.append(f"{name}/{rel}: not found"); continue
             if (key, rel) in hunk_drops:
                 from patchfilter import filter_patch as drop_hunks
-                text, n = drop_hunks(text, hunk_drops[(key, rel)], keep=False)
+                regex, exclude = hunk_drops[(key, rel)]
+                text, n = drop_hunks(text, regex, keep=False, exclude_path=exclude)
                 upstream_notes.append(f"{name}/{rel}: {n} hunks dropped (patches/upstream-revert.list)")
             if not (touched_files(text) & our_files):
                 continue
@@ -223,6 +289,8 @@ def main():
     if upstream_notes:
         lines += ["", "Upstream patches touching the same files:", *[f"- {n}" for n in upstream_notes]]
     lines += ["", "Not simulated: domain substitution, pruning, scripts/apply-branding.py, scripts/post-gnrt-fixups.ps1."]
+    if a.export:
+        export_tree(src, our_files, Path(a.export), uc_raw)
     report = "\n".join(lines) + "\n"
     print(report)
     if a.report:
