@@ -45,10 +45,10 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 | Dependabot for Actions and the adblock Cargo crates | `.github/dependabot.yml` | **done** (not yet pushed) |
 | Upstream tracking: issue when a newer ungoogled-chromium-windows tag exists | `upstream-watch.yml` | **done**, logic dry-run on real data, not yet run on GitHub |
 | Signed releases: SHA256SUMS plus keyless cosign bundles | `sign-release.yml`, `SECURITY.md` | written; the workflow now verifies every bundle before uploading, so the first run on a release is the test |
-| Security policy | `SECURITY.md` | done; needs private vulnerability reporting enabled |
-| Branch protection (no force-push, no deletion, linear history, signed commits) | `scripts/github-protect-main.sh` | **run it yourself**: the assistant's token cannot change repository rules. Step-by-step list in `docs/GITHUB_SETUP.md` |
-| Secret scanning, push protection, Dependabot alerts | GitHub settings | to confirm in Settings, Code security |
-| GPG/SSH signing of commits and tags | local git config (`gpg.format=ssh`, `commit.gpgsign=true`, key `~/.ssh/id_ed25519.pub`) | **configured in this checkout**; register the key as a signing key on GitHub (`scripts/github-protect-main.sh` does it) so commits show as Verified |
+| Security policy | `SECURITY.md` | **done**; private vulnerability reporting enabled 2026-10-26 |
+| Branch protection (no force-push, no deletion, linear history, signed commits) | `scripts/github-protect-main.sh` | **done** 2026-10-26: ruleset `protect-main` active (`scripts/github-protect-main.sh`), pushes verified against it |
+| Secret scanning, push protection, Dependabot alerts | GitHub settings | **done** 2026-10-26, confirmed through the API: secret scanning, push protection, Dependabot alerts and security updates enabled |
+| GPG/SSH signing of commits and tags | local git config (`gpg.format=ssh`, `commit.gpgsign=true`, key `~/.ssh/id_ed25519.pub`) | **done**: key registered as a signing key on GitHub, commits show as Verified |
 | Windows code signing (Authenticode) | `scripts/sign-windows.ps1` | **dropped 2026-10-26**: Plain Browser ships only as an MSIX through the Microsoft Store, which signs the package itself. The script stays for a possible future direct-download channel |
 | Updates | Microsoft Store | **covered by the Store** (automatic app updates, usually within a day of certification). No own updater while the Store is the only channel; see `docs/GITHUB_SETUP.md`, section 6 |
 | Org-level 2FA, second owner, separate CI account | GitHub org `plain-browser` | organization exists; 2FA requirement, second owner and bot account still to set up (`docs/GITHUB_SETUP.md`, section 3) |
