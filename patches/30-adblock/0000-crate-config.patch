@@ -11,9 +11,8 @@ seahash and flatbuffers, whose crates.io packages ship no license file.
 The crate sources and generated BUILD.gn files are NOT in this patch: scripts/vendor-adblock-crates.ps1
 runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch either; cargo extends it.
 ---
-diff -ruN a/third_party/rust/chromium_crates_io/Cargo.toml b/third_party/rust/chromium_crates_io/Cargo.toml
---- a/third_party/rust/chromium_crates_io/Cargo.toml	2026-10-23 22:06:27.761949414 +0200
-+++ b/third_party/rust/chromium_crates_io/Cargo.toml	2026-10-23 22:06:28.159074088 +0200
+--- a/third_party/rust/chromium_crates_io/Cargo.toml
++++ b/third_party/rust/chromium_crates_io/Cargo.toml
 @@ -216,3 +216,9 @@
  [dependencies.zune-jpeg]
  version = "=0.5.16-rc1"
@@ -24,9 +23,8 @@ diff -ruN a/third_party/rust/chromium_crates_io/Cargo.toml b/third_party/rust/ch
 +version = "=0.13.3"
 +default-features = false
 +features = ["full-regex-handling", "embedded-domain-resolver"]
-diff -ruN a/third_party/rust/chromium_crates_io/gnrt_config.toml b/third_party/rust/chromium_crates_io/gnrt_config.toml
---- a/third_party/rust/chromium_crates_io/gnrt_config.toml	2026-10-23 22:06:29.329977765 +0200
-+++ b/third_party/rust/chromium_crates_io/gnrt_config.toml	2026-10-23 22:06:29.718914300 +0200
+--- a/third_party/rust/chromium_crates_io/gnrt_config.toml
++++ b/third_party/rust/chromium_crates_io/gnrt_config.toml
 @@ -113,6 +113,12 @@
  remove_crates = []
  root = "chromium"
@@ -59,17 +57,17 @@ diff -ruN a/third_party/rust/chromium_crates_io/gnrt_config.toml b/third_party/r
  [crate.autocfg.extra_kv]
  allow_unsafe = false
  
-@@ -362,6 +371,10 @@
+@@ -361,6 +370,10 @@
+ 
  [crate.fixed_decimal.extra_kv]
  allow_unsafe = false
- 
++
 +[crate.flatbuffers]
 +remove_build_rs = true
 +extra_kv = { allow_unsafe = true }
-+
+ 
  [crate.flate2]
  ban_features = [
-     # `any_zlib` feature is banned because Chromium does not use the `zlib`
 @@ -384,6 +397,9 @@
  [crate.font-types.extra_kv]
  allow_unsafe = true
@@ -135,32 +133,32 @@ diff -ruN a/third_party/rust/chromium_crates_io/gnrt_config.toml b/third_party/r
  allow_first_party_usage = false
  extra_kv = { allow_unsafe = true }
  
-@@ -819,6 +853,12 @@
+@@ -818,6 +852,12 @@
+ [crate.rustc-demangle-capi]
  extra_kv = { allow_unsafe = true }
  shipped = false
- 
++
 +[crate.rustc-hash]
 +extra_kv = { allow_unsafe = false }
 +
 +[crate.rustc_version]
 +extra_kv = { allow_unsafe = false }
-+
+ 
  [crate.rustfft]
  extra_kv = { allow_unsafe = true }
- 
-@@ -838,6 +878,12 @@
- [crate.scopeguard]
+@@ -836,6 +876,12 @@
  extra_kv = { allow_unsafe = true }
  
+ [crate.scopeguard]
++extra_kv = { allow_unsafe = true }
++
 +[crate.seahash]
 +extra_kv = { allow_unsafe = true }
 +
 +[crate.semver]
-+extra_kv = { allow_unsafe = true }
-+
+ extra_kv = { allow_unsafe = true }
+ 
  [crate.serde]
- build_script_outputs = [ "private.rs" ]
- extra_kv = { allow_unsafe = false }
 @@ -975,7 +1021,10 @@
  [crate.termcolor.extra_kv]
  allow_unsafe = false
@@ -183,9 +181,8 @@ diff -ruN a/third_party/rust/chromium_crates_io/gnrt_config.toml b/third_party/r
  [crate.utf16_iter]
  license_files = ["LICENSE-APACHE"]
  
-diff -ruN a/third_party/rust/chromium_crates_io/patches/flatbuffers-v25/0001-Add-LICENSE-file.patch b/third_party/rust/chromium_crates_io/patches/flatbuffers-v25/0001-Add-LICENSE-file.patch
---- a/third_party/rust/chromium_crates_io/patches/flatbuffers-v25/0001-Add-LICENSE-file.patch	1970-01-01 01:00:00.000000000 +0100
-+++ b/third_party/rust/chromium_crates_io/patches/flatbuffers-v25/0001-Add-LICENSE-file.patch	2026-10-23 22:06:30.525445856 +0200
+--- /dev/null
++++ b/third_party/rust/chromium_crates_io/patches/flatbuffers-v25/0001-Add-LICENSE-file.patch
 @@ -0,0 +1,219 @@
 +From: Plain Browser
 +Subject: [PATCH] Add LICENSE file missing from the crates.io package
@@ -406,9 +403,8 @@ diff -ruN a/third_party/rust/chromium_crates_io/patches/flatbuffers-v25/0001-Add
 ++   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ++   See the License for the specific language governing permissions and
 ++   limitations under the License.
-diff -ruN a/third_party/rust/chromium_crates_io/patches/seahash-v4/0001-Add-LICENSE-file.patch b/third_party/rust/chromium_crates_io/patches/seahash-v4/0001-Add-LICENSE-file.patch
---- a/third_party/rust/chromium_crates_io/patches/seahash-v4/0001-Add-LICENSE-file.patch	1970-01-01 01:00:00.000000000 +0100
-+++ b/third_party/rust/chromium_crates_io/patches/seahash-v4/0001-Add-LICENSE-file.patch	2026-10-23 22:06:30.116038975 +0200
+--- /dev/null
++++ b/third_party/rust/chromium_crates_io/patches/seahash-v4/0001-Add-LICENSE-file.patch
 @@ -0,0 +1,40 @@
 +From: Plain Browser
 +Subject: [PATCH] Add LICENSE file missing from the crates.io package

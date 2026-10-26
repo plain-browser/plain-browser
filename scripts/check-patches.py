@@ -10,8 +10,10 @@ Not simulated: ungoogled's domain substitution (runs after all patches, so keep 
 hunks; see patches/series), binary pruning, and the two scripts that edit the tree outside patches/series
 (scripts/apply-branding.py, scripts/post-gnrt-fixups.ps1).
 
-usage: check-patches.py [--tag 156.0.8078.47-1.1] [--work DIR] [--report FILE]
-Exit code 1 when any of our patches fails, 2 on a setup error (network, bad tag).
+usage: check-patches.py [--tag 156.0.8078.47-1.1] [--work DIR] [--report FILE] [--regenerate]
+--regenerate rewrites every patch in patches/ that applied (with or without offset) so that its hunks and
+context match the tag exactly (header kept, body regenerated with difflib, no timestamps). Review the diff
+before committing. Exit code 1 when any of our patches fails, 2 on a setup error (network, bad tag).
 """
 import argparse, base64, json, os, re, shutil, subprocess, sys, tempfile, urllib.error, urllib.request
 from pathlib import Path
@@ -82,6 +84,24 @@ def filter_patch(patch_text, keep):
     return "".join(out)
 
 
+def regenerate(patch_file, src, before):
+    """Rewrite patch_file's body as a fresh unified diff of the files it touched (header above '---' kept)."""
+    import difflib
+    text = patch_file.read_text()
+    header = text.split("\n---\n", 1)[0] + "\n---\n" if "\n---\n" in text else ""
+    body = []
+    for path, old in before.items():
+        f = src / path
+        new = f.read_text(encoding="utf-8", errors="surrogateescape") if f.exists() else None
+        if old == new:
+            continue
+        body += difflib.unified_diff((old or "").splitlines(keepends=True), (new or "").splitlines(keepends=True),
+                                     fromfile="a/" + path if old is not None else "/dev/null",
+                                     tofile="b/" + path if new is not None else "/dev/null", n=3)
+    if body:
+        patch_file.write_text(header + "".join(body), newline="\n")
+
+
 def run_patch(src, patch_file, dry_run=False):
     cmd = ["patch", "-p1", "--forward", "--no-backup-if-mismatch", "-d", str(src), "-i", str(patch_file)]
     if dry_run:
@@ -95,6 +115,7 @@ def main():
     ap.add_argument("--tag", default=None, help="ungoogled-chromium-windows tag (default: pinned in versions.toml)")
     ap.add_argument("--work", default=None, help="work directory (default: a temporary one, deleted afterwards)")
     ap.add_argument("--report", default=None, help="write the markdown report here as well as to stdout")
+    ap.add_argument("--regenerate", action="store_true", help="rewrite the bodies of our patches to match the tag")
     a = ap.parse_args()
     tag = a.tag or pinned_tag()
     work = Path(a.work) if a.work else Path(tempfile.mkdtemp(prefix="check-patches-"))
@@ -128,9 +149,22 @@ def main():
         dest.write_bytes(base64.b64decode(data))
     print(f"fetched {len(our_files) - len(missing)} of {len(our_files)} files", file=sys.stderr)
 
+    reverted = set()
+    for line in (ROOT / "patches" / "upstream-revert.list").read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            reverted.add(tuple(line.split(":", 1)))
+
     upstream_notes = []
-    for name, raw in (("ungoogled-chromium", uc_raw), ("ungoogled-chromium-windows", ucw_raw)):
-        for rel in series(http_get(raw + "patches/series")):
+    for name, raw, key in (("ungoogled-chromium", uc_raw, "uc"), ("ungoogled-chromium-windows", ucw_raw, "ucw")):
+        upstream_series = series(http_get(raw + "patches/series"))
+        for _, rel in reverted:
+            if (key, rel) in reverted and rel not in upstream_series:
+                upstream_notes.append(f"{name}/{rel}: listed in upstream-revert.list but NOT in the upstream series (renamed?)")
+        for rel in upstream_series:
+            if (key, rel) in reverted:
+                upstream_notes.append(f"{name}/{rel}: skipped (patches/upstream-revert.list)")
+                continue
             text = http_get(raw + "patches/" + rel)
             if text is None:
                 upstream_notes.append(f"{name}/{rel}: not found"); continue
@@ -149,7 +183,15 @@ def main():
 
     rows, failed = [], []
     for rel in ours:
-        rc, out = run_patch(src, ROOT / "patches" / rel)
+        patch_file = ROOT / "patches" / rel
+        before = {}
+        if a.regenerate:
+            for path in sorted(touched_files(patch_file.read_text())):
+                f = src / path
+                before[path] = f.read_text(encoding="utf-8", errors="surrogateescape") if f.exists() else None
+        rc, out = run_patch(src, patch_file)
+        if a.regenerate and rc == 0:
+            regenerate(patch_file, src, before)
         # Offsets are normal (upstream patches shift lines); fuzz means the context no longer matches.
         if rc == 0:
             note = " (fuzz: regenerate)" if "fuzz" in out else (" (offset)" if "offset" in out else "")

@@ -1,0 +1,13 @@
+# ungoogled-chromium / ungoogled-chromium-windows patches that Plain Browser does NOT apply.
+# One path per line, relative to the patches/ dir of the repository named by the prefix:
+#   uc:  ungoogled-chromium/patches/      ucw: ungoogled-chromium-windows/patches/
+# prepare.py drops them from the upstream series before a fresh build; apply-plainbrowser.ps1 reverses them
+# (patch -R) on an already-built tree, last applied first; check-patches.py skips their hunks.
+#
+# Safe Browsing: ungoogled compiles it out (safe_browsing_mode=0, hard-coded in buildflags.gni by the Windows
+# patch) and deletes the code that depends on it. Plain Browser keeps Safe Browsing (local hash database through
+# our proxy, patches/70-safebrowsing) and keeps ungoogled's two iridium patches that disable incident reporting
+# and extended reporting.
+ucw:ungoogled-chromium/windows/windows-fix-building-without-safebrowsing.patch
+uc:core/ungoogled-chromium/fix-building-without-safebrowsing.patch
+uc:core/inox-patchset/0001-fix-building-without-safebrowsing.patch

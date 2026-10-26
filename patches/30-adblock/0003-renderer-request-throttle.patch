@@ -3,27 +3,6 @@ Subject: [adblock] Add the Plain Browser adblock throttle to renderer subresourc
 
 Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
 ---
---- a/chrome/renderer/url_loader_throttle_provider_impl.h
-+++ b/chrome/renderer/url_loader_throttle_provider_impl.h
-@@ -18,6 +18,8 @@
- #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
- #include "third_party/blink/public/platform/url_loader_throttle_provider.h"
- 
-+#include "plainbrowser/adblock/renderer/adblock_throttle_factory.h"
-+
- #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
- #include "extensions/renderer/extension_throttle_manager.h"
- #endif
-@@ -95,6 +97,9 @@
-   // provider which was created on the main thread.
-   scoped_refptr<base::SequencedTaskRunner> main_thread_task_runner_;
- 
-+  // Plain Browser adblock; null when the filter interface is unavailable.
-+  std::unique_ptr<plainbrowser::adblock::AdblockThrottleFactory> plainbrowser_adblock_;
-+
-   SEQUENCE_CHECKER(sequence_checker_);
- };
- 
 --- a/chrome/renderer/url_loader_throttle_provider_impl.cc
 +++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
 @@ -117,7 +117,7 @@
@@ -63,17 +42,38 @@ Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wire
  }
  
  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
-@@ -192,6 +199,13 @@
+@@ -191,6 +198,13 @@
+ 
    DCHECK(!is_frame_resource ||
           type_ == blink::URLLoaderThrottleProviderType::kFrame);
- 
++
 +  // Plain Browser adblock: subresources only (returns null for frame resources).
 +  if (plainbrowser_adblock_) {
 +    if (auto throttle = plainbrowser_adblock_->MaybeCreateThrottle(request)) {
 +      throttles.emplace_back(std::move(throttle));
 +    }
 +  }
-+
+ 
  #if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
    if (!is_frame_resource) {
-     if (pending_safe_browsing_) {
+--- a/chrome/renderer/url_loader_throttle_provider_impl.h
++++ b/chrome/renderer/url_loader_throttle_provider_impl.h
+@@ -17,6 +17,8 @@
+ #include "mojo/public/cpp/bindings/remote.h"
+ #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
+ #include "third_party/blink/public/platform/url_loader_throttle_provider.h"
++
++#include "plainbrowser/adblock/renderer/adblock_throttle_factory.h"
+ 
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+ #include "extensions/renderer/extension_throttle_manager.h"
+@@ -95,6 +97,9 @@
+   // provider which was created on the main thread.
+   scoped_refptr<base::SequencedTaskRunner> main_thread_task_runner_;
+ 
++  // Plain Browser adblock; null when the filter interface is unavailable.
++  std::unique_ptr<plainbrowser::adblock::AdblockThrottleFactory> plainbrowser_adblock_;
++
+   SEQUENCE_CHECKER(sequence_checker_);
+ };
+ 

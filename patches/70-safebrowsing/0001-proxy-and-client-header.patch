@@ -9,6 +9,16 @@ place because their lines contain a Google hostname, which ungoogled's domain su
 Takes effect only once Safe Browsing is compiled in (ungoogled builds with safe_browsing_mode=0); see
 infra/safebrowsing-proxy/README.md, section "Chromium side".
 ---
+--- a/components/safe_browsing/core/browser/db/BUILD.gn
++++ b/components/safe_browsing/core/browser/db/BUILD.gn
+@@ -243,6 +243,7 @@
+     ":sb_protocol_config",
+     "//base",
+     "//components/safe_browsing/core/common:features",
++    "//plainbrowser/common:version",
+     "//components/safe_browsing/core/common:safe_browsing_prefs",
+     "//google_apis",
+     "//net",
 --- a/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
 +++ b/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
 @@ -30,6 +30,7 @@
@@ -48,7 +58,7 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
  }
  
  std::string GetReportUrl(const SBProtocolConfig& config,
-@@ -587,10 +601,11 @@
+@@ -582,10 +596,11 @@
      net::HttpRequestHeaders* headers) {
    const char* url_prefix = g_sbv4_url_prefix_for_testing
                                 ? g_sbv4_url_prefix_for_testing
@@ -61,13 +71,3 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
  }
  
  // static
---- a/components/safe_browsing/core/browser/db/BUILD.gn
-+++ b/components/safe_browsing/core/browser/db/BUILD.gn
-@@ -243,6 +243,7 @@
-     ":sb_protocol_config",
-     "//base",
-     "//components/safe_browsing/core/common:features",
-+    "//plainbrowser/common:version",
-     "//components/safe_browsing/core/common:safe_browsing_prefs",
-     "//google_apis",
-     "//net",

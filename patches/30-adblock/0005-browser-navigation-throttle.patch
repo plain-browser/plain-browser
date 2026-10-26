@@ -15,7 +15,7 @@ carries $removeparam parameters (utm_*, fbclid, gclid, ...) with the clean URL.
  #include "chrome/browser/content_settings/cookie_settings_factory.h"
  #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
  #include "chrome/browser/contextual_tasks/contextual_tasks_ui_service.h"
-@@ -5667,6 +5668,9 @@
+@@ -5671,6 +5672,9 @@
  void ChromeContentBrowserClient::CreateThrottlesForNavigation(
      content::NavigationThrottleRegistry& registry) {
    CreateAndAddChromeThrottlesForNavigation(registry);
