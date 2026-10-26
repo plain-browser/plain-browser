@@ -89,6 +89,10 @@ def apply_icons(src, dry_run):
         n += 1
         if not dry_run:
             shutil.copyfile(a, b)
+    if n and not dry_run:
+        # ninja does not see an .ico inside an .rc, so touch the resource scripts that embed our icons.
+        for rc in ("chrome/app/chrome_exe.rc", "chrome/app/chrome_dll.rc"):
+            os.utime(os.path.join(src, *rc.split("/")), None)
     print("logo: %d of %d files %s" % (n, len(ICON_FILES), "would change" if dry_run else "written"))
     return n
 

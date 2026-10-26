@@ -60,6 +60,23 @@ def save_canvas(path, w, h, mark_size):
     img.save(path)
 
 
+def save_on_background(path, size, mark_size, bg=(243, 246, 251, 255)):
+    """Logo centred on a solid square (Store box art: transparent logos look wrong on some Store layouts)."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img = Image.new("RGBA", (size, size), bg)
+    m = draw_mark(mark_size)
+    img.paste(m, ((size - mark_size) // 2, (size - mark_size) // 2), m)
+    img.save(path)
+
+
+def write_store_images():
+    """Optional Partner Center images: app tile icons and 1:1 box art."""
+    d = os.path.join(OUT, "store")
+    for n in (300, 150, 71):
+        save_png(os.path.join(d, "store_icon_%d.png" % n), n)
+    save_on_background(os.path.join(d, "box_art_1080.png"), 1080, 760)
+
+
 def write_msix_assets():
     """Logos named as AppxManifest.xml references them (scripts/package-msix.py copies them into Assets/)."""
     d = os.path.join(OUT, "msix")
@@ -77,6 +94,7 @@ def write_msix_assets():
 
 def main():
     write_msix_assets()
+    write_store_images()
     for s in (16, 24, 32, 48, 64, 128, 192, 256):
         save_png(os.path.join(OUT, "product_logo_%d.png" % s), s)
     save_png(os.path.join(OUT, "product_logo_22_mono.png"), 22, disc=False)
