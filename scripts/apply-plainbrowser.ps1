@@ -25,10 +25,15 @@ foreach ($line in $reverts) {
     $pf = if ($r -eq "uc") { Join-Path "$Ucw\ungoogled-chromium\patches" $prel } else { Join-Path "$Ucw\patches" $prel }
     $filtered = Join-Path $env:TEMP ("pb-hunks-" + ($prel -replace '[\\/]', '_'))
     $fa = @($pf, $regex, "--keep", "-o", $filtered); if ($exclude) { $fa += @("--exclude-path", $exclude) }
-    & $py -I "$Repo\scripts\patchfilter.py" @fa 2>$null
+    # Windows PowerShell 5.1 turns any stderr line of a native command into a terminating error under "Stop";
+    # patchfilter reports its hunk count on stderr, so run it with "Continue" and judge by the exit code.
+    $eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+    & $py -I "$Repo\scripts\patchfilter.py" @fa 2>&1 | Out-Null
+    $pfrc = $LASTEXITCODE
+    $ErrorActionPreference = $eap
     # Exit 3 = no matching hunk: on a fresh tree prepare.py already cut them out of the patch file, nothing to reverse.
-    if ($LASTEXITCODE -eq 3) { Write-Host "[skip] revert hunks of $prel (already dropped by prepare.py)"; continue }
-    if ($LASTEXITCODE) { throw "patchfilter failed on $prel (exit $LASTEXITCODE)" }
+    if ($pfrc -eq 3) { Write-Host "[skip] revert hunks of $prel (already dropped by prepare.py)"; continue }
+    if ($pfrc) { throw "patchfilter failed on $prel (exit $pfrc)" }
     $file = $filtered; $rel = "$prel (hunks: $regex)"
   } elseif ($repoName -eq "prune") {
     $dest = Join-Path $Src $rel
@@ -47,7 +52,9 @@ foreach ($line in $reverts) {
   # not; patch writes a .rej for every skipped hunk, so rejects alone do not mean failure. Afterwards the patch
   # must apply forward cleanly (dry run): that is the proof the tree is back to the state before it.
   $before = Get-Date
+  $eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
   $out = & $patch -d $Src -p1 -R --forward --no-backup-if-mismatch -i $file 2>&1
+  $ErrorActionPreference = $eap
   $reversed = @($out | Where-Object { $_ -match "^patching file" }).Count
   Get-ChildItem $Src -Recurse -Filter *.rej -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $before } | Remove-Item -Force
   if ($reversed -eq 0) { Write-Host "[skip] revert $rel (not applied)"; continue }
