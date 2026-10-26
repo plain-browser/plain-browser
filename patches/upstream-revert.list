@@ -13,7 +13,9 @@
 # patch) and deletes the code that depends on it. Plain Browser keeps Safe Browsing (local hash database through
 # our proxy, patches/70-safebrowsing) and keeps ungoogled's two iridium patches that disable incident reporting
 # and extended reporting.
-ucw:ungoogled-chromium/windows/windows-fix-building-without-safebrowsing.patch
+# Windows: every hunk except signin_util_win.cc, whose hunk removes a use of a signin pref that other ungoogled
+# patches delete (not Safe Browsing related).
+hunks:ucw:ungoogled-chromium/windows/windows-fix-building-without-safebrowsing.patch:.:!signin_util_win\.cc
 uc:core/ungoogled-chromium/fix-building-without-safebrowsing.patch
 uc:core/inox-patchset/0001-fix-building-without-safebrowsing.patch
 # Pruned files Safe Browsing needs back (prefs and the default download file-type policy):
