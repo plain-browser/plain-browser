@@ -43,7 +43,7 @@ def http_get(url, binary=False):
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 return None
-            if e.code == 429 and attempt < 5:  # googlesource rate limit: back off and retry
+            if e.code in (429, 500, 502, 503, 504) and attempt < 5:  # rate limit or hiccup: back off and retry
                 time.sleep(10 * (attempt + 1))
                 continue
             raise
@@ -58,12 +58,18 @@ def fetch_chromium_file(chromium, path, cache_dir):
         return cached.read_bytes()
     if missing.exists():
         return None
-    data = http_get(f"https://chromium.googlesource.com/chromium/src/+/refs/tags/{chromium}/{path}?format=TEXT")
+    # googlesource first (authoritative), the GitHub mirror of the Chromium tags as fallback: googlesource
+    # answers GitHub Actions runners with 503 at times.
+    try:
+        data = http_get(f"https://chromium.googlesource.com/chromium/src/+/refs/tags/{chromium}/{path}?format=TEXT")
+        raw = None if data is None else base64.b64decode(data)
+    except urllib.error.HTTPError as e:
+        print(f"googlesource {e.code} for {path}, trying the GitHub mirror", file=sys.stderr)
+        raw = http_get(f"https://raw.githubusercontent.com/chromium/chromium/{chromium}/{path}", binary=True)
     cached.parent.mkdir(parents=True, exist_ok=True)
-    if data is None:
+    if raw is None:
         missing.write_bytes(b"")
         return None
-    raw = base64.b64decode(data)
     cached.write_bytes(raw)
     return raw
 
