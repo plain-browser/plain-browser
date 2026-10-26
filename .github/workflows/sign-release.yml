@@ -2,7 +2,7 @@ name: sign-release
 # Manual. Takes the assets already attached to a GitHub release (built and uploaded by the maintainer),
 # writes SHA256SUMS and adds a keyless cosign signature bundle per file, tied to this workflow's OIDC identity.
 # This proves who published the files and that they were not altered afterwards. It does NOT prove how they were built
-# (the build runs on our own builder, not in GitHub Actions), so it is deliberately not called build provenance.
+# (release builds have so far run on our own builder; build-windows.yml is the first step towards builds in Actions), so it is deliberately not called build provenance.
 on:
   workflow_dispatch:
     inputs:

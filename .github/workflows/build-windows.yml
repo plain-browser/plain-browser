@@ -1,15 +1,657 @@
 name: build-windows
-# Manual only. Needs a self-hosted Windows runner labelled "chromium-builder" that does not exist yet.
-# Never trigger this from pull_request: a self-hosted runner executes whatever the workflow says.
-on: { workflow_dispatch: {} }
+# Plain Browser build on GitHub-hosted Windows runners, in chained stages (docs/CI.md).
+# A Chromium build takes far longer than the 6-hour job limit, so the build runs the way ungoogled-chromium-windows'
+# own CI does: `build.py --ci` compiles for 3.5 hours and exits 124, the job zips the tree and uploads it as an
+# artifact, and the next job downloads it and resumes; a stage that finishes packages the browser instead.
+# Stages that are no longer needed are skipped (no runner is started). Alpha builds need about 6 stages; the
+# official profile (ThinLTO + PGO) is not expected to fit in 10, see docs/CI.md.
+# Manual runs and version tags only, never pull_request: the tree is built from the pushed revision with network
+# access, and a tag run creates a draft release for sign-release.yml to sign.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Build profile: alpha (default; no official build, PGO or LTO) or official (upstream flags, many more stages)"
+        type: choice
+        options: [alpha, official]
+        default: alpha
+  push:
+    tags: ["v*"]
+
 permissions:
   contents: read
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PROFILE: ${{ inputs.profile || 'alpha' }}
+  # Same absolute path on every runner of a run: args.gn and the ninja logs in the handed-over tree contain it.
+  PB_WORK: C:\pb
+
+defaults:
+  run:
+    shell: pwsh
+
 jobs:
-  build:
-    runs-on: [self-hosted, windows, x64, chromium-builder]
-    timeout-minutes: 720
+  # Stage 0: tree with the ungoogled-chromium and Plain Browser layers applied, vendored adblock crates, no GN yet.
+  prepare:
+    runs-on: windows-2022
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: powershell -File scripts/build.ps1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools (Windows SDK 10.0.28000, Python modules)
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - name: Prepare the tree (clone, patches, branding, adblock crates)
+        run: ./scripts/ci/prepare-tree.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 1
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tree-0
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+
+  # Stage 1: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-1:
+    needs: prepare
+    # Stage 1 also writes args.gn and runs gn gen and bindgen (build.py --ci does that on its first pass).
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-0
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 2
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-1
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 2: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-2:
+    needs: build-1
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-1.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-1
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 3
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-2
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 3: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-3:
+    needs: build-2
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-2.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-2
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 4
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-3
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 4: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-4:
+    needs: build-3
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-3.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-3
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 5
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-4
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 5: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-5:
+    needs: build-4
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-4.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-4
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 6
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-5
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 6: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-6:
+    needs: build-5
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-5.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-5
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 7
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-6
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 7: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-7:
+    needs: build-6
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-6.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-6
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 8
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-7
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 8: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-8:
+    needs: build-7
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-7.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-7
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 9
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-8
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 9: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-9:
+    needs: build-8
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-8.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-8
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 10
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-9
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Stage 10: resume ninja for one time slice; hand the tree on, or package when the build finished.
+  build-10:
+    needs: build-9
+    # Skipped (no runner) once an earlier stage finished the build.
+    if: needs.build-9.outputs.finished != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 360
+    outputs:
+      finished: ${{ steps.stage.outputs.finished }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install tools
+        run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: tree-9
+          path: C:\pb
+      - name: Restore the tree
+        run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Build (one ninja time slice)
+        id: stage
+        run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
+      - name: Save the tree for stage 11
+        if: steps.stage.outputs.finished != 'true'
+        run: ./scripts/ci/pack-tree.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished != 'true'
+        with:
+          name: tree-10
+          path: C:\pb\tree.zip
+          compression-level: 0
+          retention-days: 2
+          if-no-files-found: error
+      - name: Package (zip, installer, MSIX, SHA256SUMS.txt)
+        if: steps.stage.outputs.finished == 'true'
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ vars.MSIX_PUBLISHER_DISPLAY }}
+        run: ./scripts/ci/package.ps1 -Work $env:PB_WORK
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.stage.outputs.finished == 'true'
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: C:\pb\dist
+          retention-days: 14
+          if-no-files-found: error
+
+  # Fails the run when no stage finished the build (upstream's "complete" job); a failed stage already fails it.
+  complete:
+    needs: [build-1, build-2, build-3, build-4, build-5, build-6, build-7, build-8, build-9, build-10]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(join(needs.*.outputs.finished), 'true') }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "The build did not finish within 10 stages. Add stages to build-windows.yml (see docs/CI.md)."
+          exit 1
+
+  # On a version tag: draft release with the packages and SHA256SUMS.txt; sign-release.yml adds the cosign bundles.
+  release:
+    needs: [build-1, build-2, build-3, build-4, build-5, build-6, build-7, build-8, build-9, build-10]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(join(needs.*.outputs.finished), 'true') && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: plainbrowser-${{ env.PROFILE }}
+          path: dist
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum -c SHA256SUMS.txt
+          {
+            echo "Plain Browser $TAG, built by GitHub Actions ($PROFILE profile): $RUN_URL"
+            echo
+            echo "Unsigned: the Microsoft Store signs the MSIX on submission; the installer and zip are test builds."
+            echo "Run the sign-release workflow on this tag to add SHA256SUMS.txt signatures (cosign bundles)."
+            echo
+            echo '```'; cat SHA256SUMS.txt; echo '```'
+          } > notes.md
+          if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$REPO" --clobber PlainBrowser_* SHA256SUMS.txt
+          else
+            gh release create "$TAG" --repo "$REPO" --draft --verify-tag --title "Plain Browser $TAG" --notes-file notes.md PlainBrowser_* SHA256SUMS.txt
+          fi
+          { echo "Draft release $TAG"; echo; cat notes.md; } >> "$GITHUB_STEP_SUMMARY"
+
+  # The handed-over trees are tens of GB each; drop them once the build is done (they expire after 2 days anyway).
+  cleanup:
+    needs: [build-1, build-2, build-3, build-4, build-5, build-6, build-7, build-8, build-9, build-10]
+    if: ${{ !cancelled() && contains(join(needs.*.outputs.finished), 'true') }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete the tree-* artifacts of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[] | select(.name | startswith("tree-")) | .id' |
+            while read -r id; do gh api -X DELETE "repos/$REPO/actions/artifacts/$id" && echo "deleted artifact $id"; done

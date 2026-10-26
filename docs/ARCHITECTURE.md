@@ -71,7 +71,7 @@ Cykl: śledzimy tagi ungoogled-chromium (podążają za Chromium stable). Cel: *
 
 ## 4. Build i CI
 
-- Maszyny: Windows Server 2022/11, 32+ vCPU, 64 GB RAM, 300 GB NVMe. Pełny build ~3–5 h, inkrementalny minuty. Self-hosted runner (GitHub Actions / Azure DevOps). Minimum 2 maszyny (release + PR/canary).
+- Maszyny: Windows Server 2022/11, 32+ vCPU, 64 GB RAM, 300 GB NVMe. Pełny build ~3–5 h, inkrementalny minuty. Self-hosted runner (GitHub Actions / Azure DevOps). Minimum 2 maszyny (release + PR/canary). **Aktualizacja 2026-10-26:** zamiast self-hosted runnera build jest podzielony na etapy na hostowanych runnerach GitHuba (`build-windows.yml`, opis w `docs/CI.md`); VM na Unraidzie zostaje do pracy deweloperskiej.
 - Toolchain: VS 2022 (Chromium pinuje konkretną wersję i Windows SDK – odczytać z `build/vs_toolchain.py` danego taga), Python 3.11+, Rust z `third_party/rust-toolchain` (Chromium ma własny).
 - Pipeline: `build.py` ungoogled-windows z naszymi flagami → `package.py` → nasz `mini_installer` + archiwum portable → **podpis kodu** (EV cert albo Azure Trusted Signing; bez tego SmartScreen blokuje) → upload do serwera Omaha → smoke test (uruchomienie, `chrome://version`, 3 strony testowe adblocka, instalacja uBO MV2).
 - Architektura: start x64. ARM64 (Windows on ARM) jako faza późniejsza – Chromium to wspiera, ale podwaja czas CI.

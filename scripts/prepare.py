@@ -61,11 +61,15 @@ def main(ucw: Path, src: Path) -> int:
     reverts = revert_list()
     prunes = {rel for r, rel in reverts if r == "prune"}
     if prunes:
-        pruning = ucw / "ungoogled-chromium" / "pruning.list"
-        n = drop_from_series(pruning, prunes)
-        if n < 0:
-            return 1
-        print(f"ok: kept {n} files out of pruning.list")
+        # build.py reads ungoogled-chromium/pruning.list only with --tarball; the clone flow (and our CI)
+        # uses ungoogled-chromium-windows' own pruning.list. Both exist at the pinned tag, so edit both.
+        for pruning in (ucw / "ungoogled-chromium" / "pruning.list", ucw / "pruning.list"):
+            if not pruning.exists():
+                continue
+            n = drop_from_series(pruning, prunes)
+            if n < 0:
+                return 1
+            print(f"ok: kept {n} files out of {pruning.relative_to(ucw)}")
     for kind, spec in reverts:
         if kind != "hunks":
             continue
