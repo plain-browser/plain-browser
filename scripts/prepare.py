@@ -51,6 +51,13 @@ def main(ucw: Path, src: Path) -> int:
         (out / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(p, out / rel)
     reverts = revert_list()
+    prunes = {rel for r, rel in reverts if r == "prune"}
+    if prunes:
+        pruning = ucw / "ungoogled-chromium" / "pruning.list"
+        n = drop_from_series(pruning, prunes)
+        if n < 0:
+            return 1
+        print(f"ok: kept {n} files out of pruning.list")
     for repo, series_path in (("uc", ucw / "ungoogled-chromium" / "patches" / "series"), ("ucw", ucw / "patches" / "series")):
         drop = {rel for r, rel in reverts if r == repo}
         if drop:

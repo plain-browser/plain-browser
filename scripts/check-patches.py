@@ -152,7 +152,7 @@ def main():
     reverted = set()
     for line in (ROOT / "patches" / "upstream-revert.list").read_text().splitlines():
         line = line.strip()
-        if line and not line.startswith("#"):
+        if line and not line.startswith("#") and not line.startswith("prune:"):
             reverted.add(tuple(line.split(":", 1)))
 
     upstream_notes = []

@@ -13,8 +13,20 @@ if (-not (Test-Path "$Repo\src\plainbrowser")) { throw "Plain Browser sources no
 
 # 0. upstream patches we do not want, reversed in reverse order of application (ucw after uc)
 $reverts = Get-Content "$Repo\patches\upstream-revert.list" | Where-Object { $_.Trim() -and -not $_.StartsWith("#") }
+$chromiumVersion = (Get-Content "$Ucw\ungoogled-chromium\chromium_version.txt" -Raw).Trim()
 foreach ($line in $reverts) {
   $repoName, $rel = $line.Split(":", 2)
+  if ($repoName -eq "prune") {
+    $dest = Join-Path $Src $rel
+    if (Test-Path $dest) { Write-Host "[skip] $rel (present)"; continue }
+    New-Item -ItemType Directory -Force (Split-Path $dest) | Out-Null
+    if (Test-Path "$Src\.git") { git -C $Src checkout -- $rel; if ($LASTEXITCODE) { throw "git checkout failed for $rel" } }
+    else {
+      $b64 = Invoke-WebRequest -UseBasicParsing "https://chromium.googlesource.com/chromium/src/+/refs/tags/$chromiumVersion/$($rel)?format=TEXT"
+      [IO.File]::WriteAllBytes($dest, [Convert]::FromBase64String($b64.Content))
+    }
+    Write-Host "[ok]   restored pruned $rel"; continue
+  }
   $file = if ($repoName -eq "uc") { Join-Path "$Ucw\ungoogled-chromium\patches" $rel } else { Join-Path "$Ucw\patches" $rel }
   if (-not (Test-Path $file)) { throw "upstream patch to revert not found: $file (renamed upstream? update patches/upstream-revert.list)" }
   # -R --forward reverses the hunks that are applied and skips ("Unreversed patch detected") the ones that are
