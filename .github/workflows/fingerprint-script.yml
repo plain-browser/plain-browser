@@ -1,0 +1,17 @@
+name: fingerprint-script
+# Unit test of the page-world fingerprint script (src/plainbrowser/fingerprint/renderer/fingerprint_script.js) in Node.
+on:
+  push:
+    paths: ["src/plainbrowser/fingerprint/renderer/*.js", ".github/workflows/fingerprint-script.yml"]
+  pull_request:
+    paths: ["src/plainbrowser/fingerprint/renderer/*.js", ".github/workflows/fingerprint-script.yml"]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js src/plainbrowser/fingerprint/renderer/fingerprint_script.js

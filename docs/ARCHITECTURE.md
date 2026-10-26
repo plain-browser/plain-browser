@@ -1,6 +1,6 @@
 # Plain Browser – projekt architektury (Windows 11)
 
-Stan: szkic v0.1, 2026-10-23. Nazwa produktu: **Plain Browser** (wybrana 2026-10-23). „draftway” zostaje wewnętrznym kryptonimem w kodzie (GN `//draftway`, przestrzeń nazw C++, nazwy VM i zadań).
+Stan: szkic v0.1, 2026-10-23. Nazwa produktu: **Plain Browser** (wybrana 2026-10-23). „plainbrowser” zostaje wewnętrznym kryptonimem w kodzie (GN `//plainbrowser`, przestrzeń nazw C++, nazwy VM i zadań).
 
 ## 1. Założenia i co z nich wynika
 
@@ -21,25 +21,35 @@ Chromium (tag upstream, np. 150.0.7871.x)
        └─ ungoogled-chromium-windows (patche Windows, build.py, package.py)
             └─ Plain Browser (to repo)
                  ├─ patches/        – minimalne zmiany w drzewie Chromium
-                 ├─ src/draftway/   – NASZ kod, kopiowany do chromium/src/draftway (GN //draftway)
+                 ├─ src/plainbrowser/   – NASZ kod, kopiowany do chromium/src/plainbrowser (GN //plainbrowser)
                  ├─ branding/       – ikony, grd, install_static, instalator
                  └─ third_party/adblock-rust – submoduł (nasz fork)
 ```
 
-Zasada nr 1: **jak najmniej edycji w plikach Chromium, jak najwięcej w `src/draftway/`**. Patch w drzewie Chromium to koszt przy każdym rebase (co 4 tygodnie). Plik w `//draftway` kompiluje się dalej, póki nie zmieni się API, którego używa.
+Zasada nr 1: **jak najmniej edycji w plikach Chromium, jak najwięcej w `src/plainbrowser/`**. Patch w drzewie Chromium to koszt przy każdym rebase (co 4 tygodnie). Plik w `//plainbrowser` kompiluje się dalej, póki nie zmieni się API, którego używa.
 
 Zasada nr 2: każdy patch należy do jednej kategorii i ma nagłówek z uzasadnieniem, żeby bot rebase'u i człowiek wiedzieli, co wolno wyrzucić.
 
 ```
 patches/
   series                 # kolejność nakładania (format quilt, kompatybilny z utils/patches.py ungoogled)
-  00-build/              # dodanie //draftway do deps, Rust/cargo, GN args
+  00-build/              # //plainbrowser w deps chrome/browser i chrome/renderer (jedyne wpięcie GN)
   10-branding/           # nazwa, ikony, install_static, instalator
-  20-updater/            # podmiana URL-i update_client / crx na nasz serwer
-  30-adblock/            # hooki: throttle, cosmetic injection, UI w pasku
+  20-updater/            # podmiana URL-i update_client / crx na nasz serwer (jeszcze nie ma)
+  30-adblock/            # hooki: throttle, cosmetic injection, throttle nawigacji (removeparam)
   40-mv2/                # odwrócenie usunięcia MV2 (port z brave-core)
-  90-misc/
+  50-credits/            # chrome://credits
+  60-ui/                 # pierwsze uruchomienie, Web Store
+  70-safebrowsing/       # Safe Browsing przez nasze proxy, nagłówek X-Client
+  80-fingerprint/        # wpięcie agenta fingerprintu i przekazanie klucza sesji do rendererów
 ```
+
+Poza `series` drzewo Chromium edytują jeszcze dwa skrypty (`scripts/apply-branding.py`, `scripts/post-gnrt-fixups.ps1`);
+są wymienione w komentarzu w `series`. Hunki nie mogą zawierać hostów Google: ungoogled podmienia je (domain
+substitution) po nałożeniu patchy, więc taki hunk wchodzi w jednym przepływie (`prepare.py`) i nie wchodzi w drugim
+(`apply-plainbrowser.ps1`). `scripts/check-patches.py` nakłada całą serię „na sucho” na dowolny tag
+ungoogled-chromium-windows bez checkoutu Chromium (pobiera tylko dotknięte pliki); CI robi to przy każdej zmianie
+w `patches/` (`patches-check.yml`) i przy nowym tagu upstream (`upstream-watch.yml` wkleja wynik do issue).
 
 Opcjonalnie (rekomendowane po kilku miesiącach, gdy patchy przybędzie): przejąć mechanizm Brave `chromium_src/` – podmiana pojedynczych plików przez kolejność include path i makra `#define`. Skaluje się lepiej niż `.patch`, ale wymaga własnego skryptu GN. Na start wystarczą zwykłe patche przez tooling ungoogled.
 
@@ -72,7 +82,7 @@ Miejsca w Chromium (wszystko za `BUILDFLAG(CHROMIUM_BRANDING)` – budujemy jako
 - `chrome/installer/setup/`, `chrome/installer/mini_installer/` – nazwa w Add/Remove Programs, skróty, rejestracja jako domyślna przeglądarka (Win11: użytkownik klika w `ms-settings:defaultapps`; rejestracja ProgID musi być kompletna: http, https, .html, .htm, .pdf, .svg, .webp).
 - `chrome/browser/ui/webui/version/` i about – wersja Plain Browser + wersja Chromium.
 - `components/search_engines/prepopulated_engines.json` + `template_url_prepopulate_data.cc` – domyślna wyszukiwarka (ungoogled zostawia Google jako domyślną z wyciętymi sugestiami; my ustawiamy swoją/DDG/Brave Search – decyzja biznesowa).
-- NTP: ungoogled ma pustą/lokalną; dla brandingu własna lokalna strona w `//draftway/ntp` (WebUI, bez sieci).
+- NTP: ungoogled ma pustą/lokalną; dla brandingu własna lokalna strona w `//plainbrowser/ntp` (WebUI, bez sieci).
 - Znaki towarowe: nie wolno użyć logo Chrome/Chromium ani nazwy w produkcie poza `chrome://version`.
 
 ## 6. Serwer aktualizacji (jedna rzecz, trzy zastosowania)
@@ -80,7 +90,7 @@ Miejsca w Chromium (wszystko za `BUILDFLAG(CHROMIUM_BRANDING)` – budujemy jako
 Protokół Omaha 3/4 obsługuje w Chromium: aktualizację przeglądarki (`chrome/updater`, open-source Omaha 4), komponenty (`components/update_client`) i rozszerzenia CRX (`extensions/browser/updater`). Jeden serwer obsłuży wszystko:
 
 - Serwer: **Nebraska** (Flatcar, Go, Omaha-compatible) albo `omaha-server` (Python). Nebraska jest lżejsza i utrzymywana.
-- Klient: `chrome/updater` zbudowany z naszymi stałymi w `chrome/updater/branding.gni` (URL, nazwa serwisu `PlainBrowserUpdater`). Alternatywa na start (szybsza): prosty in-browser updater w `//draftway/updater` sprawdzający JSON i pobierający `mini_installer.exe` (ungoogled tak nie robi – użytkownicy ręcznie aktualizują; dla produktu konsumenckiego to nie przejdzie).
+- Klient: `chrome/updater` zbudowany z naszymi stałymi w `chrome/updater/branding.gni` (URL, nazwa serwisu `PlainBrowserUpdater`). Alternatywa na start (szybsza): prosty in-browser updater w `//plainbrowser/updater` sprawdzający JSON i pobierający `mini_installer.exe` (ungoogled tak nie robi – użytkownicy ręcznie aktualizują; dla produktu konsumenckiego to nie przejdzie).
 - Patch `20-updater`: przywrócenie `update_client` (ungoogled go nie usuwa, tylko domain substitution kieruje URL-e na martwe hosty) z URL-em `https://update.plainbrowser.example/service/update2`.
 - Przez ten sam kanał dystrybuujemy: listy filtrów (jako komponent), zasoby redirect dla adblocka, oraz **nasze repozytorium CRX MV2** (sekcja 8).
 
@@ -91,15 +101,15 @@ Model Brave Shields, uproszczony.
 ### 7.1 Budowanie Rusta
 Dwie drogi:
 - (A) `gnrt` + wendorowanie wszystkich crate'ów adblock-rust do `third_party/rust` – „kanoniczne” dla Chromium, ale ~40 crate'ów do utrzymania, audyty `//third_party/rust` przy każdym bumpie.
-- (B) **rekomendowane**: crate `draftway-adblock-ffi` (nasz, cienki) z zależnością na `adblock` (submoduł), budowany przez cargo (`cargo vendor` do offline build) do `staticlib`; GN target `//draftway/adblock/rs` uruchamia cargo jako `action`, a C++ łączy się przez **cxx** (jest w drzewie Chromium). Tak robi Brave.
+- (B) **rekomendowane**: crate `plainbrowser-adblock-ffi` (nasz, cienki) z zależnością na `adblock` (submoduł), budowany przez cargo (`cargo vendor` do offline build) do `staticlib`; GN target `//plainbrowser/adblock/rs` uruchamia cargo jako `action`, a C++ łączy się przez **cxx** (jest w drzewie Chromium). Tak robi Brave.
 
-### 7.2 Komponenty (wszystko w `//draftway/adblock`)
+### 7.2 Komponenty (wszystko w `//plainbrowser/adblock`)
 - `AdBlockService` (KeyedService per profil, w procesie przeglądarki). Trzyma `adblock::Engine` (jeden na zestaw list: default + regionalne + custom użytkownika). Silnik żyje na **dedykowanym `SequencedTaskRunner`**; żadnych wywołań na UI/IO bez PostTask.
 - `AdBlockURLLoaderThrottle` (`blink::URLLoaderThrottle`, rejestrowany w `ChromeContentBrowserClient::CreateURLLoaderThrottles` – to jest 1 patch). W `WillStartRequest`: deferuje, odpytuje silnik (`check_network_request`: url, source_url/initiator, request type), następnie: cancel / redirect do lokalnego zasobu (`$redirect`) / modyfikacja nagłówków CSP (`$csp`) / kontynuacja. Hot path: cache wyników per (host, typ) w pamięci, bo throttle jest na każdym żądaniu.
 - `CosmeticFilterAgent` (renderer, `content::RenderFrameObserver`) + mojo do browsera. Przy `DidCommitProvisionalLoad` pyta `url_cosmetic_resources(url)`; wstrzykuje CSS (`WebDocument::InsertStyleSheet`) i uruchamia skrypt scriptletów w isolated world. Generic hides z `hidden_class_id_selectors` po skanie DOM (jak uBO: lazy, przy mutacjach).
 - `FilterListService` – pobiera listy (EasyList, EasyPrivacy, uBO filters, Polish filters – CertyficateIT, Fanboy Annoyances jako opcja) z naszego serwera; serializujemy silnik serwerowo (`Engine::serialize`) do DAT i dystrybuujemy gotowy DAT jako komponent – start zimny < 50 ms zamiast parsowania tekstu. Odświeżanie co 24 h.
 - `ResourceStore` – zasoby redirect (noop.js, 1x1.gif, …) – wziąć z uBO `web_accessible_resources` (GPLv3 – OK dla dystrybucji danych).
-- UI: ikona w pasku z licznikiem (`//draftway/adblock/ui`, bubble jak Brave Shields), per-site toggle, `chrome://adblock` (WebUI) z listą, custom filters, logger żądań dla debugowania. Stan per-site w `HostContentSettingsMap` (własny `ContentSettingsType` – 1 patch w `components/content_settings`).
+- UI: ikona w pasku z licznikiem (`//plainbrowser/adblock/ui`, bubble jak Brave Shields), per-site toggle, `chrome://adblock` (WebUI) z listą, custom filters, logger żądań dla debugowania. Stan per-site w `HostContentSettingsMap` (własny `ContentSettingsType` – 1 patch w `components/content_settings`).
 - Współistnienie z uBO MV2: jeśli użytkownik instaluje uBO/AdGuard, pokazujemy propozycję wyłączenia wbudowanego blokera (podwójne filtrowanie = podwójny koszt, zero zysku).
 
 ### 7.3 Fork adblock-rust: po co i jak mało
@@ -122,7 +132,7 @@ Weryfikować na konkretnym tagu Chromium (`git log --grep="MV2"` w `extensions/`
 3. `extensions/common/manifest.cc` / `manifest_handlers` – walidacja `manifest_version >= 3` dla instalacji nie-policy.
 4. `extensions/common/api/_permission_features.json` – `webRequestBlocking` ograniczone do `policy` location. **Implementacja blokującego webRequest nadal istnieje**, bo Google deklaruje wsparcie dla rozszerzeń instalowanych politykami enterprise. To jest nasza kotwica: nie przywracamy usuniętego kodu, tylko poszerzamy gating.
 5. `chrome/browser/extensions/extension_management.cc` – polityka `ExtensionManifestV2Availability` (była do usunięcia; sprawdzić czy jest).
-6. Usunięte flagi `kAllowLegacyMV2Extensions`, `ExtensionManifestV2Disabled` (Chrome 150/151) – przywrócić jako nasze pref/flag w `//draftway`.
+6. Usunięte flagi `kAllowLegacyMV2Extensions`, `ExtensionManifestV2Disabled` (Chrome 150/151) – przywrócić jako nasze pref/flag w `//plainbrowser`.
 
 Ryzyko: jeśli Google usunie implementację blokującego `webRequest` także dla enterprise, koszt rośnie z „patch gatingu” do „utrzymania martwego podsystemu”. Brave zadeklarował, że będzie to robił – **portujemy ich patche** (brave-core jest MPL-2.0: `brave/patches/*.patch` i `brave/chromium_src/extensions/...`; nasze pliki pochodne z ich kodu zostają MPL). Ustalić kontakt/śledzenie ich PR-ów z labelem MV2.
 

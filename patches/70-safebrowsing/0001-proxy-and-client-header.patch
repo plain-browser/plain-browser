@@ -1,0 +1,73 @@
+From: Plain Browser
+Subject: [safebrowsing] Send Safe Browsing v4/v5 requests to our proxy with an X-Client header
+
+Category: 70-safebrowsing. The client never talks to Google: the URL prefixes point at
+https://sb.plain-browser.app (Cloudflare Worker in infra/safebrowsing-proxy) and every v4 request
+carries "X-Client: PlainBrowser/<major.minor.patch>" (PLAINBROWSER_VERSION from
+//plainbrowser/common/version.h), nothing per user or per install. The upstream constants are left in
+place because their lines contain a Google hostname, which ungoogled's domain substitution rewrites.
+Takes effect only once Safe Browsing is compiled in (ungoogled builds with safe_browsing_mode=0); see
+infra/safebrowsing-proxy/README.md, section "Chromium side".
+---
+--- a/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
++++ b/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
+@@ -30,6 +30,7 @@
+ #include "net/base/net_errors.h"
+ #include "net/base/registry_controlled_domains/registry_controlled_domain.h"
+ #include "net/http/http_request_headers.h"
++#include "plainbrowser/common/version.h"
+ #include "url/url_util.h"
+ 
+ using base::Time;
+@@ -165,6 +166,19 @@
+   hosts->push_back(host);
+ }
+ 
++// Plain Browser: every Safe Browsing request goes to our proxy
++// (infra/safebrowsing-proxy), never to Google from the client. The proxy
++// serves the v4 Update API only; v5 paths get a 404 there, by design.
++// The upstream constants above stay (tests and reference); mark them used.
++const char kPlainBrowserSbV4UrlPrefix[] = "https://sb.plain-browser.app/v4";
++const char kPlainBrowserSbV5UrlPrefix[] = "https://sb.plain-browser.app/v5";
++[[maybe_unused]] const char* const kUpstreamSbUrlPrefixes[] = {
++    kSbV4UrlPrefix, kSbV5UrlPrefix};
++// Sent with every v4 request: product and major.minor.patch only. No install
++// id, no user id, no Chromium build number.
++constexpr char kPlainBrowserClientHeader[] = "X-Client";
++constexpr char kPlainBrowserClientValue[] = "PlainBrowser/" PLAINBROWSER_VERSION;
++
+ }  // namespace
+ 
+ void SetSbV4UrlPrefixForTesting(const char* url_prefix) {
+@@ -177,7 +191,7 @@
+ 
+ const char* GetSbV5UrlPrefix() {
+   return g_sbv5_url_prefix_for_testing ? g_sbv5_url_prefix_for_testing
+-                                       : kSbV5UrlPrefix;
++                                       : kPlainBrowserSbV5UrlPrefix;
+ }
+ 
+ std::string GetReportUrl(const SBProtocolConfig& config,
+@@ -587,10 +601,11 @@
+     net::HttpRequestHeaders* headers) {
+   const char* url_prefix = g_sbv4_url_prefix_for_testing
+                                ? g_sbv4_url_prefix_for_testing
+-                               : kSbV4UrlPrefix;
++                               : kPlainBrowserSbV4UrlPrefix;
+   *gurl = GURL(
+       ComposeUrl(url_prefix, method_name, request_base64, config.key_param));
+   UpdateHeaders(headers);
++  headers->SetHeader(kPlainBrowserClientHeader, kPlainBrowserClientValue);
+ }
+ 
+ // static
+--- a/components/safe_browsing/core/browser/db/BUILD.gn
++++ b/components/safe_browsing/core/browser/db/BUILD.gn
+@@ -243,6 +243,7 @@
+     ":sb_protocol_config",
+     "//base",
+     "//components/safe_browsing/core/common:features",
++    "//plainbrowser/common:version",
+     "//components/safe_browsing/core/common:safe_browsing_prefs",
+     "//google_apis",
+     "//net",

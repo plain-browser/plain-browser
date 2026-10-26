@@ -9,7 +9,7 @@ Plain Browser is a fork of [ungoogled-chromium](https://github.com/ungoogled-sof
 - **Free of Google.** No Google account, sync, Safe Browsing or telemetry calls: everything ungoogled-chromium strips stays stripped, and our own services (updates, extension repository) run on our own infrastructure.
 - **Ad and tracker blocking built in.** adblock-rust runs inside the browser's network stack instead of in an extension, so blocking works without webRequest APIs and does not depend on the extension platform. Default lists: EasyList, EasyPrivacy and EasyList Polish.
 - **Manifest V2 stays alive.** Chrome 139 and later disabled MV2 and the Web Store dropped it. Plain Browser keeps MV2 extensions and blocking `webRequest` working so tools like uBlock Origin keep their full power.
-- **Small, rebase-friendly patch set.** Our code lives in one directory (`src/draftway`, internal codename) and a short list of patches on top of ungoogled-chromium, so we can follow every Chromium release.
+- **Small, rebase-friendly patch set.** Our code lives in one directory (`src/plainbrowser`) and a short list of patches on top of ungoogled-chromium, so we can follow every Chromium release.
 
 ## How it is built
 
@@ -17,14 +17,14 @@ Plain Browser is a fork of [ungoogled-chromium](https://github.com/ungoogled-sof
 Chromium (pinned tag)
   └─ ungoogled-chromium
        └─ ungoogled-chromium-windows   (build scripts for Windows)
-            └─ Plain Browser           (this repository: patches + src/draftway)
+            └─ Plain Browser           (this repository: patches + src/plainbrowser)
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the design and [docs/ADBLOCK.md](docs/ADBLOCK.md) for the blocker integration.
 
 ## Licenses
 
-- Original code (`src/draftway`, scripts, docs): **MPL-2.0**, see [LICENSE](LICENSE).
+- Original code (`src/plainbrowser`, scripts, docs): **MPL-2.0**, see [LICENSE](LICENSE).
 - Patches to Chromium and ungoogled-chromium (`patches/`): **BSD-3-Clause**, see [patches/LICENSE](patches/LICENSE).
 - Upstream components keep their own licenses: Chromium and ungoogled-chromium (BSD-3-Clause), adblock-rust (MPL-2.0), bundled filter lists (GPLv3 or CC BY-SA 3.0, with attribution).
 
@@ -38,9 +38,12 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 |---|---|
 | Stock ungoogled-chromium 156 build on our Windows builder | Done (6.7 h); unsigned test build in a draft release |
 | adblock-rust bridge crate (Rust + cxx, bundled lists) | Done, 4 unit tests pass |
-| Browser/renderer adblock code (service, mojo filter, request throttle, cosmetic agent) | Compiles, links and **blocks**: headless test (`scripts/test-adblock.ps1`) blocks four ad hosts, passes controls, and with `--disable-features=DraftwayAdblock` lets all through without hanging |
+| Browser/renderer adblock code (service, mojo filter, request throttle, cosmetic agent) | Compiles, links and **blocks**: headless test (`scripts/test-adblock.ps1`) blocks four ad hosts, passes controls, and with `--disable-features=PlainBrowserAdblock` lets all through without hanging |
 | Vendoring the adblock crates into Chromium's GN build (gnrt) | Done, scripted (`scripts/vendor-adblock-crates.ps1`) |
 | MV2 | ungoogled-chromium already keeps MV2 enabled in 156; one small cleanup patch written and compiled, **no extension tested yet** |
+| Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) | Written (navigation throttle + `$removeparam` list), **not compiled or run yet** |
+| Fingerprint protection (canvas, audio, WebGL strings, navigator) with bank exceptions | Written (page-world script, no Blink patches), **not compiled or run yet**; see `docs/FINGERPRINT.md` |
+| Safe Browsing through our proxy (`sb.plain-browser.app`, `X-Client: PlainBrowser/<version>`) | Patch written; Safe Browsing itself is still compiled out by ungoogled-chromium |
 | Branding, installer, updater, extension repository | Not started |
 
 Verified: same six requests with the filter on and off. On: the four EasyList hosts never reach the server, controls load.

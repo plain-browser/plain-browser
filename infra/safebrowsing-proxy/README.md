@@ -28,8 +28,8 @@ npm i -g wrangler            # or use npx wrangler
 wrangler login
 ```
 
-1. Edit `wrangler.toml`: set `routes` to your hostname (for example `sb.mojadomena.pl`; the zone must be on
-   Cloudflare) and a unique `namespace_id` for the rate limiter.
+1. `wrangler.toml` routes the Worker at `sb.plain-browser.app` (the zone `plain-browser.app` must be on
+   Cloudflare) and requires `X-Client: PlainBrowser/<version>`; set a unique `namespace_id` for the rate limiter.
 2. Create a Google API key with only the **Safe Browsing API** enabled (Google Cloud console → APIs & Services).
    Restrict it to that API. Applying IP restrictions to Cloudflare's ranges is not practical, so rely on the
    rate limiter and quota alerts.
@@ -41,8 +41,8 @@ wrangler deploy
 ```
 
 Rate limiting: `wrangler.toml` allows 60 requests per 60 s per client IP. A browser polls every 30 minutes or
-more. Optional: set `REQUIRED_CLIENT = "PlainBrowser"` in `[vars]` to accept only `X-Client: PlainBrowser/<version>`.
-This is a filter, not authentication: anyone can send that header.
+more. `REQUIRED_CLIENT = "PlainBrowser"` in `[vars]` accepts only `X-Client: PlainBrowser/<major.minor.patch>`,
+which is what the browser sends. This is a filter, not authentication: anyone can send that header.
 
 ## Test
 
@@ -55,8 +55,8 @@ npm test
 Live test against your deployment. The request body is a minimal `threatListUpdates:fetch`:
 
 ```bash
-curl -sS -X POST "https://sb.mojadomena.pl/v4/threatListUpdates:fetch" \
-  -H "Content-Type: application/json" \
+curl -sS -X POST "https://sb.plain-browser.app/v4/threatListUpdates:fetch" \
+  -H "Content-Type: application/json" -H "X-Client: PlainBrowser/0.1.0" \
   -d '{"client":{"clientId":"plainbrowser","clientVersion":"0.1.0"},
        "listUpdateRequests":[{"threatType":"MALWARE","platformType":"WINDOWS",
        "threatEntryType":"URL","state":"","constraints":{"supportedCompressions":["RAW"]}}]}' \
@@ -64,26 +64,27 @@ curl -sS -X POST "https://sb.mojadomena.pl/v4/threatListUpdates:fetch" \
 ```
 
 Expect `HTTP/2 200`, `cache-control: no-store` and JSON with `listUpdateResponses`. A 404 for any other path:
-`curl -i https://sb.mojadomena.pl/v4/other`.
+`curl -i https://sb.plain-browser.app/v4/other`, and a 403 without the `X-Client` header.
 
 ## Chromium side
 
-In the Chromium 156 tree the base URL is a constant in
-`components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc`:
+Done in `patches/70-safebrowsing/0001-proxy-and-client-header.patch`, on
+`components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc` (Chromium 156 renamed the old
+`v4_protocol_manager_util.cc`; the functions kept their names):
 
-```cpp
-const char kSbV4UrlPrefix[] = "https://safebrowsing.googleapis.com/v4";   // ungoogled-chromium shows it domain-substituted
-```
-
-Requests are built in `SBProtocolManagerUtil::GetRequestUrlAndHeaders` as `<prefix>/<method>?$req=…&$ct=application/x-protobuf`
-plus `&key=…`. A patch under `patches/` should:
-
-1. Change `kSbV4UrlPrefix` to `"https://sb.mojadomena.pl/v4"` (the `/v4` stays; the Worker routes on it).
-2. Check `kSbV5UrlPrefix` and the real-time URL lookup paths; anything that still points at Google bypasses the
-   proxy. The Worker intentionally does not serve v5.
-3. Send `X-Client: PlainBrowser/<major.minor.patch>` if `REQUIRED_CLIENT` is used.
-4. Keep Enhanced Protection and extended reporting disabled and not selectable (they upload URLs and page data).
+1. `GetRequestUrlAndHeaders` builds v4 URLs on `https://sb.plain-browser.app/v4` and `GetSbV5UrlPrefix()` returns
+   `https://sb.plain-browser.app/v5`. The upstream constants with the Google hostname are left in place (ungoogled's
+   domain substitution rewrites that line, so a hunk on it would apply in one build flow and fail in the other);
+   nothing reads them any more.
+2. Every v4 request gets `X-Client: PlainBrowser/<major.minor.patch>` from `PLAINBROWSER_VERSION`
+   (`src/plainbrowser/common/version.h`, generated from `versions.toml` by `scripts/sync-version.py`). No install
+   id, user id or Chromium build number is sent.
+3. The Worker does not serve v5, so v5 lookups get a 404 at the proxy and never reach Google. The real-time URL
+   lookup and report URLs still carry domain-substituted hostnames (dead), as in ungoogled-chromium.
+4. Enhanced Protection and extended reporting stay disabled and unselectable (they upload URLs and page data).
    Standard protection (local hash list) is the only mode that fits this design.
 
-ungoogled-chromium disables Safe Browsing by default, so re-enabling it also means reverting its patches that
-stub out the feature. That work is not done yet, and I have not verified which of those patches apply to 156.
+Still open: ungoogled-chromium builds with `safe_browsing_mode=0` and patches the feature out
+(`fix-building-without-safebrowsing.patch`, `safe_browsing-disable-*.patch`). The patch above applies cleanly on
+that tree but has no effect until Safe Browsing is compiled back in (`safe_browsing_mode=1` in the flags override
+in `scripts/build.ps1`, and reverting those ungoogled patches). That is a separate, unestimated step.

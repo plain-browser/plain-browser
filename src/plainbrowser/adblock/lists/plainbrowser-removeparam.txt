@@ -1,0 +1,82 @@
+! Plain Browser: tracking parameters removed from navigations (and subresources where the engine is consulted).
+! Syntax: uBlock Origin / adblock-rust `$removeparam`. One parameter per rule; adblock-rust matches names literally.
+! Keep this to parameters that only identify the click or the recipient. Never remove parameters a site needs
+! to show the page (page ids, search queries, session tokens for logged-in users).
+! MPL-2.0, Plain Browser contributors.
+!
+! Google Analytics / Ads
+*$removeparam=utm_source
+*$removeparam=utm_medium
+*$removeparam=utm_campaign
+*$removeparam=utm_term
+*$removeparam=utm_content
+*$removeparam=utm_id
+*$removeparam=utm_name
+*$removeparam=utm_cid
+*$removeparam=utm_reader
+*$removeparam=utm_referrer
+*$removeparam=utm_social
+*$removeparam=utm_social-type
+*$removeparam=utm_brand
+*$removeparam=gclid
+*$removeparam=gclsrc
+*$removeparam=dclid
+*$removeparam=gbraid
+*$removeparam=wbraid
+*$removeparam=_ga
+*$removeparam=_gl
+! Facebook / Instagram
+*$removeparam=fbclid
+*$removeparam=igshid
+*$removeparam=igsh
+! Microsoft / Bing
+*$removeparam=msclkid
+! Twitter / X
+*$removeparam=twclid
+! TikTok
+*$removeparam=ttclid
+! Yandex
+*$removeparam=yclid
+*$removeparam=ymclid
+! Mailchimp
+*$removeparam=mc_cid
+*$removeparam=mc_eid
+! HubSpot
+*$removeparam=_hsenc
+*$removeparam=_hsmi
+*$removeparam=hsCtaTracking
+! Marketo
+*$removeparam=mkt_tok
+! Adobe
+*$removeparam=s_cid
+*$removeparam=s_kwcid
+! Vero, Wicked Reports, Olytics, Drip
+*$removeparam=vero_id
+*$removeparam=vero_conv
+*$removeparam=wickedid
+*$removeparam=oly_anon_id
+*$removeparam=oly_enc_id
+*$removeparam=__s
+! Klaviyo, Omnisend, Salesforce, Oracle
+*$removeparam=_kx
+*$removeparam=omnisendContactID
+*$removeparam=sc_cid
+*$removeparam=elqTrackId
+! Matomo / Piwik
+*$removeparam=pk_campaign
+*$removeparam=pk_kwd
+*$removeparam=pk_source
+*$removeparam=pk_medium
+*$removeparam=pk_content
+*$removeparam=mtm_campaign
+*$removeparam=mtm_source
+*$removeparam=mtm_medium
+*$removeparam=mtm_keyword
+*$removeparam=mtm_content
+*$removeparam=mtm_cid
+*$removeparam=mtm_group
+*$removeparam=mtm_placement
+! Polish e-mail and affiliate networks
+*$removeparam=smclient
+*$removeparam=smconv
+*$removeparam=utm_expid

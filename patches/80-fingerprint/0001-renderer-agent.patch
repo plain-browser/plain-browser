@@ -1,0 +1,25 @@
+From: Plain Browser
+Subject: [fingerprint] Attach the fingerprint agent to every frame
+
+Category: 80-fingerprint. Code lives in //plainbrowser/fingerprint; this patch only wires it in.
+Applies after 30-adblock/0004 (same include block and RenderFrameCreated hunk).
+---
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -136,6 +136,7 @@
+ #include "components/webapps/renderer/web_page_metadata_agent.h"
+ #include "content/public/common/content_constants.h"
+ #include "plainbrowser/adblock/renderer/cosmetic_filter_agent.h"
++#include "plainbrowser/fingerprint/renderer/fingerprint_agent.h"
+ #include "content/public/common/content_features.h"
+ #include "content/public/common/content_switches.h"
+ #include "content/public/common/page_visibility_state.h"
+@@ -659,6 +660,8 @@
+   new prerender::NoStatePrefetchRenderFrameObserver(render_frame);
+   // Plain Browser adblock: element hiding.
+   plainbrowser::adblock::CosmeticFilterAgent::Create(render_frame);
++  // Plain Browser fingerprint protection (per-site noise, main world).
++  plainbrowser::fingerprint::FingerprintAgent::Create(render_frame);
+ 
+   auto content_settings_delegate =
+       std::make_unique<ChromeContentSettingsAgentDelegate>(render_frame);

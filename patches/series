@@ -2,14 +2,26 @@
 # Each entry is a path relative to patches/. Patches must be generated against
 # the pinned Chromium tag (see versions.toml).
 # After applying these, run scripts/vendor-adblock-crates.ps1 (gnrt vendor + gen); see docs/ADBLOCK.md.
+#
+# Two scripts also edit the Chromium tree and are NOT listed here (keep this list in sync with them):
+#   scripts/apply-branding.py     product name in *_chromium_strings*.grd(p) + .xtb and chrome/app/theme/chromium/BRANDING
+#   scripts/post-gnrt-fixups.ps1  windows-rs import libs in third_party/rust/windows_*_msvc BUILD.gn after gnrt
+# Rule: no Google hostnames in hunks. ungoogled's domain substitution rewrites them after patching, so a hunk
+# that contains one applies in one flow (prepare.py, before substitution) and fails in the other
+# (apply-plainbrowser.ps1, after). Add our own constant next to the upstream one instead.
+# scripts/check-patches.py dry-runs this series against any ungoogled-chromium-windows tag without a checkout.
+00-build/0001-gn-deps.patch
 10-branding/0001-install-modes.patch
 30-adblock/0000-crate-config.patch
-30-adblock/0001-gn-deps.patch
 30-adblock/0002-browser-expose-filter.patch
 30-adblock/0003-renderer-request-throttle.patch
 30-adblock/0004-renderer-cosmetic-agent.patch
+30-adblock/0005-browser-navigation-throttle.patch
 40-mv2/0001-mv2-not-deprecated.patch
 50-credits/0001-licenses-additional-paths.patch
 60-ui/0001-first-run-no-ungoogled-page.patch
 60-ui/0002-no-web-store-app.patch
 60-ui/0004-no-web-store-shortcut.patch
+70-safebrowsing/0001-proxy-and-client-header.patch
+80-fingerprint/0001-renderer-agent.patch
+80-fingerprint/0002-browser-renderer-switches.patch

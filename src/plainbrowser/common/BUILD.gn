@@ -1,0 +1,6 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# Product version for code that reports it (Safe Browsing X-Client header).
+# version.h is generated from versions.toml by scripts/sync-version.py and committed.
+source_set("version") {
+  sources = [ "version.h" ]
+}

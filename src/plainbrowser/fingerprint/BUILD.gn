@@ -1,0 +1,60 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# Fingerprint protection: per-site, per-session noise in canvas, audio and a few
+# navigator values, injected into every page's main world before page scripts
+# run (see renderer/fingerprint_script.js). No Blink patches.
+
+source_set("common") {
+  sources = [
+    "common/features.cc",
+    "common/features.h",
+    "common/switches.cc",
+    "common/switches.h",
+  ]
+  deps = [ "//base" ]
+}
+
+source_set("browser") {
+  sources = [
+    "browser/renderer_switches.cc",
+    "browser/renderer_switches.h",
+  ]
+  deps = [
+    ":common",
+    "//base",
+  ]
+}
+
+# fingerprint_script.js as a C++ string constant.
+action("embed_script") {
+  script = "renderer/embed_text.py"
+  sources = [ "renderer/fingerprint_script.js" ]
+  outputs = [ "$target_gen_dir/fingerprint_script.cc" ]
+  args = [
+    rebase_path(sources[0], root_build_dir),
+    rebase_path(outputs[0], root_build_dir),
+    "kFingerprintScript",
+    "plainbrowser::fingerprint",
+  ]
+}
+
+source_set("renderer") {
+  sources = [
+    "renderer/fingerprint_agent.cc",
+    "renderer/fingerprint_agent.h",
+    "renderer/fingerprint_exceptions.cc",
+    "renderer/fingerprint_exceptions.h",
+    "renderer/fingerprint_script.h",
+  ]
+  sources += get_target_outputs(":embed_script")
+  deps = [
+    ":common",
+    ":embed_script",
+    "//base",
+    "//content/public/common",
+    "//content/public/renderer",
+    "//net",
+    "//third_party/blink/public:blink",
+    "//url",
+    "//v8",
+  ]
+}

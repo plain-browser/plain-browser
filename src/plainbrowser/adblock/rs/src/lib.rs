@@ -10,6 +10,8 @@ mod ffi {
         important: bool,
         exception: bool,
         redirect: String,
+        /// URL with tracking parameters removed (`$removeparam` rules); empty when unchanged.
+        rewritten_url: String,
     }
 
     extern "Rust" {
@@ -35,10 +37,11 @@ mod ffi {
 pub struct AdblockEngine(Engine);
 
 /// Default lists, compiled in (see ../lists/NOTICE.md). GN lists them as inputs.
-const DEFAULT_LISTS: [&str; 3] = [
+const DEFAULT_LISTS: [&str; 4] = [
     include_str!("../../lists/easylist.txt"),
     include_str!("../../lists/easyprivacy.txt"),
     include_str!("../../lists/easylistpolish.txt"),
+    include_str!("../../lists/plainbrowser-removeparam.txt"),
 ];
 
 fn new_default_engine() -> Box<AdblockEngine> {
@@ -79,9 +82,16 @@ impl AdblockEngine {
                     important: r.important,
                     exception: r.exception.is_some(),
                     redirect: r.redirect.unwrap_or_default(),
+                    rewritten_url: r.rewritten_url.unwrap_or_default(),
                 }
             }
-            Err(_) => ffi::BlockResult { matched: false, important: false, exception: false, redirect: String::new() },
+            Err(_) => ffi::BlockResult {
+                matched: false,
+                important: false,
+                exception: false,
+                redirect: String::new(),
+                rewritten_url: String::new(),
+            },
         }
     }
 
@@ -126,6 +136,35 @@ mod tests {
         // A well-known ad server from EasyList; must stay blocked.
         assert!(e.check_network_request("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", "https://example.com", "script").matched);
         assert!(!e.check_network_request("https://example.com/app.js", "https://example.com", "script").matched);
+    }
+
+    #[test]
+    fn strips_tracking_params() {
+        let e = new_engine("*$removeparam=utm_source\n*$removeparam=fbclid\n");
+        let r = e.check_network_request(
+            "https://site.com/a?utm_source=nl&id=1&fbclid=abc",
+            "https://other.com/",
+            "main_frame",
+        );
+        assert!(!r.matched);
+        assert_eq!(r.rewritten_url, "https://site.com/a?id=1");
+        // Nothing to strip: no rewrite.
+        assert!(e.check_network_request("https://site.com/a?id=1", "https://other.com/", "main_frame").rewritten_url.is_empty());
+        assert!(e.check_network_request("https://site.com/a", "https://other.com/", "main_frame").rewritten_url.is_empty());
+    }
+
+    #[test]
+    fn default_removeparam_list() {
+        let e = new_default_engine();
+        let r = e.check_network_request(
+            "https://example.com/p?utm_campaign=x&utm_medium=y&gclid=1&q=2",
+            "https://example.com/",
+            "main_frame",
+        );
+        assert_eq!(r.rewritten_url, "https://example.com/p?q=2");
+        // Subframes and plain subresources are covered by the same rules.
+        let r = e.check_network_request("https://example.com/f?fbclid=1", "https://example.com/", "sub_frame");
+        assert_eq!(r.rewritten_url, "https://example.com/f");
     }
 
     #[test]

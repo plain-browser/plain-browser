@@ -56,6 +56,31 @@ bool AdBlockService::ShouldBlock(const GURL& url,
   return r.matched;
 }
 
+GURL AdBlockService::RewrittenUrl(const GURL& url,
+                                  const GURL& source_url,
+                                  const std::string& request_type) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS() || !url.has_query()) {
+    return GURL();
+  }
+  const std::string& spec = url.spec();
+  const std::string& source =
+      source_url.is_valid() ? source_url.spec() : spec;
+  BlockResult r = (*engine_)->check_network_request(
+      rust::Str(spec), rust::Str(source), rust::Str(request_type));
+  if (r.matched || r.rewritten_url.empty()) {
+    return GURL();
+  }
+  GURL rewritten(std::string(r.rewritten_url));
+  // Only ever drop query parameters: anything else from the engine is ignored.
+  if (!rewritten.is_valid() || rewritten == url ||
+      rewritten.GetWithEmptyPath() != url.GetWithEmptyPath() ||
+      rewritten.path_piece() != url.path_piece()) {
+    return GURL();
+  }
+  return rewritten;
+}
+
 std::string AdBlockService::CosmeticCss(const GURL& url) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {

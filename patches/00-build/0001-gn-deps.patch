@@ -1,0 +1,27 @@
+From: Plain Browser
+Subject: [build] Link //plainbrowser into chrome/browser:core and chrome/renderer
+
+Category: 00-build. All our code lives under //plainbrowser; this is the only GN wiring in the Chromium tree.
+//plainbrowser:browser and //plainbrowser:renderer are groups (src/plainbrowser/BUILD.gn), so a new feature
+adds itself there and this patch never changes.
+---
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -881,6 +881,7 @@
+   }
+ 
+   deps = [
++    "//plainbrowser:browser",
+     ":active_use_util",
+     ":after_startup_task_utils",
+     ":bad_message",
+--- a/chrome/renderer/BUILD.gn
++++ b/chrome/renderer/BUILD.gn
+@@ -126,6 +126,7 @@
+   ]
+ 
+   deps = [
++    "//plainbrowser:renderer",
+     ":process_state",
+     "//base/allocator:buildflags",
+     "//build:chromeos_buildflags",

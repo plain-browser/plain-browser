@@ -1,0 +1,27 @@
+From: Plain Browser
+Subject: [adblock] Add the tracking-parameter navigation throttle
+
+Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
+Frame navigations get TrackingParamsNavigationThrottle, which re-issues a navigation whose URL
+carries $removeparam parameters (utm_*, fbclid, gclid, ...) with the clean URL.
+---
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -78,6 +78,7 @@
+ #include "chrome/browser/chrome_content_browser_client_binder_policies.h"
+ #include "chrome/browser/chrome_content_browser_client_navigation_throttles.h"
+ #include "chrome/browser/chrome_content_browser_client_parts.h"
++#include "plainbrowser/adblock/browser/tracking_params_navigation_throttle.h"
+ #include "chrome/browser/content_settings/cookie_settings_factory.h"
+ #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
+ #include "chrome/browser/contextual_tasks/contextual_tasks_ui_service.h"
+@@ -5667,6 +5668,9 @@
+ void ChromeContentBrowserClient::CreateThrottlesForNavigation(
+     content::NavigationThrottleRegistry& registry) {
+   CreateAndAddChromeThrottlesForNavigation(registry);
++  // Plain Browser: strip tracking parameters from navigations.
++  plainbrowser::adblock::TrackingParamsNavigationThrottle::MaybeCreateAndAdd(
++      registry);
+ }
+ 
+ void ChromeContentBrowserClient::CreateThrottlesForCommitWithoutUrlLoader(

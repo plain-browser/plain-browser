@@ -2,9 +2,9 @@ name = "plainbrowser-sb-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
-# Replace with your own zone and hostname. The zone must be on Cloudflare.
+# The zone plain-browser.app must be on Cloudflare. patches/70-safebrowsing points the browser here.
 routes = [
-  { pattern = "sb.example.com", custom_domain = true }
+  { pattern = "sb.plain-browser.app", custom_domain = true }
 ]
 
 # Do not keep request logs. Aggregate metrics in the dashboard are enough.
@@ -24,8 +24,9 @@ namespace_id = "1001"
 simple = { limit = 60, period = 60 }
 
 [vars]
-# Optional: only accept `X-Client: PlainBrowser/<version>`. Not authentication, just a cheap filter.
-# REQUIRED_CLIENT = "PlainBrowser"
+# Only accept `X-Client: PlainBrowser/<major.minor.patch>` (the browser sends it, patches/70-safebrowsing).
+# Not authentication, just a cheap filter against random scanners.
+REQUIRED_CLIENT = "PlainBrowser"
 
 # The Google API key is a secret, never put it here:
 #   npx wrangler secret put GOOGLE_SB_KEY

@@ -36,6 +36,13 @@ class AdBlockService {
                    const std::string& request_type);
   std::string CosmeticCss(const GURL& url);
 
+  // `url` with tracking parameters removed ($removeparam rules), or an empty
+  // GURL when nothing was removed or the request would be blocked outright.
+  // `request_type` is "main_frame" or "sub_frame" for navigations.
+  GURL RewrittenUrl(const GURL& url,
+                    const GURL& source_url,
+                    const std::string& request_type);
+
  private:
   friend class base::NoDestructor<AdBlockService>;
   AdBlockService();

@@ -19,6 +19,7 @@ rust_static_library("ffi") {
     "lists/easylist.txt",
     "lists/easylistpolish.txt",
     "lists/easyprivacy.txt",
+    "lists/plainbrowser-removeparam.txt",
   ]
   cxx_bindings = [ "rs/src/lib.rs" ]
   allow_unsafe = true
@@ -35,12 +36,15 @@ source_set("browser") {
     "browser/adblock_filter_impl.h",
     "browser/renderer_interfaces.cc",
     "browser/renderer_interfaces.h",
+    "browser/tracking_params_navigation_throttle.cc",
+    "browser/tracking_params_navigation_throttle.h",
   ]
   public_deps = [ "//services/service_manager/public/cpp" ]
   deps = [
     ":ffi",
     ":mojom",
     "//base",
+    "//content/public/browser",
     "//mojo/public/cpp/bindings",
     "//url",
   ]
