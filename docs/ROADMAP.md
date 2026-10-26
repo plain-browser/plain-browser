@@ -21,7 +21,9 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 - Redirect bypass ("debouncing", e.g. `click.example/?url=https://target`) is a separate rule set: unwrap the target
   URL from known tracking redirectors. Reusing Brave's debounce rule list would save work; **its license and data format
   must be checked before copying anything.**
-- Per-site toggle: shares the exception list with the adblock toggle (below), so the UI work comes first.
+- Per-site toggle: **done** 2026-10-26, shares the exception list (`plainbrowser.shields.exceptions`) with the
+  adblock and fingerprint toggles; one toolbar bubble for all three ([ADBLOCK.md](ADBLOCK.md), "UI and per-site
+  exceptions").
 
 ### Fingerprint randomization
 - Approach used by Brave ("farbling"): a per-site, per-session seed (hash of eTLD+1 and a random session key) that
@@ -29,13 +31,21 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
   hardware values. Noise must stay inside plausible ranges: arbitrary random values are themselves a fingerprint.
 - The code lives in Blink and touches many files, so patches break often on rebase. Of everything in this document this
   is the most expensive to maintain against the "small, rebase-friendly patch set" goal.
-- Compatibility exceptions (for example banks): one per-site content setting, shared with the adblock and parameter-stripping toggles. Needs a
-  settings page and a toolbar control that do not exist yet.
+- Compatibility exceptions (for example banks): one per-site list shared with the adblock and parameter-stripping
+  toggles. The toolbar control exists (toggle in the bubble, 2026-10-26; a list pref rather than a content setting,
+  so no `components/content_settings` patch); a settings page listing the exceptions does not yet.
 - Done as a first slice without Blink patches: a script injected into every page's main world (canvas, audio,
   WebGL strings, hardwareConcurrency, deviceMemory) with a per-site, per-session seed; built-in compatibility list of
   sites that need a stable fingerprint (online banking, payments) plus `--fingerprint-exceptions=a.pl,b.pl`. Details and limits in [FINGERPRINT.md](FINGERPRINT.md).
-  Next: a settings page for the exception list, then Blink-level farbling for the surfaces where a page-world
-  override is too easy to detect.
+  The per-site toggle in the toolbar bubble is done. Next: a settings page for the exception list, then Blink-level
+  farbling for the surfaces where a page-world override is too easy to detect.
+
+### Safe Browsing settings (verified 2026-10-26 on the current build)
+`chrome://settings/security` shows the Safe Browsing section with Enhanced / Standard (default) / No protection and
+the prefs match "standard only, no reporting". Two follow-ups for `patches/70-safebrowsing`: hide or disable the
+**Enhanced protection** row (its real-time lookups are not something our proxy supports and the policy promises
+standard protection only), and replace the stock descriptions, which say data is sent to Google, with text that
+matches `docs/PRIVACY.md` (requests go to our proxy).
 
 ## Project security
 
