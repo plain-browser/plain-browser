@@ -20,6 +20,9 @@ uc:core/inox-patchset/0001-fix-building-without-safebrowsing.patch
 prune:components/safe_browsing/core/common/safe_browsing_prefs.cc
 prune:components/safe_browsing/core/common/safe_browsing_prefs.h
 prune:components/safe_browsing/content/resources/empty_file_type_policy.pb
+# chrome/app/etw_events/chrome_events_win.rc comes back with the Windows patch and includes these two binaries:
+prune:chrome/app/etw_events/MSG00001.bin
+prune:chrome/app/etw_events/chrome_events_winTEMP.BIN
 # ungoogled removes the Safe Browsing preferences (registration, policy handlers, settings UI bindings, users)
 # together with other unused prefs in one patch. Only its Safe Browsing hunks are dropped; the rest stays.
 # generated_javascript_optimizer_pref.cc is excluded: it does not use the prefs, and the later upstream patch
