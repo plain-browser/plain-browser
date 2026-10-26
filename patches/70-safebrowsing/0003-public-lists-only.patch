@@ -1,0 +1,29 @@
+From: Plain Browser
+Subject: [safebrowsing] Sync only the lists a public Safe Browsing API key can fetch
+
+Category: 70-safebrowsing. Our proxy uses an ordinary Safe Browsing API key. Google serves it MALWARE,
+SOCIAL_ENGINEERING, UNWANTED_SOFTWARE and the CSD download allowlist, but refuses the Chrome-only lists
+(MALICIOUS_BINARY, the extension list, BILLING) with "ThreatType is not accessible", and a single refused
+list makes the whole threatListUpdates:fetch fail with 403 (verified 2026-10-26 through sb.plain-browser.app).
+Those lists stay registered so lookups compile and behave, but are never requested.
+---
+--- a/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
++++ b/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
+@@ -96,11 +96,14 @@
+                SB_THREAT_TYPE_URL_MALWARE),
+       ListInfo(kSyncAlways, "UrlUws", GetUrlUwsId(),
+                SB_THREAT_TYPE_URL_UNWANTED),
+-      ListInfo(kSyncOnDesktopBuilds, "UrlMalBin", GetUrlMalBinId(),
++      // Plain Browser: the lists below are not served to third-party Safe
++      // Browsing API keys ("ThreatType is not accessible"), and one refused
++      // list fails the whole update. Keep them registered, never synced.
++      ListInfo(kSyncNever, "UrlMalBin", GetUrlMalBinId(),
+                SB_THREAT_TYPE_URL_BINARY_MALWARE),
+-      ListInfo(kSyncOnDesktopBuilds, "ChromeExtMalware",
++      ListInfo(kSyncNever, "ChromeExtMalware",
+                GetChromeExtMalwareId(), SB_THREAT_TYPE_EXTENSION),
+-      ListInfo(kSyncAlways, "UrlBilling", GetUrlBillingId(),
++      ListInfo(kSyncNever, "UrlBilling", GetUrlBillingId(),
+                SB_THREAT_TYPE_BILLING),
+       ListInfo(kSyncOnDesktopBuilds, "UrlCsdDownloadAllowlist",
+                GetUrlCsdDownloadAllowlistId(),

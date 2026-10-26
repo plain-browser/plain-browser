@@ -1,11 +1,11 @@
 <# Checks that Safe Browsing is compiled in and talks only to our proxy (Windows build VM).
    Runs the browser headless for a while with a NetLog, then greps the NetLog for Safe Browsing requests:
    every one must go to sb.plain-browser.app with the X-Client header, and none to a Google host.
-   The v4 update protocol fires its first list update a few seconds after startup, so 45 s is enough.
+   The v4 update protocol schedules its first list update 1 to 5 minutes after startup, so the default is 330 s.
    Expected output: at least one "sb.plain-browser.app/v4/threatListUpdates:fetch" URL, "X-Client: PlainBrowser/<ver>",
    and "google hosts: 0".
    Usage: powershell -File scripts\test-safebrowsing.ps1 [-Exe <chrome.exe>] [-Seconds 45] #>
-param([string]$Exe = "C:\dw-build\ucw\build\src\out\Default\chrome.exe", [int]$Seconds = 45)
+param([string]$Exe = "C:\dw-build\ucw\build\src\out\Default\chrome.exe", [int]$Seconds = 330)
 $ErrorActionPreference = "Continue"
 $dir = "C:\dw-test-sb"
 Get-Process chrome -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $Exe } | Stop-Process -Force -ErrorAction SilentlyContinue
