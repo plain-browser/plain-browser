@@ -12,8 +12,9 @@ zmienia.
   kogokolwiek innego.
 - Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera**, który odbierałby dane z
   przeglądarki. Nie widzimy, co przeglądasz.
-- **Nie łączy się z usługami Google.** Poprawki ungoogled-chromium usuwają je (logowanie Google, Safe Browsing,
-  tłumaczenie, Chrome Web Store i inne).
+- **Nie łączy się z usługami Google.** Poprawki ungoogled-chromium usuwają je (logowanie Google, tłumaczenie,
+  Chrome Web Store i inne). Jedynym planowanym wyjątkiem jest Safe Browsing przez nasze własne anonimizujące
+  proxy, opisane niżej; w tej wersji nie jest aktywne.
 - Dane o przeglądaniu zostają **na Twoim urządzeniu**.
 
 ## Co zbieramy
@@ -39,6 +40,30 @@ nagłówki żądań. Tak działa sieć, a do tych danych stosuje się polityka p
 
 Wbudowany bloker reklam działa w całości na Twoim urządzeniu. Listy filtrów (EasyList, EasyPrivacy, EasyList
 Polish) są dołączone do przeglądarki. Bloker niczego nie pobiera i nikomu nie zgłasza, co blokuje.
+
+## Safe Browsing
+
+Safe Browsing ostrzega przed otwarciem strony znanej ze złośliwego oprogramowania lub phishingu. Plain Browser
+jest zaprojektowany tak, by oferować to bez przekazywania Google czegokolwiek o Tobie:
+
+- **Nieaktywne w wersji 0.1.0-alpha.1.** Safe Browsing jest wykompilowany z tej wersji, więc przeglądarka nie
+  wysyła żadnych żądań Safe Browsing. Poniższe punkty opisują projekt, który trafi do przyszłej wersji; polityka
+  zostanie wtedy zaktualizowana.
+- Przeglądarka trzyma **lokalną bazę prefiksów hashy** (tzw. Update API, ochrona standardowa). Odwiedzane adresy są
+  sprawdzane z nią na Twoim urządzeniu. Dopiero gdy prefiks pasuje, przeglądarka pyta o pełne hashe tego prefiksu,
+  co nie zdradza adresu strony.
+- Te zapytania trafiają do **naszego proxy pod adresem sb.plain-browser.app** (Cloudflare Worker), nigdy
+  bezpośrednio do Google. Proxy przekazuje je do Google z naszym kluczem API i usuwa wszystko, co Cię
+  identyfikuje: adres IP, ciasteczka, `Referer`, `Accept-Language` i nagłówki Cloudflare. Google widzi adres IP
+  Cloudflare, stały `User-Agent` i prefiksy hashy.
+- Jedyne, co przeglądarka dodaje, to nagłówek `X-Client: PlainBrowser/<wersja>`. Nie jest wysyłany żaden
+  identyfikator instalacji, użytkownika ani numer kompilacji Chromium.
+- **Proxy nie prowadzi logów.** Rejestrowanie żądań i obserwowalność są wyłączone, a proxy nie ma żadnej pamięci.
+  Nie widzimy, o jakie prefiksy pytasz. Połączenie obsługuje jednak Cloudflare i widzi Twój adres IP tak, jak host
+  każdej strony; stosuje się do tego jego polityka prywatności.
+- Ochrona rozszerzona, sprawdzanie adresów w czasie rzeczywistym i rozszerzone raportowanie, które wysyłałyby pełne
+  adresy i treść stron, są wyłączone i nie da się ich włączyć.
+- Safe Browsing będzie można wyłączyć w ustawieniach; wtedy przeglądarka nie wysyła do naszego proxy niczego.
 
 ## Rozszerzenia
 

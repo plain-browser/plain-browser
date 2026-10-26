@@ -1,5 +1,7 @@
 # Security policy
 
+[Polski](docs/SECURITY.pl.md)
+
 ## Reporting a vulnerability
 
 Please do not open a public issue for a security problem. Use GitHub's private reporting for this
@@ -27,9 +29,9 @@ sha256sum -c SHA256SUMS.txt
 ```
 
 The signature shows who published the file and that it was not changed afterwards. It does not prove how the binary was
-built. Windows code signing (Authenticode) is wired into the build (`scripts/sign-windows.ps1`, run by `build.ps1`)
-but waits for a certificate: until one is configured, SmartScreen and Smart App Control will warn about or refuse our
-installers. No release in this repository is signed yet.
+built. The supported way to install Plain Browser is the MSIX package from the Microsoft Store: the Store signs it and
+delivers updates. Files attached to GitHub releases (portable zip, installer) are test builds without Authenticode
+signatures, so SmartScreen and Smart App Control will warn about or refuse them.
 
 Commits on `main` are signed with the maintainer's SSH key; `scripts/github-protect-main.sh` sets the branch rules
 (no force-push, no deletion, linear history, signed commits required).

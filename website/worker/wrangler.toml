@@ -1,0 +1,18 @@
+name = "plainbrowser-site-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Same origin as the site: the page asks /api/latest-release, Cloudflare runs this Worker for that
+# path and everything else falls through to the GCS bucket.
+routes = [
+  { pattern = "plain-browser.app/api/*", zone_name = "plain-browser.app" }
+]
+
+[observability]
+enabled = false
+
+[vars]
+REPO = "plain-browser/plain-browser"
+CACHE_SECONDS = "600"
+# Optional secret for a higher GitHub rate limit (fine-grained token, public repo read only):
+#   npx wrangler secret put GITHUB_TOKEN
