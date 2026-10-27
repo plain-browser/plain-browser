@@ -1,0 +1,51 @@
+From: Plain Browser
+Subject: [adblock] Filter list updates: register the Local State prefs and start the updater
+
+Category: 30-adblock. Code lives in //plainbrowser/adblock (FilterListUpdater, filter_lists); this patch only
+wires it in. RegisterLocalState registers plainbrowser.adblock.list_updates.{enabled,last_check};
+ChromeBrowserMainParts::PostBrowserStart starts the updater with Local State, the browser process's shared URL
+loader factory and the user data directory. It loads the lists stored by an earlier update at once and checks
+lists.plain-browser.app for new ones once a day. //plainbrowser/adblock:updater is linked through
+//plainbrowser:browser (00-build).
+---
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -94,6 +94,7 @@
+ #include "chrome/grit/branded_strings.h"
+ #include "chrome/installer/util/google_update_settings.h"
+ #include "components/color/color_mixers.h"
++#include "plainbrowser/adblock/browser/filter_list_updater.h"
+ #include "components/device_event_log/device_event_log.h"
+ #include "components/embedder_support/origin_trials/component_updater_utils.h"
+ #include "components/embedder_support/origin_trials/origin_trials_settings_storage.h"
+@@ -1731,6 +1732,11 @@
+ 
+   browser_process_->browser_policy_connector()->OnBrowserStarted();
+ 
++  // Plain Browser: daily filter list updates; loads the stored lists now.
++  plainbrowser::adblock::FilterListUpdater::Start(
++      browser_process_->local_state(),
++      browser_process_->shared_url_loader_factory(), user_data_dir_);
++
+ #if BUILDFLAG(ENABLE_PROCESS_SINGLETON)
+   // Allow ProcessSingleton to process messages.
+   // This is done here instead of just relying on the main message loop's start
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -15,6 +15,7 @@
+ #include "base/json/values_util.h"
+ #include "base/time/time.h"
+ #include "base/trace_event/trace_event.h"
++#include "plainbrowser/adblock/browser/filter_list_updater.h"
+ #include "build/android_buildflags.h"
+ #include "build/branding_buildflags.h"
+ #include "build/build_config.h"
+@@ -1523,6 +1524,8 @@
+   // Call outs to individual subsystems that register Local State (browser-wide)
+   // prefs en masse. See RegisterProfilePrefs for per-profile prefs. Please
+   // keep this list alphabetized.
++  // Plain Browser: filter list updates (on/off, last check).
++  plainbrowser::adblock::FilterListUpdater::RegisterLocalStatePrefs(registry);
+ #if BUILDFLAG(IS_ANDROID)
+   accessibility::AccessibilityPrefsController::RegisterLocalStatePrefs(
+       registry);

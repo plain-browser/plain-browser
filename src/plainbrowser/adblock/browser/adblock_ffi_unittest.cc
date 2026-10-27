@@ -63,9 +63,26 @@ TEST(AdblockFfiTest, StringsCrossTheBridge) {
                   .rewritten_url.empty());
 
   EXPECT_NE(std::string::npos,
-            std::string(engine->cosmetic_css(rust::Str("https://example.org/")))
+            std::string(
+                engine->cosmetic_resources(rust::Str("https://example.org/"))
+                    .css)
                 .find(".banner"));
-  EXPECT_TRUE(engine->cosmetic_css(rust::Str("https://other.org/")).empty());
+  EXPECT_TRUE(
+      engine->cosmetic_resources(rust::Str("https://other.org/")).css.empty());
+
+  // Generic class/id rules: C++ vectors cross as rust::Vec<rust::String>.
+  rust::Box<AdblockEngine> generic =
+      new_engine(rust::Str("##.ad-box\n###top-ad\n"));
+  rust::Vec<rust::String> classes;
+  classes.push_back(rust::String("ad-box"));
+  classes.push_back(rust::String("content"));
+  rust::Vec<rust::String> ids;
+  ids.push_back(rust::String("top-ad"));
+  const std::string css(generic->generic_cosmetic_css(
+      rust::Str("https://site.com/"), classes, ids));
+  EXPECT_NE(std::string::npos, css.find(".ad-box")) << css;
+  EXPECT_NE(std::string::npos, css.find("#top-ad")) << css;
+  EXPECT_EQ(std::string::npos, css.find("content")) << css;
 }
 
 TEST(AdblockFfiTest, UnparsableUrlIsNotBlocked) {

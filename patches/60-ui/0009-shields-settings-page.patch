@@ -6,25 +6,31 @@ plainbrowser.shields.exceptions (the per-site exception list of 60-ui/0005) with
 and an Add dialog. The element is new (privacy_page/plainbrowser_shields_exceptions.*, Polymer like the
 page around it) and edits the pref through settingsPrivate, which needs the pref in prefs_util.cc's
 allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 sites. Strings come from
-//plainbrowser/shields (AddSettingsStrings, strings in 60-ui/0008).
+//plainbrowser/shields (AddSettingsStrings, strings in 60-ui/0008). The same element holds the toggle for
+daily filter list updates (Local State pref plainbrowser.adblock.list_updates.enabled, 30-adblock/0006),
+also allowlisted; settingsPrivate finds Local State prefs by itself.
 ---
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -82,6 +82,7 @@
+@@ -82,6 +82,8 @@
  #include "extensions/browser/extension_system.h"
  #include "extensions/browser/management_policy.h"
  #include "extensions/common/extension.h"
++#include "plainbrowser/adblock/common/pref_names.h"
 +#include "plainbrowser/shields/common/pref_names.h"
  
  #if BUILDFLAG(IS_CHROMEOS)
  #include "ash/constants/ash_login_pref_names.h"
-@@ -439,6 +440,10 @@
+@@ -439,6 +441,13 @@
        settings_api::PrefType::kString;
  #endif
  
 +  // Plain Browser: sites with protections off (Privacy and security page).
 +  (*s_allowlist)[plainbrowser::shields::prefs::kShieldsExceptions] =
 +      settings_api::PrefType::kList;
++  // Plain Browser: daily filter list updates (Local State).
++  (*s_allowlist)[plainbrowser::adblock::prefs::kListUpdatesEnabled] =
++      settings_api::PrefType::kBoolean;
 +
    // Privacy Guide
    (*s_allowlist)[::prefs::kPrivacyGuideViewed] =
@@ -41,7 +47,7 @@ allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 s
      "privacy_page/security/fingerprint_progress_arc.ts",
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.html
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,57 @@
 +<style include="cr-shared-style cr-hidden-style settings-shared">
 +  :host {
 +    display: block;
@@ -72,6 +78,11 @@ allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 s
 +    $i18n{plainBrowserShieldsEmpty}
 +  </div>
 +</div>
++<settings-toggle-button id="listUpdates"
++    pref="{{prefs.plainbrowser.adblock.list_updates.enabled}}"
++    label="$i18n{plainBrowserListUpdates}"
++    sub-label="$i18n{plainBrowserListUpdatesDesc}">
++</settings-toggle-button>
 +<template is="dom-if" if="[[showDialog_]]" restamp>
 +  <cr-dialog id="dialog" close-text="$i18n{close}" show-on-attach
 +      on-close="onDialogClose_">
@@ -96,7 +107,7 @@ allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 s
 +</template>
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.ts
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,156 @@
 +// Copyright Plain Browser contributors. MPL-2.0.
 +
 +/**
@@ -107,6 +118,8 @@ allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 s
 + * list the toolbar bubble edits (//plainbrowser/shields). Entries are stored as
 + * typed; the browser rewrites them as sites (eTLD+1), so
 + * "https://www.example.com/a" shows up as "example.com" a moment later.
++ * Below the list, the toggle for daily filter list updates (Local State pref
++ * plainbrowser.adblock.list_updates.enabled, FilterListUpdater).
 + */
 +import 'chrome://resources/cr_elements/cr_button/cr_button.js';
 +import 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
@@ -114,6 +127,7 @@ allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 s
 +import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
 +import 'chrome://resources/cr_elements/cr_input/cr_input.js';
 +import 'chrome://resources/cr_elements/cr_shared_style.css.js';
++import '../controls/settings_toggle_button.js';
 +import '../settings_shared.css.js';
 +
 +import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';

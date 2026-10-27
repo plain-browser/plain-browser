@@ -95,6 +95,13 @@ class FakeFilter : public mojom::AdblockFilter {
   void GetCosmeticCss(const GURL& url,
                       const GURL& top_level_url,
                       GetCosmeticCssCallback callback) override {
+    std::move(callback).Run(std::string(), /*generic_hide=*/true);
+  }
+  void GetGenericCosmeticCss(const GURL& url,
+                             const GURL& top_level_url,
+                             const std::vector<std::string>& classes,
+                             const std::vector<std::string>& ids,
+                             GetGenericCosmeticCssCallback callback) override {
     std::move(callback).Run(std::string());
   }
 

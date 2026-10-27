@@ -6,8 +6,9 @@ Three layers, from fast to slow:
 |---|---|---|---|
 | Rust | adblock-rust bridge (`cargo test`) | `src/plainbrowser/adblock/rs` | CI (`rust.yml`), any machine with cargo |
 | Node | `fingerprint_script.js` (noise, determinism, native-looking wrappers) | `src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js` | any machine with Node |
+| Node | Workers: filter list mirror (`npm test` in `infra/filter-lists`: publish checks, manifest, serving, refusals) and Safe Browsing proxy (`infra/safebrowsing-proxy`) | `infra/*/test` | any machine with Node 22.18+ |
 | **gtest** | **our C++: `plainbrowser_unittests`** (this page) | `*_unittest.cc` next to the code | the Chromium tree on the build VM |
-| headless | the whole browser: `scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`, `test-shields.ps1` | `scripts/` | the build VM, against `out\Default\chrome.exe` |
+| headless | the whole browser: `scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`, `test-shields.ps1`, `test-cosmetic-lists.ps1` (generic hiding; list updates from a local server, restart, switch off) | `scripts/` | the build VM, against `out\Default\chrome.exe` |
 | UI | toolbar button and bubble in a normal window, driven by UI Automation: `scripts/test-shields-ui.ps1` (opens, toggles, closes; checks the pushed exception list in the running renderer, the blocked count on the button and the "Manage sites" link; English UI via `--lang`; screenshots); the Polish strings and the exception list in Settings: `scripts/test-shields-settings.ps1` (plural form of the count, add a URL and see its site, remove, the pref on disk); the Safe Browsing settings: `scripts/test-safebrowsing-settings.ps1` (the toggle under You and Google, no Enhanced protection, the pref on disk) | `scripts/` | the build VM's interactive desktop session (a scheduled task with `-LogonType Interactive`, not SSH) |
 
 ## plainbrowser_unittests
@@ -29,7 +30,16 @@ all of `content/browser` and Blink into a second chrome-sized executable.
   blocked outright; cosmetic CSS carries the generic rules everywhere and the site-specific ones (wykop.pl) only on their site; `GetInstance()` returns the
   test instance.
 - cxx bridge (`browser/adblock_ffi_unittest.cc`): block/exception/`$third-party` semantics with a tiny rule set,
-  `rust::String`/`rust::Str` crossing the bridge, unparsable URLs are not blocked.
+  `rust::String`/`rust::Str` and `rust::Vec<rust::String>` crossing the bridge (generic class/id CSS), unparsable
+  URLs are not blocked.
+- `AdBlockService` generic hiding and list swaps (`browser/ad_block_service_unittest.cc`): EasyList's generic
+  `##.a-sponsor` and `###ad-top` match only names the page has, `#@#` exceptions apply; `UseLists` replaces only
+  the named list (EasyList Polish and the parameter list stay bundled), `UseLists({})` goes back to the bundled
+  engine, and of two calls the later one wins.
+- filter list store (`browser/filter_lists_unittest.cc`): manifest parsing (unknown lists, bad hashes, zero or
+  fractional sizes dropped; non-format-1 rejected), serialisation round trip, `ListMatches` (size, SHA-256,
+  `[Adblock Plus]` header, BOM), URLs, `ChangedLists`, store write/read with a damaged file left out, partial
+  update, delete.
 - Navigation throttle decision logic (`browser/tracking_params_rules_unittest.cc`): which navigations are
   eligible (http(s), not POST), which need the engine (has a query), source URL from the initiator origin, when an
   answer leads to cancel-and-reissue (changed URL, navigation still at the URL asked about); the

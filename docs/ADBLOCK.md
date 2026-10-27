@@ -18,13 +18,16 @@ disconnected filters and fails open after 3 s.
 - `renderer/` – `AdblockURLLoaderThrottle` (defers each http(s) subresource, asks the
   browser, cancels with `ERR_BLOCKED_BY_CLIENT`), `AdblockThrottleFactory` (owned by
   chrome's `URLLoaderThrottleProviderImpl`, cloned per worker thread like SafeBrowsing),
-  `CosmeticFilterAgent` (per frame, inserts hide-selector CSS as a user stylesheet).
-- `common/adblock.mojom` – `AdblockFilter { Clone, ShouldBlockRequest, GetCosmeticCss }`; both queries carry the
-  page's top-level origin (per-site exceptions) and `ShouldBlockRequest` the requesting frame's token (per-tab
-  blocked-request counter).
+  `CosmeticFilterAgent` (per frame, inserts hide-selector CSS as a user stylesheet, and generic class/id rules
+  for the names found in the document; see "Generic element hiding").
+- `common/adblock.mojom` – `AdblockFilter { Clone, ShouldBlockRequest, GetCosmeticCss, GetGenericCosmeticCss }`;
+  all queries carry the page's top-level origin (per-site exceptions) and `ShouldBlockRequest` the requesting
+  frame's token (per-tab blocked-request counter).
+- `browser/filter_list_updater.*`, `browser/filter_lists.*` – daily list updates from `lists.plain-browser.app`
+  (`infra/filter-lists`); see "Filter list updates".
 - `//plainbrowser/shields` – per-site exception list, toolbar button and bubble; see "UI and per-site exceptions".
 
-Wiring patches: `patches/00-build/0001` (GN deps, shared with the other features), `patches/30-adblock/0002..0005`
+Wiring patches: `patches/00-build/0001` (GN deps, shared with the other features), `patches/30-adblock/0002..0006`
 and, for the UI and the exception list, `patches/60-ui/0005..0009`; about 60 added lines in Chromium files. `scripts/check-patches.py` dry-runs them against any upstream tag.
 
 ## Why GN and not a cargo staticlib
@@ -105,10 +108,54 @@ button and the bubble, checks the pushed exception list in the running renderer 
 - Not done: a global on/off switch in the UI (the kill switches are still command-line flags), languages other
   than English and Polish.
 
+## Generic element hiding
+Status 2026-10-27: done, verified headless (`scripts/test-cosmetic-lists.ps1`, part 1).
+
+adblock-rust keeps the simple generic rules (`##.ad-box`, `###top-ad`, and complex ones keyed by a class or id like
+`##.promo > .sponsored`) out of the per-site answer: they apply only to class names and ids the page actually has,
+so the page must be asked (`Engine::hidden_class_id_selectors`). EasyList has about 13,000 of them.
+
+- `GetCosmeticCss` answers with the per-site stylesheet and `generic_hide`: true under a `$generichide` exception,
+  on an excepted site, or before the engine is ready. Then the renderer asks for nothing more.
+- Otherwise `CosmeticFilterAgent` collects `[class],[id]` from the document at DOMContentLoaded, at load and
+  1, 3, 10 and 30 s after load, and sends only names it has not sent for this document (at most 2000 per call,
+  50,000 per document; the browser refuses calls with more than 10,000). `GetGenericCosmeticCss` returns
+  `display: none !important` for the matching selectors minus the document's `#@#` exceptions; the agent inserts it
+  as another user stylesheet. A new document resets everything (late replies are dropped).
+- Limit: content added more than 30 s after load is not looked at (no MutationObserver from C++). A page-world
+  observer or a Blink hook would close that; neither is worth the patch cost yet.
+
+## Filter list updates
+Status 2026-10-27: browser side and Worker done, verified with a local server (`scripts/test-cosmetic-lists.ps1`,
+parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed separately (`infra/filter-lists`).
+
+- **Server**: `infra/filter-lists`, a Cloudflare Worker. A cron fetches EasyList, EasyPrivacy and EasyList Polish
+  from their publishers every 6 hours, publishes a list only when it passes sanity checks (size, `[Adblock Plus]`
+  header, at least 1000 rules, not shrunk by more than half) and serves `/v1/manifest.json` (SHA-256 and size per
+  list) and `/v1/lists/<name>.txt`. No logs. Browsers never contact the publishers.
+- **Browser**: `FilterListUpdater` (UI thread), started from `ChromeBrowserMainParts::PostBrowserStart`
+  (`patches/30-adblock/0006`). At start-up it loads the lists stored in `<user data>\PlainBrowser Filter Lists`
+  (each checked against the stored manifest) into a new engine. Two minutes after start-up and then every 24 h
+  (Local State `plainbrowser.adblock.list_updates.last_check`, so restarts do not check more often; 1 h after a
+  failure) it fetches the manifest, downloads the lists whose hash changed, verifies size, SHA-256 and the
+  header, writes them atomically and loads the store again. Requests: no cookies, cache bypassed,
+  `X-Client: PlainBrowser/<major.minor.patch>`, a network traffic annotation `plainbrowser_filter_lists`.
+- **Engine swap**: `AdBlockService::UseLists()` builds the new engine on the thread pool (about a second for
+  EasyList) while the old one keeps answering, then swaps it in on the engine sequence; a newer call wins over an
+  older build still running. Lists that were not downloaded stay the compiled-in ones, and
+  `plainbrowser-removeparam.txt` is never downloaded. The compiled-in lists remain the fallback for a fresh
+  profile, a failed download or a damaged store.
+- **Switch**: Local State `plainbrowser.adblock.list_updates.enabled` (default on), "Update filter lists daily"
+  in the "Sites with protections off" section of `chrome://settings/privacy` (`patches/60-ui/0009`). Off: no
+  requests, the store is deleted, the engine goes back to the compiled-in lists.
+- **Testing**: `--plainbrowser-filter-lists-url=<base>` points the updater at another server (http allowed) and
+  makes the first check run 3 s after start-up.
+- Not done: signed lists (today: HTTPS plus the hashes in the manifest, which come from the same server), a
+  "last updated" line in Settings, delta updates.
+
 ## Not done yet (alpha scope)
-- `$redirect` resources (treated as block), scriptlets, generic class/id hiding.
-- Settings page for the exception list, count badge on the toolbar button, `chrome://adblock` page, list updates
-  (lists are a build-time snapshot: refresh with the release). The per-site toggle itself is done (above).
+- `$redirect` resources (treated as block), scriptlets, procedural cosmetic filters.
+- `chrome://adblock` page.
 - Navigation (`$document`) blocking; requests started from the browser process.
 - `$removeparam` on subresources: the renderer throttle decides asynchronously and a deferred request's URL may
   only be edited synchronously (`URLLoaderThrottle::WillStartRequest`), so only navigations are cleaned today.

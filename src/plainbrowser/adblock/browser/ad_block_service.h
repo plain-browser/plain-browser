@@ -2,10 +2,14 @@
 #ifndef PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 #define PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "base/functional/callback.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/no_destructor.h"
 #include "base/sequence_checker.h"
@@ -18,9 +22,10 @@ class GURL;
 namespace plainbrowser::adblock {
 
 // Process-wide owner of the adblock-rust engine. Created on first use; all
-// methods except GetInstance() and task_runner() must run on task_runner().
-// The engine is built from the compiled-in lists asynchronously; until it is
-// ready, nothing is blocked.
+// methods except GetInstance(), task_runner() and UseLists() must run on
+// task_runner(). The engine is built from the compiled-in lists asynchronously;
+// until it is ready, nothing is blocked. UseLists() swaps in an engine built
+// from downloaded lists (FilterListUpdater).
 class AdBlockService {
  public:
   static AdBlockService* GetInstance();
@@ -40,10 +45,32 @@ class AdBlockService {
     return task_runner_;
   }
 
+  // Downloaded list texts by list name (default_list_names()).
+  using ListTexts = std::vector<std::pair<std::string, std::string>>;
+
+  // Any thread. Builds an engine from the default lists with the named ones
+  // replaced by `lists` (empty: the compiled-in lists only) on the thread pool,
+  // then swaps it in on task_runner(); queries keep using the old engine until
+  // then. A later call wins over an earlier one still building. `done` runs on
+  // task_runner() after the swap.
+  void UseLists(ListTexts lists, base::OnceClosure done = base::OnceClosure());
+
   bool ShouldBlock(const GURL& url,
                    const GURL& source_url,
                    const std::string& request_type);
-  std::string CosmeticCss(const GURL& url);
+
+  // Hide rules for a document: the per-site stylesheet and whether a
+  // $generichide exception turns generic (class/id) rules off for it.
+  struct Cosmetic {
+    std::string css;
+    bool generic_hide = false;
+  };
+  Cosmetic CosmeticResources(const GURL& url);
+
+  // Generic hide rules for classes and ids found in the document at `url`.
+  std::string GenericCosmeticCss(const GURL& url,
+                                 const std::vector<std::string>& classes,
+                                 const std::vector<std::string>& ids);
 
   // `url` with tracking parameters removed ($removeparam rules), or an empty
   // GURL when nothing was removed or the request would be blocked outright.
@@ -57,9 +84,15 @@ class AdBlockService {
   AdBlockService();
 
   void LoadDefaultEngine();
+  void SwapEngine(int generation,
+                  rust::Box<AdblockEngine> engine,
+                  base::OnceClosure done);
 
   const scoped_refptr<base::SequencedTaskRunner> task_runner_;
   std::optional<rust::Box<AdblockEngine>> engine_;
+  // Incremented by every UseLists() call (any thread); an engine whose build
+  // started before the latest call is dropped instead of swapped in.
+  std::atomic<int> generation_{0};
   SEQUENCE_CHECKER(sequence_checker_);
 };
 

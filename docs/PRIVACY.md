@@ -8,8 +8,9 @@ browser does with your data. It describes version 0.1.2-alpha.1 and is updated w
 ## Summary
 
 - Plain Browser has **no telemetry, no usage statistics and no crash reports** that are sent to us or anyone else.
-- It has **no account, sign-in or sync service**, and we run **no server** that receives data from the browser.
-  We cannot see what you browse.
+- It has **no account, sign-in or sync service**, and we run **no server** that receives data about you from the
+  browser. We cannot see what you browse. The two services of ours the browser talks to, the Safe Browsing proxy
+  and the filter list mirror (both below), keep no logs and get nothing about the pages you visit.
 - It does **not contact Google services**. The ungoogled-chromium patches remove them (Google sign-in,
   translation, the Chrome Web Store and others). The one exception is Safe Browsing through our own
   anonymizing proxy, described below; you can turn it off.
@@ -37,7 +38,23 @@ When you open a website, the browser sends it what is needed to load the page, i
 standard request headers. That is how the web works, and the website's own privacy policy applies to it.
 
 The built-in ad blocker runs entirely on your device. Its filter lists (EasyList, EasyPrivacy, EasyList Polish) are
-bundled with the browser. The blocker does not download lists, and it does not report to anyone what it blocks.
+bundled with the browser and, unless you turn updates off, kept current from our mirror (next section). The
+blocker does not report to anyone what it blocks.
+
+## Filter list updates
+
+From the version after 0.1.2-alpha.1, the browser keeps its filter lists current between releases:
+
+- Once a day, a few minutes after start-up, it asks **our mirror at lists.plain-browser.app** (a Cloudflare
+  Worker) for a short manifest with the hash of each list, and downloads a list only when it changed. It never
+  contacts the list publishers; the mirror fetches the lists from them.
+- The requests carry **no cookies and nothing about the sites you visit**, only the browser's version number
+  (`X-Client: PlainBrowser/<major.minor.patch>`, the same header the Safe Browsing proxy gets). The browser checks
+  each downloaded list's size and SHA-256 hash against the manifest before using it.
+- **The mirror keeps no logs** and stores only the lists. Cloudflare handles the connection and can see your IP
+  address the way it can for any site it serves.
+- **You can turn it off**: Settings > Privacy and security > Update filter lists daily. With it off, the browser
+  makes no such requests, deletes the downloaded lists and uses the lists it was released with.
 
 ## Safe Browsing
 

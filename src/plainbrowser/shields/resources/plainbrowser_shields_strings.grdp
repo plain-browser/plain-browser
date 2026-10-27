@@ -72,4 +72,10 @@
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_REMOVE" desc="Tooltip and accessible name of the button that removes a site from the list of sites with Plain Browser protections off (protections turn back on for it).">
     Turn protections back on for <ph name="SITE">$1<ex>example.com</ex></ph>
   </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_UPDATES" desc="Label of the toggle on the Privacy and security settings page that turns daily downloads of updated ad and tracker filter lists on or off.">
+    Update filter lists daily
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_UPDATES_DESC" desc="Description under the filter list update toggle: where the lists come from and what is sent.">
+    Downloads new versions of EasyList, EasyPrivacy and EasyList Polish from lists.plain-browser.app. The request carries no cookies and nothing about the sites you visit. When off, the lists the browser was released with are used.
+  </message>
 </grit-part>

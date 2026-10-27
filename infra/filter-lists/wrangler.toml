@@ -1,0 +1,41 @@
+name = "plainbrowser-filter-lists"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# The zone plain-browser.app must be on Cloudflare. //plainbrowser/adblock (filter_lists::kDefaultServerUrl)
+# points the browser at https://lists.plain-browser.app/v1/.
+routes = [
+  { pattern = "lists.plain-browser.app", custom_domain = true }
+]
+
+# Fetch the lists from their publishers every 6 hours. EasyList itself updates a few times a day; browsers check
+# once a day, so a list reaches a browser within about 30 hours of its release.
+[triggers]
+crons = ["17 */6 * * *"]
+
+# Lists and manifest. Create the namespace once and put its id here:
+#   npx wrangler kv namespace create LISTS
+[[kv_namespaces]]
+binding = "LISTS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# Do not keep request logs. Aggregate metrics in the dashboard are enough.
+[observability]
+enabled = false
+
+[observability.logs]
+enabled = false
+invocation_logs = false
+
+# Rate limit per client IP: 30 requests per 60 s. A browser makes at most 4 a day (manifest and 3 lists).
+# namespace_id: any unique integer in your account (the Safe Browsing proxy uses 1001).
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 30, period = 60 }
+
+[vars]
+# Only accept `X-Client: PlainBrowser/<major.minor.patch>` (FilterListUpdater sends it). A filter, not
+# authentication.
+REQUIRED_CLIENT = "PlainBrowser"

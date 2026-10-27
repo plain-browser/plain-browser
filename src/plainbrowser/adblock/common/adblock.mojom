@@ -22,7 +22,17 @@ interface AdblockFilter {
                      blink.mojom.LocalFrameToken? frame_token) => (bool block);
 
   // Element-hiding CSS for a document URL; empty when nothing applies or the
-  // site of `top_level_url` is on the exception list.
+  // site of `top_level_url` is on the exception list. `generic_hide` is true
+  // when generic class/id rules do not apply to the document ($generichide,
+  // the exception list, or no engine yet): the renderer then does not call
+  // GetGenericCosmeticCss.
   GetCosmeticCss(url.mojom.Url url, url.mojom.Url top_level_url)
+      => (string css, bool generic_hide);
+
+  // Generic element-hiding CSS for class names and ids found in the document
+  // (only ones not sent before for that document). Empty when none of them has
+  // a rule.
+  GetGenericCosmeticCss(url.mojom.Url url, url.mojom.Url top_level_url,
+                        array<string> classes, array<string> ids)
       => (string css);
 };

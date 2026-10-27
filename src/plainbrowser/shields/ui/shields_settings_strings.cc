@@ -19,6 +19,9 @@ void AddSettingsStrings(content::WebUIDataSource* html_source) {
        IDS_SETTINGS_PLAINBROWSER_SHIELDS_SITE_LABEL},
       {"plainBrowserShieldsInvalid", IDS_SETTINGS_PLAINBROWSER_SHIELDS_INVALID},
       {"plainBrowserShieldsRemove", IDS_SETTINGS_PLAINBROWSER_SHIELDS_REMOVE},
+      {"plainBrowserListUpdates", IDS_SETTINGS_PLAINBROWSER_LIST_UPDATES},
+      {"plainBrowserListUpdatesDesc",
+       IDS_SETTINGS_PLAINBROWSER_LIST_UPDATES_DESC},
   };
   html_source->AddLocalizedStrings(kStrings);
 }

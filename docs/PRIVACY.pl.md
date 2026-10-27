@@ -10,8 +10,10 @@ zmienia.
 
 - Plain Browser **nie ma telemetrii, statystyk użycia ani raportów o awariach**, które trafiałyby do nas lub do
   kogokolwiek innego.
-- Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera**, który odbierałby dane z
-  przeglądarki. Nie widzimy, co przeglądasz.
+- Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera**, który odbierałby z
+  przeglądarki dane o Tobie. Nie widzimy, co przeglądasz. Dwie nasze usługi, z którymi łączy się przeglądarka
+  (proxy Safe Browsing i serwer list filtrów, opisane niżej), nie prowadzą logów i nie dostają nic o odwiedzanych
+  stronach.
 - **Nie łączy się z usługami Google.** Poprawki ungoogled-chromium usuwają je (logowanie Google, tłumaczenie,
   Chrome Web Store i inne). Jedynym wyjątkiem jest Safe Browsing przez nasze własne anonimizujące
   proxy, opisane niżej; można go wyłączyć.
@@ -39,7 +41,23 @@ Gdy otwierasz stronę, przeglądarka wysyła jej to, co potrzebne do załadowani
 nagłówki żądań. Tak działa sieć, a do tych danych stosuje się polityka prywatności danej strony.
 
 Wbudowany bloker reklam działa w całości na Twoim urządzeniu. Listy filtrów (EasyList, EasyPrivacy, EasyList
-Polish) są dołączone do przeglądarki. Bloker niczego nie pobiera i nikomu nie zgłasza, co blokuje.
+Polish) są dołączone do przeglądarki i, o ile nie wyłączysz aktualizacji, odświeżane z naszego serwera (następna
+sekcja). Bloker nikomu nie zgłasza, co blokuje.
+
+## Aktualizacje list filtrów
+
+Od wersji następnej po 0.1.2-alpha.1 przeglądarka odświeża listy filtrów między wydaniami:
+
+- Raz na dobę, kilka minut po uruchomieniu, pyta **nasz serwer lists.plain-browser.app** (Cloudflare Worker) o
+  krótki manifest z sumą kontrolną każdej listy i pobiera listę tylko wtedy, gdy się zmieniła. Nigdy nie łączy się
+  z autorami list; to serwer pobiera listy od nich.
+- Żądania **nie zawierają plików cookie ani niczego o odwiedzanych stronach**, tylko numer wersji przeglądarki
+  (`X-Client: PlainBrowser/<major.minor.patch>`, ten sam nagłówek, który dostaje proxy Safe Browsing). Przed
+  użyciem przeglądarka sprawdza rozmiar i skrót SHA-256 każdej pobranej listy z manifestem.
+- **Serwer nie prowadzi logów** i przechowuje tylko listy. Połączenie obsługuje Cloudflare, który widzi Twój adres
+  IP, tak jak przy każdej obsługiwanej przez siebie stronie.
+- **Można to wyłączyć**: Ustawienia > Prywatność i bezpieczeństwo > Aktualizuj listy filtrów codziennie. Po
+  wyłączeniu przeglądarka nie wysyła tych żądań, usuwa pobrane listy i używa list z dnia wydania.
 
 ## Safe Browsing
 

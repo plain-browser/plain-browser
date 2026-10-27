@@ -70,7 +70,7 @@ const en: Dict = {
       {
         title: "Blocking that lives in the browser",
         body:
-          "The blocker is adblock-rust, the engine Brave uses, compiled into the network layer. It does not depend on extension APIs, runs on your device and reports nothing. EasyList, EasyPrivacy and EasyList Polish are bundled in.",
+          "The blocker is adblock-rust, the engine Brave uses, compiled into the network layer. It does not depend on extension APIs, runs on your device and reports nothing. EasyList, EasyPrivacy and EasyList Polish are bundled in and updated daily from our own mirror, so the browser never contacts the list publishers.",
       },
       {
         title: "No Google services",
@@ -244,7 +244,7 @@ const pl: Dict = {
       {
         title: "Blokowanie wbudowane w przeglądarkę",
         body:
-          "Bloker to adblock-rust, silnik używany przez Brave, wkompilowany w warstwę sieciową. Nie zależy od API rozszerzeń, działa na Twoim urządzeniu i niczego nie zgłasza. EasyList, EasyPrivacy i polska EasyList są dołączone.",
+          "Bloker to adblock-rust, silnik używany przez Brave, wkompilowany w warstwę sieciową. Nie zależy od API rozszerzeń, działa na Twoim urządzeniu i niczego nie zgłasza. EasyList, EasyPrivacy i polska EasyList są dołączone i aktualizowane codziennie z naszego serwera, więc przeglądarka nie łączy się z autorami list.",
       },
       {
         title: "Bez usług Google",

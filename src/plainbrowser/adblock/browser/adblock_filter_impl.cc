@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "base/no_destructor.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
@@ -15,6 +16,10 @@
 
 namespace plainbrowser::adblock {
 namespace {
+
+// Upper bound on the class names and ids accepted in one
+// GetGenericCosmeticCss call (the renderer sends at most 2000).
+constexpr size_t kMaxGenericTokensPerCall = 10000;
 
 bool IsExceptedPage(const GURL& top_level_url) {
   return shields::ShieldsService::GetInstance()->IsExcepted(
@@ -61,10 +66,28 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
                       const GURL& top_level_url,
                       GetCosmeticCssCallback callback) override {
     if (IsExceptedPage(top_level_url)) {
+      std::move(callback).Run(std::string(), /*generic_hide=*/true);
+      return;
+    }
+    AdBlockService::Cosmetic cosmetic =
+        AdBlockService::GetInstance()->CosmeticResources(url);
+    std::move(callback).Run(std::move(cosmetic.css), cosmetic.generic_hide);
+  }
+
+  void GetGenericCosmeticCss(const GURL& url,
+                             const GURL& top_level_url,
+                             const std::vector<std::string>& classes,
+                             const std::vector<std::string>& ids,
+                             GetGenericCosmeticCssCallback callback) override {
+    // A renderer sends at most kMaxGenericTokens per call (renderer side);
+    // anything far beyond that is not a page, so do not spend the engine on it.
+    if (IsExceptedPage(top_level_url) ||
+        classes.size() + ids.size() > kMaxGenericTokensPerCall) {
       std::move(callback).Run(std::string());
       return;
     }
-    std::move(callback).Run(AdBlockService::GetInstance()->CosmeticCss(url));
+    std::move(callback).Run(
+        AdBlockService::GetInstance()->GenericCosmeticCss(url, classes, ids));
   }
 
  private:

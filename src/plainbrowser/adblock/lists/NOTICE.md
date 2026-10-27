@@ -11,3 +11,6 @@ Default lists compiled into the browser (rs/src/lib.rs, `include_str!`), refresh
 | plainbrowser-removeparam.txt | Plain Browser tracking parameters (`$removeparam`) | this repository | MPL-2.0 |
 
 The lists are data, distributed unmodified; credit the EasyList authors in chrome://credits.
+
+Between releases the browser replaces the first three with newer copies of the same lists, unmodified, served by
+our mirror lists.plain-browser.app (`infra/filter-lists`); the bundled copies stay the fallback.

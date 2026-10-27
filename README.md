@@ -48,19 +48,19 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | Distribution and updates | **Microsoft Store only (MSIX)**: the Store signs the package and delivers updates, so there is no own updater or Authenticode certificate. Listing text in `docs/STORE_LISTING.md` |
 | Website (`website/`, plain-browser.app) | Static Next.js site with the privacy and security policies, EN and PL |
 | Adblock UI: toolbar button with a blocked-count badge, bubble with a per-site toggle shared by adblock, parameter stripping and fingerprint protection, the list of excepted sites in Settings > Privacy and security; English and Polish | Done (`scripts/test-shields.ps1`, `test-shields-ui.ps1`, `test-shields-settings.ps1`; `docs/ADBLOCK.md`, "UI and per-site exceptions") |
-| Generic cosmetic filtering, list updates | Not started |
+| Generic cosmetic filtering (class/id rules for the names a page has) | Done (`scripts/test-cosmetic-lists.ps1`; `docs/ADBLOCK.md`, "Generic element hiding") |
+| Filter list updates between releases: daily from our mirror `lists.plain-browser.app` (`infra/filter-lists`), verified by hash, switch in Settings | Browser side done and tested against a local server; the Worker needs deploying (`infra/filter-lists/README.md`) |
 | Curated MV2 extension repository | Not started (`docs/ARCHITECTURE.md`, section 8.2) |
 
 Tests: `scripts/test-*.ps1` run headless on the build VM; C++ unit tests in `docs/TESTING.md`.
-Not yet tested: generic cosmetic hiding, the UI in a normal window on real pages, Store installation on a clean machine.
+Not yet tested: the UI on real pages beyond the test pages, Store installation on a clean machine.
 
 ## Roadmap
 
 Privacy features and the project-security plan are in [docs/ROADMAP.md](docs/ROADMAP.md); vulnerability reporting in [SECURITY.md](SECURITY.md).
 
 1. Microsoft Store submission of the MSIX; first public alpha through the Store.
-2. Generic cosmetic filtering and filter-list updates independent of browser releases.
-4. Curated MV2 extension repository (uBlock Origin and similar); tracking-redirect bypass; Blink-level fingerprint noise.
+2. Curated MV2 extension repository (uBlock Origin and similar); tracking-redirect bypass; Blink-level fingerprint noise.
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Changes: [CHANGELOG.md](CHANGELOG.md). Manual GitHub and Store setup
 steps: [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md) (Polish).

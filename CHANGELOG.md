@@ -18,6 +18,12 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   while the page loads); "Sites with protections off" on Settings > Privacy and security (list, add, remove; a
   typed URL or host is stored as its site); a "Manage sites" link in the bubble; all shields strings translated
   into Polish (`src/plainbrowser/shields/resources`).
+- Generic element hiding: EasyList's class and id rules (`##.ad-box`, `###top-ad`, ...) now apply, matched against
+  the class names and ids a page has, at load and on a few passes after it.
+- Filter list updates between releases: once a day the browser fetches EasyList, EasyPrivacy and EasyList Polish
+  from our mirror `lists.plain-browser.app` (Cloudflare Worker, `infra/filter-lists`, no logs), downloads only
+  changed lists, checks their size and SHA-256 and swaps the engine in the background. "Update filter lists
+  daily" in Settings > Privacy and security turns it off (the bundled lists are then used).
 - Settings > You and Google > Google services: a toggle "Safe Browsing through the Plain Browser proxy", the one
   switch for the only Google service the browser still talks to (through our proxy).
 - Project website (`website/`, plain-browser.app) with the privacy and security policies in English and Polish.

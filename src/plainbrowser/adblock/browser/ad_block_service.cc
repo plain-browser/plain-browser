@@ -99,12 +99,77 @@ GURL AdBlockService::RewrittenUrl(const GURL& url,
   return rewritten;
 }
 
-std::string AdBlockService::CosmeticCss(const GURL& url) {
+AdBlockService::Cosmetic AdBlockService::CosmeticResources(const GURL& url) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    // No engine yet: report generic hiding off too, so the renderer does not
+    // collect classes for nothing. Non-web documents never get rules.
+    return {std::string(), /*generic_hide=*/true};
+  }
+  CosmeticResult r = (*engine_)->cosmetic_resources(rust::Str(url.spec()));
+  return {std::string(r.css), r.generic_hide};
+}
+
+std::string AdBlockService::GenericCosmeticCss(
+    const GURL& url,
+    const std::vector<std::string>& classes,
+    const std::vector<std::string>& ids) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
     return std::string();
   }
-  return std::string((*engine_)->cosmetic_css(rust::Str(url.spec())));
+  rust::Vec<rust::String> rust_classes;
+  rust_classes.reserve(classes.size());
+  for (const std::string& c : classes) {
+    rust_classes.push_back(rust::String(c));
+  }
+  rust::Vec<rust::String> rust_ids;
+  rust_ids.reserve(ids.size());
+  for (const std::string& id : ids) {
+    rust_ids.push_back(rust::String(id));
+  }
+  return std::string((*engine_)->generic_cosmetic_css(
+      rust::Str(url.spec()), rust_classes, rust_ids));
+}
+
+void AdBlockService::UseLists(ListTexts lists, base::OnceClosure done) {
+  const int generation = ++generation_;
+  // Building parses every list (about a second for EasyList): off the engine
+  // sequence, so queries are answered by the old engine meanwhile. Unretained:
+  // the instance is never destroyed (tests run the task environment until
+  // idle before destroying theirs).
+  base::ThreadPool::PostTask(
+      FROM_HERE, {base::TaskPriority::BEST_EFFORT},
+      base::BindOnce(
+          [](AdBlockService* service, int generation, ListTexts lists,
+             base::OnceClosure done) {
+            rust::Vec<ListText> texts;
+            texts.reserve(lists.size());
+            for (auto& [name, text] : lists) {
+              texts.push_back(ListText{rust::String(name), rust::String(text)});
+            }
+            rust::Box<AdblockEngine> engine = new_engine_with_lists(texts);
+            service->task_runner_->PostTask(
+                FROM_HERE,
+                base::BindOnce(&AdBlockService::SwapEngine,
+                               base::Unretained(service), generation,
+                               std::move(engine), std::move(done)));
+          },
+          base::Unretained(this), generation, std::move(lists),
+          std::move(done)));
+}
+
+void AdBlockService::SwapEngine(int generation,
+                                rust::Box<AdblockEngine> engine,
+                                base::OnceClosure done) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (generation == generation_) {
+    engine_.emplace(std::move(engine));
+    VLOG(1) << "Plain Browser adblock engine replaced (lists updated)";
+  }
+  if (done) {
+    std::move(done).Run();
+  }
 }
 
 }  // namespace plainbrowser::adblock

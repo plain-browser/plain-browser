@@ -47,6 +47,43 @@ source_set("engine") {
   ]
 }
 
+# Downloaded filter lists: manifest parsing, verification and the copy in the
+# profile directory. No network and no //content, so unit tests link it alone.
+source_set("lists") {
+  sources = [
+    "browser/filter_lists.cc",
+    "browser/filter_lists.h",
+  ]
+  deps = [
+    "//base",
+    "//crypto",
+    "//url",
+  ]
+}
+
+# Daily list updates from lists.plain-browser.app. Started from
+# ChromeBrowserMainParts and registered in Local State (patches/30-adblock/0006);
+# needs only the network service client library, not //content.
+source_set("updater") {
+  sources = [
+    "browser/filter_list_updater.cc",
+    "browser/filter_list_updater.h",
+    "common/pref_names.h",
+  ]
+  public_deps = [ ":lists" ]
+  deps = [
+    ":engine",
+    "//base",
+    "//components/prefs",
+    "//net",
+    "//net/traffic_annotation",
+    "//plainbrowser/common:version",
+    "//services/network/public/cpp",
+    "//services/network/public/mojom",
+    "//url",
+  ]
+}
+
 source_set("browser") {
   sources = [
     "browser/adblock_filter_impl.cc",
@@ -118,16 +155,19 @@ source_set("unit_tests") {
   sources = [
     "browser/ad_block_service_unittest.cc",
     "browser/adblock_ffi_unittest.cc",
+    "browser/filter_lists_unittest.cc",
     "browser/tracking_params_rules_unittest.cc",
     "renderer/adblock_url_loader_throttle_unittest.cc",
   ]
   deps = [
     ":engine",
     ":ffi",
+    ":lists",
     ":mojom",
     ":url_loader_throttle",
     "//base",
     "//base/test:test_support",
+    "//crypto",
     "//mojo/public/cpp/bindings",
     "//net",
     "//services/network/public/cpp",

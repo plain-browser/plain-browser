@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "base/functional/bind.h"
 #include "base/test/task_environment.h"
@@ -62,14 +63,37 @@ class AdBlockServiceTest : public testing::Test {
     return result.Get();
   }
 
+  AdBlockService::Cosmetic CosmeticResources(const std::string& url) {
+    base::test::TestFuture<AdBlockService::Cosmetic> result;
+    service_->task_runner()->PostTaskAndReplyWithResult(
+        FROM_HERE,
+        base::BindOnce(&AdBlockService::CosmeticResources,
+                       base::Unretained(service_.get()), GURL(url)),
+        result.GetCallback());
+    return result.Take();
+  }
   std::string CosmeticCss(const std::string& url) {
+    return CosmeticResources(url).css;
+  }
+
+  std::string GenericCss(const std::string& url,
+                         std::vector<std::string> classes,
+                         std::vector<std::string> ids) {
     base::test::TestFuture<std::string> result;
     service_->task_runner()->PostTaskAndReplyWithResult(
         FROM_HERE,
-        base::BindOnce(&AdBlockService::CosmeticCss,
-                       base::Unretained(service_.get()), GURL(url)),
+        base::BindOnce(&AdBlockService::GenericCosmeticCss,
+                       base::Unretained(service_.get()), GURL(url),
+                       std::move(classes), std::move(ids)),
         result.GetCallback());
-    return result.Get();
+    return result.Take();
+  }
+
+  // UseLists() and wait for the swap.
+  void UseLists(AdBlockService::ListTexts lists) {
+    base::test::TestFuture<void> swapped;
+    service_->UseLists(std::move(lists), swapped.GetCallback());
+    ASSERT_TRUE(swapped.Wait());
   }
 
   base::test::TaskEnvironment task_environment_;
@@ -99,6 +123,8 @@ TEST_F(AdBlockServiceTest, NonHttpUrlsAreNeverBlocked) {
   EXPECT_EQ(GURL(), RewrittenUrl("chrome://settings/?utm_source=x", kPage,
                                  "main_frame"));
   EXPECT_EQ(std::string(), CosmeticCss("chrome://newtab/"));
+  EXPECT_TRUE(CosmeticResources("chrome://newtab/").generic_hide);
+  EXPECT_EQ(std::string(), GenericCss("chrome://newtab/", {"a-sponsor"}, {}));
 }
 
 TEST_F(AdBlockServiceTest, RewrittenUrlStripsTrackingParamsAndKeepsTheRest) {
@@ -133,6 +159,49 @@ TEST_F(AdBlockServiceTest, CosmeticCssAddsSiteSpecificRulesToGenericOnes) {
   // Generic rules apply everywhere; the site-specific one only on its site.
   EXPECT_NE(std::string::npos, other.find("[data-ad-name]"));
   EXPECT_EQ(std::string::npos, other.find("section.pub-slot-wrapper"));
+}
+
+// EasyList: ##.a-sponsor and ###ad-top are generic; techymedies.com#@##ad-top
+// turns the id rule off on that one site.
+TEST_F(AdBlockServiceTest, GenericClassAndIdRulesForTheDocument) {
+  EXPECT_FALSE(CosmeticResources(kPage).generic_hide);
+  const std::string css =
+      GenericCss(kPage, {"a-sponsor", "article-body"}, {"ad-top", "main"});
+  EXPECT_NE(std::string::npos, css.find(".a-sponsor")) << css;
+  EXPECT_NE(std::string::npos, css.find("#ad-top")) << css;
+  EXPECT_EQ(std::string::npos, css.find("article-body")) << css;
+  EXPECT_EQ(std::string::npos, css.find("#main")) << css;
+  EXPECT_EQ(std::string(), GenericCss(kPage, {"article-body"}, {"main"}));
+  EXPECT_EQ(std::string::npos,
+            GenericCss("https://techymedies.com/", {}, {"ad-top"}).find("#ad-top"));
+}
+
+TEST_F(AdBlockServiceTest, UseListsReplacesTheNamedListOnly) {
+  UseLists({{"easylist", "[Adblock Plus 2.0]\n||fresh-ads.test^\n"}});
+  EXPECT_TRUE(ShouldBlock("https://fresh-ads.test/a.js", kPage, "script"));
+  // EasyList's own host rule is gone with the replaced list...
+  EXPECT_FALSE(ShouldBlock(kAdScript, kPage, "script"));
+  // ...while EasyList Polish and the parameter list are still the bundled ones.
+  EXPECT_NE(std::string::npos,
+            CosmeticCss(kSiteWithHideRules).find("section.pub-slot-wrapper"));
+  EXPECT_EQ(GURL("https://plain-browser.test/p?q=1"),
+            RewrittenUrl("https://plain-browser.test/p?utm_source=x&q=1", kPage,
+                         "main_frame"));
+  // No downloaded lists: back to the compiled-in engine.
+  UseLists({});
+  EXPECT_TRUE(ShouldBlock(kAdScript, kPage, "script"));
+  EXPECT_FALSE(ShouldBlock("https://fresh-ads.test/a.js", kPage, "script"));
+}
+
+TEST_F(AdBlockServiceTest, TheLatestUseListsCallWins) {
+  base::test::TestFuture<void> first;
+  base::test::TestFuture<void> second;
+  service_->UseLists({{"easylist", "||first.test^\n"}}, first.GetCallback());
+  service_->UseLists({{"easylist", "||second.test^\n"}}, second.GetCallback());
+  ASSERT_TRUE(first.Wait());
+  ASSERT_TRUE(second.Wait());
+  EXPECT_TRUE(ShouldBlock("https://second.test/", kPage, "script"));
+  EXPECT_FALSE(ShouldBlock("https://first.test/", kPage, "script"));
 }
 
 }  // namespace
