@@ -20,12 +20,12 @@ next job downloads it and runs `build.py --ci` again, which skips every finished
 | Job | Runner | What it does | Hands over |
 |---|---|---|---|
 | `prepare` (stage 0) | windows-2022 | `scripts/ci/install-tools.ps1`, then `scripts/ci/prepare-tree.ps1`: clones ungoogled-chromium-windows at the pinned tag, appends the profile flags to `flags.windows.gn`, clones Chromium (`clone.py`), runs `scripts/prepare.py`, downloads, pruning, unpacking, the ungoogled patches, the Windows patches with ours appended, domain substitution, `scripts/apply-branding.py`, the Rust toolchain copy, `scripts/vendor-adblock-crates.ps1` (gnrt vendor + gen + fixups). No GN yet. | artifact `tree-0` |
-| `build-1` | windows-2022 | downloads `tree-0`, `scripts/ci/build-stage.ps1`: `build.py --ci -j 4` writes `args.gn`, bootstraps GN, runs `gn gen` and bindgen, then ninja for 3.5 h | `tree-1`, or the packages |
+| `build-1` | windows-2022 | downloads `tree-0-*` (from this run or the earlier one it came from), `scripts/ci/build-stage.ps1`: `build.py --ci -j 4` writes `args.gn`, bootstraps GN, runs `gn gen` and bindgen, then ninja for 3.5 h | `tree-1`, or the packages |
 | `build-2` ... `build-10` | windows-2022 | same, one ninja time slice each. A stage that follows a finished one is skipped without starting a runner (`if: needs.<prev>.outputs.finished != 'true'`) | `tree-N`, or the packages |
 | the finishing stage | | `scripts/ci/package.ps1`: `scripts/package-plainbrowser.py` (portable zip + `mini_installer`), `scripts/package-msix.py`, `SHA256SUMS.txt` | artifact `plainbrowser-<profile>` (14 days) |
 | `complete` | ubuntu | fails the run when no stage finished (same as upstream's job of that name) | |
 | `release` | ubuntu | tag runs only: draft GitHub release `v*` with `PlainBrowser_*` and `SHA256SUMS.txt`; `contents: write` only here | |
-| `cleanup` | ubuntu | deletes the `tree-*` artifacts of the run (`actions: write` only here) | |
+| `cleanup` | ubuntu | deletes the `tree-1` ... `tree-10` artifacts of the run (`actions: write` only here); `tree-0-*` stays for reuse | |
 
 Order of our layer is the one `docs/ARCHITECTURE.md` section 2 describes: `prepare.py` before the patches (it adds
 `patches/series` to the upstream series, drops the upstream patches and pruned files in `patches/upstream-revert.list`
@@ -44,6 +44,19 @@ retention and the next stage downloads and extracts it to the same path. The pat
 identical on every runner, since `args.gn` and the ninja logs contain absolute paths. Each stage pays the upload and
 the download once; upstream's tree zips are tens of GB, so count roughly half an hour per side on top of the 3.5 h
 of ninja. Nothing uses the Actions cache: it is capped at 10 GB per repository, far below a Chromium tree.
+
+### Reuse of the prepared tree
+
+`prepare` names its artifact `tree-0-<profile>-<hash>`, where the hash covers everything `prepare-tree.ps1` reads
+(`versions.toml`, `patches/`, `src/`, `branding/`, the `scripts/*.py` and `scripts/*.ps1` helpers, and the three CI
+scripts it runs), and first asks the artifacts API (`GET /repos/{repo}/actions/artifacts?name=...`) for a non-expired
+artifact of that name from any earlier run. If one exists, the job stops after that lookup and `build-1` downloads
+it from the earlier run (`download-artifact` with `run-id`, which is why `prepare` and `build-1` have
+`actions: read`). Otherwise the tree is built and uploaded with a 14-day retention; `cleanup` leaves `tree-0-*`
+alone. A change to any of the hashed inputs, or to the profile, gives a new name and a fresh tree. Saves about an
+hour per run (the Chromium clone alone is 30 minutes) and makes a failed stage cheap to retry.
+
+The hand-over zips use 7-Zip's `-mx=1` rather than upstream's `-mx=3`: a few percent larger, much faster to pack.
 
 ### Triggers and inputs
 
