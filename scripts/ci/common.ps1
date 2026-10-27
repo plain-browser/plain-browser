@@ -32,6 +32,19 @@ function Run([string]$Exe) {
   if ($LASTEXITCODE -ne 0) { throw "$Exe exited with $LASTEXITCODE" }
 }
 
+# Like Run, but tries again when the command fails (downloads.py runs curl -C -, so a retry resumes the .partial file;
+# hosts such as go.dev drop connections now and then).
+function RunRetry([int]$Attempts, [string]$Exe) {
+  $argv = $args
+  for ($i = 1; $i -le $Attempts; $i++) {
+    Write-Host "+ $Exe $($argv -join ' ')  (attempt $i of $Attempts)"
+    & $Exe @argv
+    if ($LASTEXITCODE -eq 0) { return }
+    if ($i -lt $Attempts) { Write-Host "$Exe exited with $LASTEXITCODE, retrying in $($i * 15) s"; Start-Sleep -Seconds ($i * 15) }
+  }
+  throw "$Exe exited with $LASTEXITCODE after $Attempts attempts"
+}
+
 # Like Run, for robocopy, whose exit codes below 8 mean success.
 function RunRobocopy() {
   & robocopy @args /NFL /NDL /NJH /NJS /NP | Out-Null

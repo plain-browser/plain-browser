@@ -51,7 +51,7 @@ try {
   Write-Step "Windows downloads (downloads.ini)"
   # build.py makes this directory before downloads.py runs; downloads.py itself raises FileNotFoundError without it
   New-Item -ItemType Directory -Force "build\download_cache" | Out-Null
-  Run python "ungoogled-chromium\utils\downloads.py" retrieve -i downloads.ini -c "build\download_cache" --hide-progress-bar
+  RunRetry 5 python "ungoogled-chromium\utils\downloads.py" retrieve -i downloads.ini -c "build\download_cache" --hide-progress-bar
 
   Write-Step "Prune binaries"
   Run python "ungoogled-chromium\utils\prune_binaries.py" "build\src" pruning.list
