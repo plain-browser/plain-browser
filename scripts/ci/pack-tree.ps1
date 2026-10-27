@@ -13,5 +13,7 @@ Write-Step "7z a $Out"
 & 7z a "-tzip" $Out (Join-Path $Work "ucw") "-mx=3" "-mtc=on" "-xr!download_cache"
 if ($LASTEXITCODE -gt 1) { throw "7z exited with $LASTEXITCODE" }
 if ($LASTEXITCODE -eq 1) { Write-Host "7z finished with warnings (exit 1), continuing" }
+# the step runs this script without -File, so its exit code is the last native one: clear the 7z warning code
+$global:LASTEXITCODE = 0
 Write-Host "tree.zip: $([math]::Round((Get-Item $Out).Length / 1GB, 1)) GB"
 Write-DiskFree
