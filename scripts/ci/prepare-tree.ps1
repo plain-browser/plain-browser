@@ -54,7 +54,9 @@ try {
   RunRetry 5 python "ungoogled-chromium\utils\downloads.py" retrieve -i downloads.ini -c "build\download_cache" --hide-progress-bar
 
   Write-Step "Prune binaries"
-  Run python "ungoogled-chromium\utils\prune_binaries.py" "build\src" pruning.list
+  # build.py only prunes the files in pruning.list; the CLI also deletes the "contingent" directories (v8/test/ among
+  # them) unless told not to, and the build needs v8/test/torque/test-torque.tq.
+  Run python "ungoogled-chromium\utils\prune_binaries.py" "build\src" pruning.list --keep-contingent-paths
   Write-Probe $src "after prune"
 
   Write-Step "Unpack downloads"
