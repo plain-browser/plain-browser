@@ -59,6 +59,16 @@ updatera.
 2. Z karty **Product identity** przepisz `Package/Identity/Name`, `Package/Identity/Publisher` i
    `Publisher display name` do wywołania `scripts/package-msix.py` (parametry `--identity-name`, `--publisher`,
    `--publisher-display`). Paczkę wysyłamy **niepodpisaną**; ostatnia część wersji musi być `0`.
+   Wartości produktu (Partner Center, 2026-10-27; są publiczne, trafiają do manifestu paczki):
+   `Package/Identity/Name` = `PlainBrowser.PlainBrowser`, `Package/Identity/Publisher` =
+   `CN=0941CA91-AEDB-4E92-92FD-093078786828`, `PublisherDisplayName` = `Plain Browser` (musi być dokładnie taki jak
+   nazwa wydawcy konta, inaczej walidacja paczki odrzuca ją), PFN `PlainBrowser.PlainBrowser_7m7psx7yqqmx8`,
+   Store ID `9PKZGSKC9FWP` (`https://apps.microsoft.com/detail/9PKZGSKC9FWP`). Pełne wywołanie:
+   `python scripts\package-msix.py --zip <zip> --out <dist> --version 0.1.0.0 --identity-name PlainBrowser.PlainBrowser
+   --publisher "CN=0941CA91-AEDB-4E92-92FD-093078786828" --publisher-display "Plain Browser"`.
+   Walidacja ostrzega o `runFullTrust`: w zgłoszeniu (Submission options → Restricted capabilities) wpisz
+   uzasadnienie (przeglądarka Chromium pakowana przez Desktop Bridge: procesy renderera/GPU, domyślna przeglądarka,
+   pobieranie plików).
 3. Teksty listingu są w `docs/STORE_LISTING.md`, grafiki w `branding/icons/store` i `branding/icons/msix`.
 4. Polityka prywatności: adres `https://plain-browser.app/privacy` (strona generowana z `docs/PRIVACY.md`).
 5. Kategoria wiekowa i deklaracje: przeglądarka wyświetla dowolne treści z internetu; zaznacz to w kwestionariuszu

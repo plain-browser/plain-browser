@@ -75,7 +75,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--identity-name", default="PlainBrowser.Dev")
     ap.add_argument("--publisher", default="CN=PlainBrowser Dev")
-    ap.add_argument("--publisher-display", default="Plain Browser contributors")
+    ap.add_argument("--publisher-display", default="Plain Browser")
     ap.add_argument("--version", default="0.1.0.0")
     ap.add_argument("--sign")
     ap.add_argument("--sign-password", default="")
