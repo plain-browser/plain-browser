@@ -10,3 +10,4 @@ Run 7z x $Zip "-o$Work" "-y" | Select-Object -Last 5
 Remove-Item $Zip -Force
 if (-not (Test-Path "$Work\ucw\build\src\BUILD.gn")) { throw "unpacked tree is incomplete: $Work\ucw\build\src\BUILD.gn missing" }
 Write-DiskFree
+Write-Probe "$Work\ucw\build\src" "after unpacking" -Require

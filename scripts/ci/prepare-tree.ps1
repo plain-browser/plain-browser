@@ -43,6 +43,7 @@ Push-Location $ucw
 try {
   Write-Step "Chromium sources (ungoogled-chromium clone.py)"
   Run python "ungoogled-chromium\utils\clone.py" -o "build\src" -p win64
+  Write-Probe $src "after clone"
 
   Write-Step "Plain Browser layer: prepare.py"
   Run python -I "$repo\scripts\prepare.py" $ucw $src
@@ -54,6 +55,7 @@ try {
 
   Write-Step "Prune binaries"
   Run python "ungoogled-chromium\utils\prune_binaries.py" "build\src" pruning.list
+  Write-Probe $src "after prune"
 
   Write-Step "Unpack downloads"
   foreach ($d in "third_party\microsoft_dxheaders\src", "third_party\devtools-frontend\src\third_party\esbuild") {
@@ -61,14 +63,17 @@ try {
     if (Test-Path $p) { Remove-Item $p -Recurse -Force; New-Item -ItemType Directory $p | Out-Null }
   }
   Run python "ungoogled-chromium\utils\downloads.py" unpack -i downloads.ini -c "build\download_cache" "build\src"
+  Write-Probe $src "after unpack downloads"
 
   Write-Step "Patches: ungoogled-chromium, then ungoogled-chromium-windows + Plain Browser"
   $patchBin = "$src\third_party\git\usr\bin\patch.exe"
   Run python "ungoogled-chromium\utils\patches.py" apply --patch-bin $patchBin "build\src" "ungoogled-chromium\patches"
   Run python "ungoogled-chromium\utils\patches.py" apply --patch-bin $patchBin "build\src" patches
+  Write-Probe $src "after patches"
 
   Write-Step "Domain substitution"
   Run python "ungoogled-chromium\utils\domain_substitution.py" apply -r "ungoogled-chromium\domain_regex.list" -f domain_substitution.list "build\src"
+  Write-Probe $src "after domain substitution"
 
   Write-Step "Branding (product name in UI strings and BRANDING)"
   Run python -I "$repo\scripts\apply-branding.py" $src
@@ -95,6 +100,7 @@ try {
 }
 
 Write-Step "Tree ready"
+Write-Probe $src "tree ready" -Require
 Write-Host "Plain Browser sources: $(@(Get-ChildItem "$src\plainbrowser" -Recurse -File).Count) files"
 Write-Host "Series tail:"; Get-Content "$ucw\patches\series" | Select-Object -Last 3 | ForEach-Object { "    $_" }
 Write-DiskFree

@@ -59,3 +59,22 @@ function Write-DiskFree([string]$Drive = "C") {
   $free = [math]::Round((Get-PSDrive $Drive).Free / 1GB)
   Write-Host "free on ${Drive}: $free GB"
 }
+
+# Reports whether files the build is known to need are still in the Chromium tree, and how many files V8's test directory
+# has (an earlier run lost v8/test/torque/test-torque.tq somewhere between clone and ninja). -Require throws when the
+# file ninja asked for is missing, so a broken tree is neither packed nor reused from the cache.
+function Write-Probe([string]$Src, [string]$Label, [switch]$Require) {
+  $needed = "v8\test\torque\test-torque.tq"
+  $missing = $false
+  foreach ($rel in $needed, "v8\BUILD.gn", "base\BUILD.gn") {
+    $ok = Test-Path (Join-Path $Src $rel)
+    if (-not $ok -and $rel -eq $needed) { $missing = $true }
+    Write-Host ("probe [{0}] {1}: {2}" -f $Label, $rel, $(if ($ok) { "present" } else { "MISSING" }))
+  }
+  foreach ($dir in "v8\test", "v8\test\torque") {
+    $p = Join-Path $Src $dir
+    $n = if (Test-Path $p) { @(Get-ChildItem $p -Recurse -File -ErrorAction SilentlyContinue).Count } else { "no such directory" }
+    Write-Host ("probe [{0}] files under {1}: {2}" -f $Label, $dir, $n)
+  }
+  if ($Require -and $missing) { throw "$needed is missing from the tree ($Label); see the probe lines above" }
+}

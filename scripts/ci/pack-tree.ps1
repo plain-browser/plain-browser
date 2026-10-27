@@ -8,6 +8,7 @@ param([string]$Work = "C:\pb", [string]$Out = "")
 . "$PSScriptRoot\common.ps1"
 if (-not $Out) { $Out = Join-Path $Work "tree.zip" }
 if (Test-Path $Out) { Remove-Item $Out -Force }
+Write-Probe (Join-Path $Work "ucw\build\src") "before packing" -Require
 Write-Step "7z a $Out"
 # 7z exits 1 for warnings (the Chromium tree has a few dangling links it cannot open, e.g. under third_party\nearby);
 # the archive is complete then. Upstream's stage action passes ignoreReturnCode for the same reason. 2 and above is a failure.
