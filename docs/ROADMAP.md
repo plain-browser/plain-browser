@@ -40,12 +40,12 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
   The per-site toggle in the toolbar bubble is done. Next: a settings page for the exception list, then Blink-level
   farbling for the surfaces where a page-world override is too easy to detect.
 
-### Safe Browsing settings (verified 2026-10-26 on the current build)
-`chrome://settings/security` shows the Safe Browsing section with Enhanced / Standard (default) / No protection and
-the prefs match "standard only, no reporting". Two follow-ups for `patches/70-safebrowsing`: hide or disable the
-**Enhanced protection** row (its real-time lookups are not something our proxy supports and the policy promises
-standard protection only), and replace the stock descriptions, which say data is sent to Google, with text that
-matches `docs/PRIVACY.md` (requests go to our proxy).
+### Safe Browsing settings (done 2026-10-27, `patches/70-safebrowsing/0005`)
+Settings > You and Google > Google services has an on/off toggle "Safe Browsing through the Plain Browser proxy"
+(pref `safebrowsing.enabled`, the same one the Security page's radio group drives). `chrome://settings/security`
+shows Standard (default) / No protection only: the Enhanced protection row is hidden (its real-time lookups are not
+something our proxy supports and the policy promises standard protection only) and the descriptions say where
+requests go, in English and Polish. Verified with `scripts/test-safebrowsing-settings.ps1`.
 
 ## Project security
 

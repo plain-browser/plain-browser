@@ -61,8 +61,8 @@ without Google learning anything about you:
   any website's host does; its own privacy policy applies to that.
 - Enhanced Protection, real-time URL lookups and extended reporting, which would send full URLs and page
   content, are disabled and cannot be turned on.
-- You will be able to turn Safe Browsing off in the settings; with it off, the browser makes no requests to our
-  proxy.
+- You can turn Safe Browsing off in the settings (You and Google > Google services, or Privacy and security >
+  Security); with it off, the browser makes no requests to our proxy.
 
 ## Extensions
 

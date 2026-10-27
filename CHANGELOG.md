@@ -14,12 +14,17 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 - Per-site exceptions ("shields"): a toolbar button and bubble that turn ad blocking, tracking-parameter stripping
   and fingerprint protection off for the current site; one profile list (`plainbrowser.shields.exceptions`) read by
   all three.
+- Settings > You and Google > Google services: a toggle "Safe Browsing through the Plain Browser proxy", the one
+  switch for the only Google service the browser still talks to (through our proxy).
 - Project website (`website/`, plain-browser.app) with the privacy and security policies in English and Polish.
 - Polish security policy (`docs/SECURITY.pl.md`).
 
 ### Changed
 - Distribution decision: Plain Browser ships as an MSIX through the Microsoft Store only. The Store signs the package
   and delivers updates, so there is no own updater and no Authenticode certificate.
+- Settings > Security: the Enhanced protection option is gone (its real-time lookups would send URLs; the proxy
+  only serves the local-database updates) and the Standard / No protection descriptions say that requests go through
+  the Plain Browser proxy, not to Google.
 
 ## [0.1.0-alpha.1] - 2026-10-26 [Chromium 156.0.8078.47, ungoogled-chromium-windows 156.0.8078.47-1.1]
 

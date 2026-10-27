@@ -63,7 +63,8 @@ jest zaprojektowany tak, by oferować to bez przekazywania Google czegokolwiek o
   każdej strony; stosuje się do tego jego polityka prywatności.
 - Ochrona rozszerzona, sprawdzanie adresów w czasie rzeczywistym i rozszerzone raportowanie, które wysyłałyby pełne
   adresy i treść stron, są wyłączone i nie da się ich włączyć.
-- Safe Browsing będzie można wyłączyć w ustawieniach; wtedy przeglądarka nie wysyła do naszego proxy niczego.
+- Safe Browsing można wyłączyć w ustawieniach (Ty i Google → Usługi Google albo Prywatność i bezpieczeństwo →
+  Bezpieczeństwo); wtedy przeglądarka nie wysyła do naszego proxy niczego.
 
 ## Rozszerzenia
 
