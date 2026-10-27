@@ -1,9 +1,9 @@
 # Plain Browser privacy policy
 
-Last updated: 25 October 2026 · [Polski](PRIVACY.pl.md)
+Last updated: 27 October 2026 · [Polski](PRIVACY.pl.md)
 
 Plain Browser is a web browser built from Chromium with the ungoogled-chromium patch set. This policy says what the
-browser does with your data. It describes version 0.1.0-alpha.1 and is updated whenever a release changes it.
+browser does with your data. It describes version 0.1.2-alpha.1 and is updated whenever a release changes it.
 
 ## Summary
 
@@ -11,8 +11,8 @@ browser does with your data. It describes version 0.1.0-alpha.1 and is updated w
 - It has **no account, sign-in or sync service**, and we run **no server** that receives data from the browser.
   We cannot see what you browse.
 - It does **not contact Google services**. The ungoogled-chromium patches remove them (Google sign-in,
-  translation, the Chrome Web Store and others). The one planned exception is Safe Browsing through our own
-  anonymizing proxy, described below; it is not active in this version.
+  translation, the Chrome Web Store and others). The one exception is Safe Browsing through our own
+  anonymizing proxy, described below; you can turn it off.
 - Your browsing data stays **on your device**.
 
 ## What we collect
@@ -41,12 +41,11 @@ bundled with the browser. The blocker does not download lists, and it does not r
 
 ## Safe Browsing
 
-Safe Browsing warns before a page known for malware or phishing opens. Plain Browser is designed to offer it
+Safe Browsing warns before a page known for malware or phishing opens. Plain Browser offers it
 without Google learning anything about you:
 
-- **Not active in version 0.1.0-alpha.1.** Safe Browsing is compiled out of this build, so the browser makes no
-  Safe Browsing requests at all. The paragraphs below describe the design that a future version will ship; this
-  policy will be updated when it does.
+- **Active in version 0.1.2-alpha.1**, in standard protection only. The browser sends Safe Browsing requests to our
+  proxy and to nothing else; it never contacts Google directly.
 - The browser keeps a **local database of hash prefixes** (the "Update API", standard protection). URLs you visit
   are checked against it on your device. Only when a prefix matches does the browser ask for the full hashes of
   that prefix, which does not reveal the URL.

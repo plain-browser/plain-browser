@@ -1,9 +1,9 @@
 # Polityka prywatności Plain Browser
 
-Ostatnia aktualizacja: 25 października 2026 · [English](PRIVACY.md)
+Ostatnia aktualizacja: 27 października 2026 · [English](PRIVACY.md)
 
 Plain Browser to przeglądarka zbudowana z Chromium z zestawem poprawek ungoogled-chromium. Ta polityka opisuje, co
-przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.1.0-alpha.1 i jest aktualizowana przy każdym wydaniu, które to
+przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.1.2-alpha.1 i jest aktualizowana przy każdym wydaniu, które to
 zmienia.
 
 ## W skrócie
@@ -13,8 +13,8 @@ zmienia.
 - Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera**, który odbierałby dane z
   przeglądarki. Nie widzimy, co przeglądasz.
 - **Nie łączy się z usługami Google.** Poprawki ungoogled-chromium usuwają je (logowanie Google, tłumaczenie,
-  Chrome Web Store i inne). Jedynym planowanym wyjątkiem jest Safe Browsing przez nasze własne anonimizujące
-  proxy, opisane niżej; w tej wersji nie jest aktywne.
+  Chrome Web Store i inne). Jedynym wyjątkiem jest Safe Browsing przez nasze własne anonimizujące
+  proxy, opisane niżej; można go wyłączyć.
 - Dane o przeglądaniu zostają **na Twoim urządzeniu**.
 
 ## Co zbieramy
@@ -44,11 +44,10 @@ Polish) są dołączone do przeglądarki. Bloker niczego nie pobiera i nikomu ni
 ## Safe Browsing
 
 Safe Browsing ostrzega przed otwarciem strony znanej ze złośliwego oprogramowania lub phishingu. Plain Browser
-jest zaprojektowany tak, by oferować to bez przekazywania Google czegokolwiek o Tobie:
+oferuje to bez przekazywania Google czegokolwiek o Tobie:
 
-- **Nieaktywne w wersji 0.1.0-alpha.1.** Safe Browsing jest wykompilowany z tej wersji, więc przeglądarka nie
-  wysyła żadnych żądań Safe Browsing. Poniższe punkty opisują projekt, który trafi do przyszłej wersji; polityka
-  zostanie wtedy zaktualizowana.
+- **Aktywne w wersji 0.1.2-alpha.1**, wyłącznie w ochronie standardowej. Przeglądarka wysyła żądania Safe Browsing
+  do naszego proxy i nigdzie indziej; nigdy nie łączy się bezpośrednio z Google.
 - Przeglądarka trzyma **lokalną bazę prefiksów hashy** (tzw. Update API, ochrona standardowa). Odwiedzane adresy są
   sprawdzane z nią na Twoim urządzeniu. Dopiero gdy prefiks pasuje, przeglądarka pyta o pełne hashe tego prefiksu,
   co nie zdradza adresu strony.
