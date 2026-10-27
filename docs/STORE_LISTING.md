@@ -13,32 +13,40 @@ A plain Chromium browser: no Google services, built-in ad blocking, no tracking.
 
 **Description:**
 Plain Browser is a fast, familiar Chromium-based web browser without the extras. It has no Google account, no
-sync, no telemetry and no usage reporting. Nothing about what you browse leaves your computer, because we run no
-server that could receive it.
+sync, no telemetry and no usage reporting. Nothing about what you browse leaves your computer. The one exception
+is Safe Browsing, which goes through our own proxy that hides your IP address and never sees the sites you visit;
+you can turn it off in the settings.
 
 What you get:
 
 • Built-in ad and tracker blocking. The blocker is a fast Rust engine (adblock-rust, the same engine used by Brave)
   with EasyList, EasyPrivacy and the Polish EasyList bundled in. It runs on your device and reports nothing.
-• No Google services. Google sign-in, Safe Browsing and other Google components are removed, based on the
-  ungoogled-chromium project.
+• No Google services. Google sign-in, sync, telemetry and the other Google components are removed, based on the
+  ungoogled-chromium project. The one Google service kept is Safe Browsing: sites are checked against a list on
+  your device, and the list updates go through our proxy at sb.plain-browser.app, so Google never sees your IP
+  address or the sites you visit. A switch in the settings turns it off.
+• One toggle for the current site: the toolbar button turns ad blocking, tracking-parameter stripping and
+  fingerprint protection off for a site that breaks, and back on.
 • Chromium's engine and speed: modern web standards, tabs, bookmarks, downloads, the PDF viewer and developer tools.
 • Manifest V2 extensions stay enabled in this build (experimental; not every extension has been tested).
 • Private by design: your history, cookies and passwords stay in your profile on your device.
 • Free and open source. Our code is MPL-2.0; the full source and licenses are on GitHub.
 
-This is an early alpha. Expect rough edges: there is no setting yet to turn the ad blocker on or off, and some
-features of larger browsers are missing (for example sync and a built-in extension store). Extensions can be
+This is an early alpha. Expect rough edges: the ad blocker has no global on/off setting yet (only the per-site
+toggle), and some features of larger browsers are missing (for example sync and a built-in extension store). Extensions can be
 installed manually. Bug reports are welcome on GitHub.
 
 Plain Browser is not affiliated with Google or the Chromium project. Chromium is a project of The Chromium Authors.
 
 **What's new in this version:**
-First public alpha: Plain Browser branding, built-in ad blocking, Polish and English interface, Chromium 156.
+First public alpha: Plain Browser branding, built-in ad blocking with a per-site toggle, Safe Browsing through our
+anonymizing proxy, Polish and English interface, Chromium 156.
 
 **Product features (up to 20):**
 - Built-in ad and tracker blocking (adblock-rust, EasyList, EasyPrivacy)
+- Per-site toggle for all protections in the toolbar
 - No Google services, no account, no telemetry
+- Safe Browsing through our proxy: Google never sees your IP address; can be turned off
 - Chromium engine: modern web standards, PDF viewer, developer tools
 - Manifest V2 extensions stay enabled (experimental)
 - Your data stays on your device
@@ -64,34 +72,42 @@ Zwykła przeglądarka na Chromium: bez usług Google, z wbudowanym blokowaniem r
 
 **Opis:**
 Plain Browser to szybka, znajoma przeglądarka oparta na Chromium, bez zbędnych dodatków. Nie ma konta Google,
-synchronizacji, telemetrii ani raportowania użycia. Nic z tego, co przeglądasz, nie opuszcza Twojego komputera, bo
-nie prowadzimy żadnego serwera, który mógłby to odbierać.
+synchronizacji, telemetrii ani raportowania użycia. Nic z tego, co przeglądasz, nie opuszcza Twojego komputera.
+Jedynym wyjątkiem jest Safe Browsing, który przechodzi przez nasze własne proxy ukrywające Twój adres IP i
+niewidzące odwiedzanych stron; możesz go wyłączyć w ustawieniach.
 
 Co dostajesz:
 
 • Wbudowane blokowanie reklam i trackerów. Bloker to szybki silnik w Rust (adblock-rust, ten sam, którego używa
   Brave) z dołączonymi listami EasyList, EasyPrivacy i polską EasyList. Działa na Twoim urządzeniu i niczego nie
   zgłasza.
-• Bez usług Google. Logowanie Google, Safe Browsing i inne komponenty Google są usunięte, na bazie projektu
-  ungoogled-chromium.
+• Bez usług Google. Logowanie Google, synchronizacja, telemetria i pozostałe komponenty Google są usunięte, na
+  bazie projektu ungoogled-chromium. Jedyną zachowaną usługą Google jest Safe Browsing: strony są sprawdzane w
+  liście na Twoim urządzeniu, a aktualizacje listy idą przez nasze proxy sb.plain-browser.app, więc Google nigdy
+  nie widzi Twojego adresu IP ani odwiedzanych stron. Przełącznik w ustawieniach pozwala to wyłączyć.
+• Jeden przełącznik dla bieżącej witryny: przycisk na pasku narzędzi wyłącza blokowanie reklam, obcinanie
+  parametrów śledzących i ochronę odcisku palca dla strony, która nie działa, i włącza je z powrotem.
 • Silnik i szybkość Chromium: nowoczesne standardy sieci, karty, zakładki, pobieranie, przeglądarka PDF i narzędzia
   deweloperskie.
 • Rozszerzenia Manifest V2 pozostają włączone w tej wersji (eksperymentalnie; nie każde rozszerzenie było testowane).
 • Prywatność z założenia: historia, ciasteczka i hasła zostają w Twoim profilu na Twoim urządzeniu.
 • Darmowa i otwartoźródłowa. Nasz kod ma licencję MPL-2.0, a pełny kod źródłowy i licencje są na GitHubie.
 
-To wczesna wersja alfa. Mogą zdarzać się niedociągnięcia: nie ma jeszcze ustawienia włączającego i wyłączającego
-bloker reklam, a brakuje niektórych funkcji większych przeglądarek (np. synchronizacji i wbudowanego sklepu z
+To wczesna wersja alfa. Mogą zdarzać się niedociągnięcia: bloker reklam nie ma jeszcze globalnego wyłącznika
+(tylko przełącznik dla witryny), a brakuje niektórych funkcji większych przeglądarek (np. synchronizacji i wbudowanego sklepu z
 rozszerzeniami). Rozszerzenia można instalować ręcznie. Zgłoszenia błędów są mile widziane na GitHubie.
 
 Plain Browser nie jest powiązany z Google ani z projektem Chromium. Chromium to projekt The Chromium Authors.
 
 **Co nowego w tej wersji:**
-Pierwsza publiczna alfa: marka Plain Browser, wbudowane blokowanie reklam, interfejs po polsku i angielsku, Chromium 156.
+Pierwsza publiczna alfa: marka Plain Browser, wbudowane blokowanie reklam z przełącznikiem dla witryny, Safe
+Browsing przez nasze anonimizujące proxy, interfejs po polsku i angielsku, Chromium 156.
 
 **Funkcje produktu:**
 - Wbudowane blokowanie reklam i trackerów (adblock-rust, EasyList, EasyPrivacy)
+- Przełącznik wszystkich ochron dla bieżącej witryny na pasku narzędzi
 - Bez usług Google, bez konta, bez telemetrii
+- Safe Browsing przez nasze proxy: Google nigdy nie widzi Twojego adresu IP; można wyłączyć
 - Silnik Chromium: nowoczesne standardy, przeglądarka PDF, narzędzia deweloperskie
 - Rozszerzenia Manifest V2 pozostają włączone (eksperymentalnie)
 - Twoje dane zostają na Twoim urządzeniu
