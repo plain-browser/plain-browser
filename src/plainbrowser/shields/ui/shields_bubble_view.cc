@@ -8,6 +8,7 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
+#include "base/time/time.h"
 #include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/navigation_controller.h"
@@ -34,13 +35,22 @@ namespace {
 // exit-time destructor. Both are released in OnBubbleClosed().
 ShieldsBubbleView* g_delegate = nullptr;
 views::Widget* g_widget = nullptr;
+// When the bubble last closed because it lost activation. A press on the
+// toolbar button deactivates the bubble before the button is notified, so that
+// press finds no bubble: it must close, not reopen (views::MenuButtonController
+// uses the same minimum interval between clicks).
+base::TimeTicks g_closed_by_deactivation;
 
 constexpr int kBubbleWidth = 320;
+constexpr base::TimeDelta kReopenAfterDeactivation = base::Milliseconds(200);
 
 // Runs synchronously when the widget closes. The delegate must outlive the
 // widget and the callback owns the widget, so both are deleted after the
 // close has finished.
-void OnBubbleClosed(views::Widget::ClosedReason /*reason*/) {
+void OnBubbleClosed(views::Widget::ClosedReason reason) {
+  if (reason == views::Widget::ClosedReason::kLostFocus) {
+    g_closed_by_deactivation = base::TimeTicks::Now();
+  }
   scoped_refptr<base::SingleThreadTaskRunner> runner =
       base::SingleThreadTaskRunner::GetCurrentDefault();
   runner->DeleteSoon(FROM_HERE, g_widget);
@@ -57,6 +67,13 @@ void ShieldsBubbleView::Show(views::View* anchor,
                              base::RepeatingClosure on_changed) {
   if (g_widget) {
     g_widget->CloseWithReason(views::Widget::ClosedReason::kUnspecified);
+    return;
+  }
+  if (!g_closed_by_deactivation.is_null() &&
+      base::TimeTicks::Now() - g_closed_by_deactivation <
+          kReopenAfterDeactivation) {
+    // This press is what deactivated (and closed) the bubble.
+    g_closed_by_deactivation = base::TimeTicks();
     return;
   }
   g_delegate = new ShieldsBubbleView(anchor, web_contents,
