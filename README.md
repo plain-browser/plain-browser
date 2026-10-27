@@ -32,28 +32,36 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 
 ## Status
 
-**Pre-alpha. There is no installable build yet.**
+**Alpha. Test builds exist (`0.1.0-alpha.1`, unsigned); the Microsoft Store listing is being prepared.**
 
 | Part | State |
 |---|---|
-| Stock ungoogled-chromium 156 build on our Windows builder | Done (6.7 h); unsigned test build in a draft release |
-| adblock-rust bridge crate (Rust + cxx, bundled lists) | Done, 4 unit tests pass |
-| Browser/renderer adblock code (service, mojo filter, request throttle, cosmetic agent) | Compiles, links and **blocks**: headless test (`scripts/test-adblock.ps1`) blocks four ad hosts, passes controls, and with `--disable-features=PlainBrowserAdblock` lets all through without hanging |
+| Build of ungoogled-chromium 156 plus our layer on the Windows build VM | Done (about 7 h, `scripts/build.ps1`). GitHub Actions build in chained stages written (`build-windows.yml`, `docs/CI.md`), first run pending |
+| adblock-rust bridge crate (Rust + cxx, bundled lists) | Done, unit tests pass (`rust.yml`) |
+| Browser/renderer adblock code (service, mojo filter, request throttle, cosmetic agent) | **Blocks** end to end: `scripts/test-adblock.ps1` blocks four ad hosts, passes controls, kill switch `--disable-features=PlainBrowserAdblock` lets all through |
 | Vendoring the adblock crates into Chromium's GN build (gnrt) | Done, scripted (`scripts/vendor-adblock-crates.ps1`) |
-| MV2 | ungoogled-chromium already keeps MV2 enabled in 156; one small cleanup patch written and compiled, **no extension tested yet** |
+| Manifest V2 | Kept enabled (ungoogled patch) plus our cleanup of the deprecation UI; real-extension test: see `docs/MV2.md` |
 | Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) | Done: navigation throttle + `$removeparam` list, verified headless (`scripts/test-privacy.ps1`) |
 | Fingerprint protection (canvas, audio, WebGL strings, navigator) with a compatibility list of excepted sites (for example online banking) | Done as a first slice (page-world script, no Blink patches), verified headless; see `docs/FINGERPRINT.md` |
 | Safe Browsing through our proxy (`sb.plain-browser.app`, `X-Client: PlainBrowser/<version>`) | Compiled in (ungoogled's removal patches dropped via `patches/upstream-revert.list`), verified headless: the list update goes only to our proxy. Standard protection only; no reporting |
-| Branding, installer, updater, extension repository | Not started |
+| Branding (name, icons, install mode `%LOCALAPPDATA%\PlainBrowser`) | Done; portable zip, installer and MSIX built (`scripts/package-*.py`) |
+| Distribution and updates | **Microsoft Store only (MSIX)**: the Store signs the package and delivers updates, so there is no own updater or Authenticode certificate. Listing text in `docs/STORE_LISTING.md` |
+| Website (`website/`, plain-browser.app) | Static Next.js site with the privacy and security policies, EN and PL |
+| Adblock UI: toolbar button and bubble with a per-site toggle shared by adblock, parameter stripping and fingerprint protection | Done, verified headless (`scripts/test-shields.ps1`; `docs/ADBLOCK.md`, "UI and per-site exceptions") |
+| Generic cosmetic filtering, list updates | Not started |
+| Curated MV2 extension repository | Not started (`docs/ARCHITECTURE.md`, section 8.2) |
 
-Verified: same six requests with the filter on and off. On: the four EasyList hosts never reach the server, controls load.
-Off (kill switch): all six load. Not yet tested: cosmetic hiding (only site-specific rules exist), UI, MV2 extensions, installer.
+Tests: `scripts/test-*.ps1` run headless on the build VM; C++ unit tests in `docs/TESTING.md`.
+Not yet tested: generic cosmetic hiding, the UI in a normal window on real pages, Store installation on a clean machine.
 
 ## Roadmap
 
 Privacy features and the project-security plan are in [docs/ROADMAP.md](docs/ROADMAP.md); vulnerability reporting in [SECURITY.md](SECURITY.md).
 
-1. Finish the stock build, then apply our patches and vendor the adblock crates.
-2. Compile, fix and test the blocker on real pages; toolbar toggle and per-site settings.
-3. Branding, installer and update server; curated MV2 extension repository (uBlock Origin and similar).
-4. Code signing and a public beta.
+1. Shields follow-ups: settings page for the exception list, blocked-count badge on the button, translations.
+2. Microsoft Store submission of the MSIX; first public alpha through the Store.
+3. Generic cosmetic filtering and filter-list updates independent of browser releases.
+4. Curated MV2 extension repository (uBlock Origin and similar); tracking-redirect bypass; Blink-level fingerprint noise.
+
+Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Changes: [CHANGELOG.md](CHANGELOG.md). Manual GitHub and Store setup
+steps: [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md) (Polish).
