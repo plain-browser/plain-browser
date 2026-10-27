@@ -5,8 +5,11 @@
 #include <string>
 #include <vector>
 
+#include "base/command_line.h"
 #include "base/functional/bind.h"
 #include "base/no_destructor.h"
+#include "base/strings/string_split.h"
+#include "base/strings/string_util.h"
 #include "base/synchronization/lock.h"
 #include "base/thread_annotations.h"
 #include "base/task/sequenced_task_runner.h"
@@ -14,6 +17,7 @@
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
 #include "plainbrowser/shields/common/shields.mojom.h"
+#include "plainbrowser/shields/common/switches.h"
 
 namespace plainbrowser::shields {
 
@@ -44,7 +48,16 @@ class ShieldsConfigImpl : public mojom::ShieldsConfig {
 
  private:
   friend class base::NoDestructor<ShieldsConfigImpl>;
-  ShieldsConfigImpl() = default;
+  // Starts from the list the browser passed on the command line (the pref at
+  // process creation); the first SetExceptions() replaces it.
+  ShieldsConfigImpl() {
+    for (std::string_view site : base::SplitStringPiece(
+             base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
+                 switches::kShieldsExceptions),
+             ",", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)) {
+      sites_.insert(base::ToLowerASCII(site));
+    }
+  }
 
   mojo::ReceiverSet<mojom::ShieldsConfig> receivers_;
   mutable base::Lock lock_;

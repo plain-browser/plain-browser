@@ -13,6 +13,7 @@ source_set("common") {
     "common/pref_names.h",
     "common/site_util.cc",
     "common/site_util.h",
+    "common/switches.h",
   ]
   deps = [
     "//base",
@@ -52,6 +53,7 @@ source_set("renderer") {
   ]
   public_deps = [ ":mojom" ]
   deps = [
+    ":common",
     "//base",
     "//mojo/public/cpp/bindings",
   ]

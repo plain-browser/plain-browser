@@ -1,8 +1,9 @@
 From: Plain Browser
 Subject: [fingerprint] Pass the fingerprint session key and exceptions to renderers
 
-The exceptions are the --fingerprint-exceptions switch plus the profile's per-site exception
-list (prefs::kShieldsExceptions), looked up through the renderer's process id.
+The exceptions are the --fingerprint-exceptions switch and, as --plainbrowser-shields-exceptions,
+the profile's per-site exception list (prefs::kShieldsExceptions) looked up through the renderer's
+process id: the initial value of the renderer's ShieldsConfig list.
 
 Category: 80-fingerprint. Code lives in //plainbrowser/fingerprint; this patch only wires it in.
 Applies after 30-adblock/0005 (same include block).

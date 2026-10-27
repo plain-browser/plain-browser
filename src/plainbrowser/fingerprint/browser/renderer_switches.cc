@@ -15,6 +15,7 @@
 #include "plainbrowser/fingerprint/common/features.h"
 #include "plainbrowser/fingerprint/common/switches.h"
 #include "plainbrowser/shields/browser/shields_prefs.h"
+#include "plainbrowser/shields/common/switches.h"
 
 namespace plainbrowser::fingerprint {
 
@@ -32,30 +33,30 @@ const std::string& SessionKey() {
 
 void AppendRendererCommandLineSwitches(base::CommandLine* command_line,
                                        int child_process_id) {
+  // The profile's per-site exceptions, as the initial value of the renderer's
+  // ShieldsConfig list (a document may be created before the first push
+  // arrives). Kept apart from --fingerprint-exceptions: that switch is fixed
+  // for the life of the process, this list changes with the pref.
+  content::RenderProcessHost* process =
+      content::RenderProcessHost::FromID(child_process_id);
+  if (process && process->GetBrowserContext()) {
+    const std::vector<std::string> sites = shields::GetExceptions(
+        user_prefs::UserPrefs::Get(process->GetBrowserContext()));
+    if (!sites.empty()) {
+      command_line->AppendSwitchASCII(shields::switches::kShieldsExceptions,
+                                      base::JoinString(sites, ","));
+    }
+  }
   if (!base::FeatureList::IsEnabled(kPlainBrowserFingerprintProtection)) {
     return;
   }
   command_line->AppendSwitchASCII(switches::kFingerprintSessionKey,
                                   SessionKey());
-  std::vector<std::string> exceptions;
   const base::CommandLine& browser = *base::CommandLine::ForCurrentProcess();
   if (browser.HasSwitch(switches::kFingerprintExceptions)) {
-    exceptions.push_back(
+    command_line->AppendSwitchASCII(
+        switches::kFingerprintExceptions,
         browser.GetSwitchValueASCII(switches::kFingerprintExceptions));
-  }
-  // Per-site exceptions of the profile, so a new renderer starts with the
-  // current list even before the ShieldsConfig push arrives.
-  content::RenderProcessHost* process =
-      content::RenderProcessHost::FromID(child_process_id);
-  if (process && process->GetBrowserContext()) {
-    for (std::string& site : shields::GetExceptions(
-             user_prefs::UserPrefs::Get(process->GetBrowserContext()))) {
-      exceptions.push_back(std::move(site));
-    }
-  }
-  if (!exceptions.empty()) {
-    command_line->AppendSwitchASCII(switches::kFingerprintExceptions,
-                                    base::JoinString(exceptions, ","));
   }
 }
 

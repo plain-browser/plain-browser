@@ -36,9 +36,11 @@ Online banking and payment services are the typical example. Sites on the compat
   [ADBLOCK.md](ADBLOCK.md), "UI and per-site exceptions"). The renderer needs the list synchronously (the script is
   injected when the document's script context is created), so the browser pushes it into every renderer process
   over `shields.mojom.ShieldsConfig` when the process starts and again on every change
-  (`//plainbrowser/shields/renderer/shields_config_impl.*`); a new renderer also gets it merged into
-  `--fingerprint-exceptions` (`browser/renderer_switches.cc`). The bubble reloads the tab after a change, so the
-  next document already sees the new state.
+  (`//plainbrowser/shields/renderer/shields_config_impl.*`); a new renderer gets the list at creation as
+  `--plainbrowser-shields-exceptions` (`browser/renderer_switches.cc`), only as the initial value that the first
+  push replaces (a list merged into `--fingerprint-exceptions` would stay for the life of the process, so a site
+  could never be un-excepted in a running renderer). The bubble reloads the tab after a change, so the next
+  document already sees the new state.
 
 Which list matched does not matter: `IsExceptedSite(site)` checks the three in that order.
 

@@ -75,7 +75,8 @@ Status 2026-10-27: first UI slice, built against Chromium 156.0.8078.47 and veri
     pushes the list into every renderer over `shields.mojom.ShieldsConfig` (bound at process creation in
     `ExposeInterfacesToRenderer`, `patches/30-adblock/0002`; renderer side registered in
     `ChromeContentRendererClient::ExposeInterfacesToBrowser`, `patches/60-ui/0007`) and re-sends it on every change.
-    New renderers additionally get the list merged into `--fingerprint-exceptions`. Details in
+    New renderers get the list at creation (`--plainbrowser-shields-exceptions`) as the initial value the first
+    push replaces. Details in
     [FINGERPRINT.md](FINGERPRINT.md).
 - **Blocked-request counter** (`shields/browser/blocked_requests_counter.*`): the renderer throttle sends its
   `LocalFrameToken`; on a block the filter posts one task to the UI thread, which resolves (process id, token) to the
