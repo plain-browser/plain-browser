@@ -45,8 +45,9 @@ Security note: adblock parses untrusted filter lists in the browser process; mov
 
 ## UI and per-site exceptions (//plainbrowser/shields)
 Status 2026-10-27: first UI slice, built against Chromium 156.0.8078.47 and verified headless
-(`scripts/test-shields.ps1`); the toolbar button and bubble have not been exercised in a normal window yet
-(screenshots to `dist/shots/` still to do).
+(`scripts/test-shields.ps1`) and in a normal window (`scripts/test-shields-ui.ps1`: UI Automation drives the
+button and the bubble, checks the pushed exception list in the running renderer and takes screenshots; see
+[TESTING.md](TESTING.md)).
 
 - **One exception list for all protections.** Profile pref `plainbrowser.shields.exceptions`: a list of sites
   (eTLD+1, lower case, e.g. `example.com`). A site on the list gets no ad blocking (network and cosmetic), no

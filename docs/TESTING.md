@@ -8,6 +8,7 @@ Three layers, from fast to slow:
 | Node | `fingerprint_script.js` (noise, determinism, native-looking wrappers) | `src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js` | any machine with Node |
 | **gtest** | **our C++: `plainbrowser_unittests`** (this page) | `*_unittest.cc` next to the code | the Chromium tree on the build VM |
 | headless | the whole browser: `scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`, `test-shields.ps1` | `scripts/` | the build VM, against `out\Default\chrome.exe` |
+| UI | toolbar button and bubble in a normal window, driven by UI Automation: `scripts/test-shields-ui.ps1` (opens, toggles, closes; checks the pushed exception list in the running renderer; screenshots) | `scripts/` | the build VM's interactive desktop session (a scheduled task with `-LogonType Interactive`, not SSH) |
 
 ## plainbrowser_unittests
 
