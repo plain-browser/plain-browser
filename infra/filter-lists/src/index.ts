@@ -1,8 +1,9 @@
 // Filter list mirror for Cloudflare Workers (lists.plain-browser.app).
 // A cron trigger fetches EasyList, EasyPrivacy and EasyList Polish from their publishers, checks that each is a
-// plausible Adblock Plus list and stores it in KV with a manifest of SHA-256 hashes and sizes. The browser
-// (//plainbrowser/adblock FilterListUpdater) reads the manifest once a day and downloads only lists whose hash
-// changed. Browsers never contact the publishers, and the Worker neither logs nor stores anything about them.
+// plausible Adblock Plus list and stores it in KV with a manifest of SHA-256 hashes and sizes. The manifest is
+// signed with an Ed25519 key (secret SIGNING_KEY); the browser (//plainbrowser/adblock FilterListUpdater) checks
+// the signature with the public key compiled into it, reads the manifest once a day and downloads only lists
+// whose hash changed. Browsers never contact the publishers, and the Worker neither logs nor stores anything about them.
 // No dependencies.
 
 // The part of the KV binding this Worker uses (wrangler.toml [[kv_namespaces]] binding = "LISTS").
@@ -17,6 +18,8 @@ export interface Env {
   RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   // Optional. When set, requests must carry `X-Client: <value>/<version>`, e.g. "PlainBrowser/0.1.2".
   REQUIRED_CLIENT?: string;
+  // Ed25519 private key, base64 of its PKCS#8 DER (scripts/keygen.mjs). Without it nothing is published.
+  SIGNING_KEY?: string;
 }
 
 // The names are the browser's (filter_lists::kUpdatableLists); the URLs are the publishers' (lists/NOTICE.md).
@@ -37,6 +40,9 @@ export const MAX_SHRINK = 0.5;
 const USER_AGENT = "PlainBrowserListMirror/1 (+https://plain-browser.app)";
 const CLIENT_HEADER = /^([A-Za-z0-9._-]{1,40})\/(\d{1,4}(\.\d{1,4}){0,3})$/;
 const LIST_PATH = /^\/v1\/lists\/([a-z]+)\.txt$/;
+// KV key of the published manifest text and its signature, kept together so a reader never gets a manifest
+// with the signature of another one.
+const SIGNED_KEY = "signed-manifest";
 
 export interface Entry {
   sha256: string;
@@ -91,22 +97,43 @@ export function rejectReason(list: string, previous?: Entry): string | null {
   return null;
 }
 
-async function readManifest(env: Env): Promise<Manifest | null> {
-  const raw = await env.LISTS.get("manifest");
+interface Signed {
+  manifest: string; // the exact bytes that were signed and are served
+  signature: string; // base64 Ed25519 signature of `manifest`
+}
+
+async function readSigned(env: Env): Promise<{ signed: Signed; manifest: Manifest } | null> {
+  const raw = await env.LISTS.get(SIGNED_KEY);
   if (!raw) return null;
   try {
-    const m = JSON.parse(raw) as Manifest;
-    return m.format === 1 && m.lists ? m : null;
+    const signed = JSON.parse(raw) as Signed;
+    const manifest = JSON.parse(signed.manifest) as Manifest;
+    return manifest.format === 1 && manifest.lists ? { signed, manifest } : null;
   } catch {
     return null;
   }
+}
+
+function fromBase64(b64: string): Uint8Array {
+  return Uint8Array.from(atob(b64.trim()), (c) => c.charCodeAt(0));
+}
+
+function toBase64(bytes: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(bytes)));
+}
+
+export async function sign(text: string, pkcs8Base64: string): Promise<string> {
+  const key = await crypto.subtle.importKey("pkcs8", fromBase64(pkcs8Base64), { name: "Ed25519" }, false, ["sign"]);
+  return toBase64(await crypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(text)));
 }
 
 // Cron: fetch every source, publish the ones that changed and passed the checks. The list is written before the
 // manifest that names it, so a reader that sees the new hash finds the new file (KV may still serve the old one
 // for a minute; the browser then sees a hash mismatch and tries again on its next check).
 export async function refresh(env: Env, now = new Date()): Promise<Record<string, string>> {
-  const manifest: Manifest = (await readManifest(env)) ?? {
+  if (!env.SIGNING_KEY) return { refused: "SIGNING_KEY is not set (scripts/keygen.mjs)" };
+  const published = await readSigned(env);
+  const manifest: Manifest = published?.manifest ?? {
     format: 1,
     generated: "",
     license: "GPLv3 or CC BY-SA 3.0, https://easylist.to/pages/licence.html",
@@ -149,9 +176,12 @@ export async function refresh(env: Env, now = new Date()): Promise<Record<string
     report[name] = "published";
     changed = true;
   }
-  if (changed) {
-    manifest.generated = now.toISOString();
-    await env.LISTS.put("manifest", JSON.stringify(manifest));
+  // Signed again when nothing was published yet under this key (first run, or a new key).
+  if (changed) manifest.generated = now.toISOString();
+  const text = JSON.stringify(manifest);
+  const signature = await sign(text, env.SIGNING_KEY);
+  if (changed || !published || published.signed.signature !== signature) {
+    await env.LISTS.put(SIGNED_KEY, JSON.stringify({ manifest: text, signature } satisfies Signed));
   }
   return report;
 }
@@ -159,7 +189,9 @@ export async function refresh(env: Env, now = new Date()): Promise<Record<string
 export async function handle(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const listMatch = LIST_PATH.exec(url.pathname);
-  if (url.pathname !== "/v1/manifest.json" && !(listMatch && listMatch[1] in SOURCES)) {
+  const isManifest = url.pathname === "/v1/manifest.json";
+  const isSignature = url.pathname === "/v1/manifest.json.sig";
+  if (!isManifest && !isSignature && !(listMatch && listMatch[1] in SOURCES)) {
     return text(404, "Not found");
   }
   if (request.method !== "GET" && request.method !== "HEAD") {
@@ -174,14 +206,20 @@ export async function handle(request: Request, env: Env): Promise<Response> {
     if (!success) return text(429, "Too many requests", { "Retry-After": "60" });
   }
 
-  const manifest = await readManifest(env);
-  if (!manifest) return text(503, "Not ready", { "Retry-After": "3600" });
+  const published = await readSigned(env);
+  if (!published) return text(503, "Not ready", { "Retry-After": "3600" });
+  const { signed, manifest } = published;
 
-  if (!listMatch) {
+  if (isManifest || isSignature) {
     // The browser checks once a day; a few minutes of caching keeps the edge from reading KV for every client.
-    return new Response(request.method === "HEAD" ? null : JSON.stringify(manifest), {
+    // Manifest and signature come from one KV value; an edge cache may still pair an old one with a new one for
+    // up to five minutes, which the browser sees as a bad signature and retries an hour later.
+    return new Response(request.method === "HEAD" ? null : isManifest ? signed.manifest : signed.signature, {
       status: 200,
-      headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
+      headers: {
+        "Content-Type": isManifest ? "application/json" : "text/plain; charset=utf-8",
+        "Cache-Control": "public, max-age=300",
+      },
     });
   }
   const name = listMatch[1];

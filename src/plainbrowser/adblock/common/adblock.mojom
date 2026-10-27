@@ -26,8 +26,35 @@ interface AdblockFilter {
   // when generic class/id rules do not apply to the document ($generichide,
   // the exception list, or no engine yet): the renderer then does not call
   // GetGenericCosmeticCss.
+  // `procedural_actions` (adblock-rust action JSON) and `procedural_selectors`
+  // (selectors with non-CSS operators) are for the renderer's isolated-world
+  // script (renderer/cosmetic_script.js).
   GetCosmeticCss(url.mojom.Url url, url.mojom.Url top_level_url)
-      => (string css, bool generic_hide);
+      => (string css, bool generic_hide, array<string> procedural_actions,
+          array<string> procedural_selectors);
+
+  // Sync: the scriptlets must run in the document's main world before any of
+  // the page's scripts, so the renderer waits for them when the main world's
+  // script context is created. Empty when none apply or the site is excepted.
+  [Sync]
+  GetScriptlets(url.mojom.Url url, url.mojom.Url top_level_url)
+      => (string script);
+
+  // Sync, once per renderer process (and again after a while): the hosts that
+  // $redirect rules name. Only requests to them (or their subdomains) are
+  // checked with GetRedirect.
+  [Sync]
+  GetRedirectHosts() => (array<string> hosts);
+
+  // Sync, from the renderer hook that may still replace a request's URL
+  // (ChromeContentRendererClient::WillSendRequest): a data: URL with the
+  // replacement resource when a $redirect rule applies, else empty. Counted as
+  // a blocked request for `frame_token`'s tab.
+  [Sync]
+  GetRedirect(url.mojom.Url url, url.mojom.Url source_url,
+              url.mojom.Url top_level_url,
+              blink.mojom.LocalFrameToken? frame_token)
+      => (string data_url);
 
   // Generic element-hiding CSS for class names and ids found in the document
   // (only ones not sent before for that document). Empty when none of them has

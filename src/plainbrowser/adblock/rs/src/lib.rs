@@ -3,6 +3,8 @@ use adblock::lists::{FilterSet, ParseOptions};
 use adblock::request::Request;
 use adblock::Engine;
 
+mod resources;
+
 #[cxx::bridge(namespace = "plainbrowser::adblock")]
 mod ffi {
     struct BlockResult {
@@ -20,6 +22,13 @@ mod ffi {
         css: String,
         /// A `$generichide` exception covers the document: do not ask for generic class/id rules.
         generic_hide: bool,
+        /// Action filters (`:remove()`, `:style()`, `:remove-attr()`, `:remove-class()`) as adblock-rust's
+        /// JSON, one filter per string; applied by the renderer's isolated-world script.
+        procedural_actions: Vec<String>,
+        /// Hide selectors with procedural operators (`:has-text()`, `:upward()`, `:xpath()`, ...), which are
+        /// not CSS: also applied by that script. adblock-rust is built without its `css-validation` feature, so
+        /// it hands them over as plain selectors; `css` never contains them.
+        procedural_selectors: Vec<String>,
     }
 
     /// The text of one of the default lists, by name (see `DEFAULT_LISTS`), replacing the compiled-in copy.
@@ -50,6 +59,16 @@ mod ffi {
             request_type: &str,
         ) -> BlockResult;
         fn cosmetic_resources(self: &AdblockEngine, url: &str) -> CosmeticResult;
+        /// The scriptlets (`##+js(...)`) for a document as one script for its main world, made from our
+        /// resources (resources.rs); empty when none apply.
+        fn scriptlets(self: &AdblockEngine, url: &str) -> String;
+        /// A `data:` URL with the replacement resource when a `$redirect` rule applies to the request; empty
+        /// otherwise (the request is then blocked or allowed as usual). The request type is guessed from the
+        /// URL's file extension (no extension: script, then image, then xmlhttprequest), because the renderer
+        /// hook that can still replace a URL does not know the request's destination.
+        fn redirect_url(self: &AdblockEngine, url: &str, source_url: &str) -> String;
+        /// Hosts that `$redirect` rules name (see resources::redirect_hosts), sorted.
+        fn redirect_hosts(self: &AdblockEngine) -> Vec<String>;
         /// Generic hide rules for the classes and ids found in a document (adblock-rust's simple and
         /// complex class/id rules), minus the document's exceptions; empty under `$generichide`.
         fn generic_cosmetic_css(
@@ -61,7 +80,23 @@ mod ffi {
     }
 }
 
-pub struct AdblockEngine(Engine);
+pub struct AdblockEngine {
+    engine: Engine,
+    redirect_hosts: Vec<String>,
+}
+
+impl AdblockEngine {
+    /// An engine over `lists` with our redirect resources and scriptlets.
+    fn build<'a>(lists: impl IntoIterator<Item = &'a str> + Clone) -> Box<AdblockEngine> {
+        let mut set = FilterSet::new(false);
+        for text in lists.clone() {
+            set.add_filter_list(text.to_string(), ParseOptions::default());
+        }
+        let mut engine = Engine::new_with_filter_set(set);
+        engine.use_resources(resources::all());
+        Box::new(AdblockEngine { engine, redirect_hosts: resources::redirect_hosts(lists) })
+    }
+}
 
 /// Default lists, compiled in (see ../lists/NOTICE.md). GN lists them as inputs. The names are the ones the
 /// list updater uses (browser/filter_list_manifest.h).
@@ -77,12 +112,11 @@ fn new_default_engine() -> Box<AdblockEngine> {
 }
 
 fn new_engine_with_lists(lists: &Vec<ffi::ListText>) -> Box<AdblockEngine> {
-    let mut set = FilterSet::new(false);
-    for (name, builtin) in DEFAULT_LISTS {
-        let text = lists.iter().find(|l| l.name == name).map_or(builtin, |l| l.text.as_str());
-        set.add_filter_list(text.to_string(), ParseOptions::default());
-    }
-    Box::new(AdblockEngine(Engine::new_with_filter_set(set)))
+    let texts: Vec<&str> = DEFAULT_LISTS
+        .iter()
+        .map(|(name, builtin)| lists.iter().find(|l| l.name == *name).map_or(*builtin, |l| l.text.as_str()))
+        .collect();
+    AdblockEngine::build(texts.iter().copied())
 }
 
 fn default_list_names() -> Vec<String> {
@@ -90,16 +124,33 @@ fn default_list_names() -> Vec<String> {
 }
 
 fn new_engine(rules: &str) -> Box<AdblockEngine> {
-    let mut set = FilterSet::new(false);
-    set.add_filter_list(rules.to_string(), ParseOptions::default());
-    Box::new(AdblockEngine(Engine::new_with_filter_set(set)))
+    AdblockEngine::build([rules])
+}
+
+/// adblock-rust request types to try for a URL, from its file extension (see `redirect_url`).
+fn guess_request_types(url: &str) -> &'static [&'static str] {
+    let path = url.split(['?', '#']).next().unwrap_or(url);
+    let last = path.rsplit('/').next().unwrap_or("");
+    let ext = last.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase()).unwrap_or_default();
+    match ext.as_str() {
+        "js" | "mjs" => &["script"],
+        "gif" | "png" | "jpg" | "jpeg" | "webp" | "svg" | "ico" | "avif" => &["image"],
+        "css" => &["stylesheet"],
+        "json" => &["xmlhttprequest"],
+        "html" | "htm" => &["sub_frame"],
+        "mp4" | "webm" | "mp3" | "m4a" | "ogg" => &["media"],
+        _ => &["script", "image", "xmlhttprequest"],
+    }
 }
 
 impl AdblockEngine {
     fn deserialize(&mut self, data: &[u8]) -> bool {
         let mut e = Engine::default();
         if e.deserialize(data).is_ok() {
-            self.0 = e;
+            e.use_resources(resources::all());
+            self.engine = e;
+            // The blob does not carry the list texts the redirect hosts come from.
+            self.redirect_hosts.clear();
             true
         } else {
             false
@@ -107,13 +158,13 @@ impl AdblockEngine {
     }
 
     fn serialize(&mut self) -> Vec<u8> {
-        self.0.serialize()
+        self.engine.serialize()
     }
 
     fn check_network_request(&self, url: &str, source_url: &str, request_type: &str) -> ffi::BlockResult {
         match Request::new(url, source_url, request_type, "GET") {
             Ok(req) => {
-                let r = self.0.check_network_request(&req);
+                let r = self.engine.check_network_request(&req);
                 ffi::BlockResult {
                     matched: r.should_block(),
                     important: r.important,
@@ -134,34 +185,96 @@ impl AdblockEngine {
 
     /// Site-specific hide rules (and complex generic ones) as one stylesheet, plus the `$generichide` flag.
     fn cosmetic_resources(&self, url: &str) -> ffi::CosmeticResult {
-        let res = self.0.url_cosmetic_resources(url);
+        let res = self.engine.url_cosmetic_resources(url);
+        let mut procedural_actions: Vec<String> = res.procedural_actions.into_iter().collect();
+        procedural_actions.sort();
+        let (css, mut procedural_selectors): (Vec<String>, Vec<String>) =
+            res.hide_selectors.into_iter().map(normalize_selector).partition(|s| !is_procedural(s));
+        procedural_selectors.sort();
         ffi::CosmeticResult {
-            css: hide_css(res.hide_selectors),
+            css: hide_css(css),
             generic_hide: res.generichide,
+            procedural_actions,
+            procedural_selectors,
         }
+    }
+
+    fn scriptlets(&self, url: &str) -> String {
+        self.engine.url_cosmetic_resources(url).injected_script
+    }
+
+    fn redirect_url(&self, url: &str, source_url: &str) -> String {
+        for request_type in guess_request_types(url) {
+            if let Ok(req) = Request::new(url, source_url, request_type, "GET") {
+                let r = self.engine.check_network_request(&req);
+                if let Some(redirect) = r.redirect {
+                    if r.exception.is_none() && redirect.starts_with("data:") {
+                        return redirect;
+                    }
+                }
+            }
+        }
+        String::new()
+    }
+
+    fn redirect_hosts(&self) -> Vec<String> {
+        self.redirect_hosts.clone()
     }
 
     fn generic_cosmetic_css(&self, url: &str, classes: &Vec<String>, ids: &Vec<String>) -> String {
         if classes.is_empty() && ids.is_empty() {
             return String::new();
         }
-        let res = self.0.url_cosmetic_resources(url);
+        let res = self.engine.url_cosmetic_resources(url);
         if res.generichide {
             return String::new();
         }
-        hide_css(self.0.hidden_class_id_selectors(classes.iter(), ids.iter(), &res.exceptions))
+        // Generic procedural rules are not a thing lists write; drop any rather than break the stylesheet.
+        hide_css(
+            self.engine
+                .hidden_class_id_selectors(classes.iter(), ids.iter(), &res.exceptions)
+                .into_iter()
+                .map(normalize_selector)
+                .filter(|s| !is_procedural(s)),
+        )
     }
 }
 
-/// `display: none` for the selectors, sorted so the stylesheet is stable; empty for no selectors.
+/// `display: none` for the selectors, one rule per selector (Blink drops a whole rule when any selector in its
+/// list is invalid, and lists contain selectors Blink does not know), sorted so the stylesheet is stable; empty
+/// for no selectors.
 fn hide_css(selectors: impl IntoIterator<Item = String>) -> String {
     let mut sels: Vec<String> = selectors.into_iter().collect();
-    if sels.is_empty() {
-        return String::new();
-    }
     sels.sort();
     sels.dedup();
-    format!("{} {{ display: none !important; }}", sels.join(",\n"))
+    let mut css = String::new();
+    for sel in sels {
+        css.push_str(&sel);
+        css.push_str(" { display: none !important; }\n");
+    }
+    css
+}
+
+/// Operators that are not CSS (uBlock Origin and Adblock Plus extended syntax). A selector with one of them
+/// goes to the renderer's procedural script instead of the stylesheet.
+const PROCEDURAL_OPERATORS: [&str; 19] = [
+    ":has-text(", ":-abp-contains(", ":contains(", ":upward(", ":xpath(", ":matches-css(",
+    ":matches-css-before(", ":matches-css-after(", ":min-text-length(", ":matches-attr(", ":matches-path(",
+    ":matches-prop(", ":watch-attr(", ":others(", ":if(", ":if-not(", ":-abp-properties(", ":matches-media(",
+    ":remove(",
+];
+
+fn is_procedural(selector: &str) -> bool {
+    PROCEDURAL_OPERATORS.iter().any(|op| selector.contains(op))
+}
+
+/// Adblock Plus spellings of operators Blink or our script know under another name.
+fn normalize_selector(selector: String) -> String {
+    if selector.contains(":-abp-") {
+        selector.replace(":-abp-has(", ":has(").replace(":-abp-contains(", ":has-text(")
+    } else {
+        selector
+    }
 }
 
 #[cfg(test)]
@@ -272,6 +385,69 @@ mod tests {
         // Subframes and plain subresources are covered by the same rules.
         let r = e.check_network_request("https://example.com/f?fbclid=1", "https://example.com/", "sub_frame");
         assert_eq!(r.rewritten_url, "https://example.com/f");
+    }
+
+    const EXTRA: &str = "||ads.example^$redirect=noopjs,script\n\
+                         ||pixel.example^$image,redirect=1x1.gif\n\
+                         @@||ads.example/ok.js$script\n\
+                         example.org##+js(set, adsEnabled, false)\n\
+                         example.org##+js(nostif, adblock, 1000)\n\
+                         example.org##+js(unknown-scriptlet, x)\n\
+                         example.org#?#.card:has-text(Sponsored)\n\
+                         example.org##.box:style(margin: 0 !important)\n\
+                         example.org##.popup:remove()\n";
+
+    #[test]
+    fn redirect_resources() {
+        let e = new_engine(EXTRA);
+        let r = e.redirect_url("https://ads.example/tag.js", "https://site.com/");
+        assert!(r.starts_with("data:application/javascript;base64,"), "{r}");
+        // No extension: tried as a script first.
+        assert!(e.redirect_url("https://ads.example/serve", "https://site.com/").starts_with("data:application/javascript"));
+        assert!(e.redirect_url("https://pixel.example/p.gif", "https://site.com/").starts_with("data:image/gif;base64,R0lGOD"));
+        // The rule is for scripts: an image from the same host is not redirected.
+        assert_eq!(e.redirect_url("https://ads.example/banner.png", "https://site.com/"), "");
+        // Exception and unrelated hosts.
+        assert_eq!(e.redirect_url("https://ads.example/ok.js", "https://site.com/"), "");
+        assert_eq!(e.redirect_url("https://other.example/x.js", "https://site.com/"), "");
+        assert_eq!(e.redirect_hosts(), vec!["ads.example".to_string(), "pixel.example".to_string()]);
+        // The bundled lists name hosts too (EasyPrivacy's redirect rules).
+        assert!(!new_default_engine().redirect_hosts().is_empty());
+    }
+
+    #[test]
+    fn scriptlets_use_our_resources() {
+        let e = new_engine(EXTRA);
+        let js = e.scriptlets("https://example.org/");
+        assert!(js.contains("function pbSetConstant("), "{js}");
+        assert!(js.contains("pbSetConstant(\"adsEnabled\", \"false\")") || js.contains("pbSetConstant('adsEnabled', 'false')"), "{js}");
+        assert!(js.contains("function pbDefuseTimer("), "{js}");
+        assert!(js.contains("function pbPattern("), "{js}");
+        // Each helper once, and nothing for a scriptlet we do not have.
+        assert_eq!(js.matches("function pbPattern(").count(), 1);
+        assert!(!js.contains("unknown-scriptlet"));
+        assert!(e.scriptlets("https://other.org/").is_empty());
+    }
+
+    #[test]
+    fn procedural_actions_as_json() {
+        let e = new_engine(EXTRA);
+        let res = e.cosmetic_resources("https://example.org/");
+        let all = res.procedural_actions.join("\n");
+        assert!(all.contains(r#""type":"style""#), "{all}");
+        assert!(all.contains(r#""type":"remove""#), "{all}");
+        assert!(e.cosmetic_resources("https://other.org/").procedural_actions.is_empty());
+        // :has-text() is not CSS: it goes to the script, not into the stylesheet.
+        assert_eq!(res.procedural_selectors, vec![".card:has-text(Sponsored)".to_string()]);
+        assert!(!res.css.contains("has-text"), "{}", res.css);
+        // EasyList's #?# rules come through on their sites, and :-abp-has() becomes CSS :has().
+        let d = new_default_engine();
+        let r = d.cosmetic_resources("https://www.cjleo.com/");
+        assert!(r.procedural_selectors.iter().any(|a| a.contains(":has-text(")), "{:?}", r.procedural_selectors);
+        let n = new_engine("example.net#?#div:-abp-has(> .ad)\nexample.net#?#p:-abp-contains(Ad)\n");
+        let r = n.cosmetic_resources("https://example.net/");
+        assert!(r.css.contains("div:has(> .ad) { display: none !important; }"), "{}", r.css);
+        assert_eq!(r.procedural_selectors, vec!["p:has-text(Ad)".to_string()]);
     }
 
     #[test]

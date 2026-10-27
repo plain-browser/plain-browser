@@ -1,0 +1,34 @@
+From: Plain Browser
+Subject: [adblock] $redirect: replace a matched subresource URL with our stand-in in WillSendRequest
+
+Category: 30-adblock. Code lives in //plainbrowser/adblock/renderer (request_redirector); this patch only calls
+it. ChromeContentRendererClient::WillSendRequest is the last renderer hook where a subresource's URL can still be
+replaced, before Blink's loader and the URL loader throttle (30-adblock/0003, which decides asynchronously and
+cannot change the URL any more). For requests to hosts that $redirect rules name, the redirector asks the
+browser's engine (sync) and returns a data: URL with one of our resources, which Blink loads itself. Runs after
+the extensions check, so an extension that blocks the request still wins.
+---
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -75,6 +75,7 @@
+ #include "chrome/renderer/websocket_handshake_throttle_provider_impl.h"
+ #include "chrome/renderer/webui_browser/webui_browser_renderer_extension.h"
+ #include "chrome/renderer/worker_content_settings_client.h"
++#include "plainbrowser/adblock/renderer/request_redirector.h"
+ #include "chrome/services/speech/buildflags/buildflags.h"
+ #include "components/autofill/content/renderer/autofill_agent.h"
+ #include "components/autofill/content/renderer/password_autofill_agent.h"
+@@ -1354,6 +1355,13 @@
+     return;
+ #endif
+ 
++  // Plain Browser: a request a $redirect rule matches gets a harmless stand-in
++  // (data: URL) instead of the blocked resource.
++  if (plainbrowser::adblock::MaybeRedirectRequest(
++          frame, GURL(target_url), initiator_origin, new_url)) {
++    return;
++  }
++
+   if (!target_url.ProtocolIs(chrome::kChromeSearchScheme)) {
+     return;
+   }

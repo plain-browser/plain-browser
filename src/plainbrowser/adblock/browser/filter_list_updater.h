@@ -29,10 +29,11 @@ namespace plainbrowser::adblock {
 
 // Keeps EasyList, EasyPrivacy and EasyList Polish current between browser
 // releases. Once a day (pref prefs::kListUpdatesLastCheck) it fetches the
-// manifest from lists.plain-browser.app (filter_lists::kDefaultServerUrl),
-// downloads the lists whose hash changed, verifies size and SHA-256, stores
-// them in the user data directory and has AdBlockService build a new engine
-// from them; lists not downloaded stay the compiled-in ones. At start-up the
+// manifest from lists.plain-browser.app (filter_lists::kDefaultServerUrl) and
+// its Ed25519 signature, checks the signature against
+// filter_lists::kListSigningKeys, downloads the lists whose hash changed,
+// verifies size and SHA-256, stores them in the user data directory and has
+// AdBlockService build a new engine from them; lists not downloaded stay the compiled-in ones. At start-up the
 // stored lists are loaded right away. Requests carry no cookies and only the
 // X-Client header the Safe Browsing proxy also gets.
 //
@@ -71,6 +72,7 @@ class FilterListUpdater {
              size_t max_bytes,
              base::OnceCallback<void(std::unique_ptr<std::string>)> done);
   void OnManifest(std::unique_ptr<std::string> body);
+  void OnSignature(std::string manifest, std::unique_ptr<std::string> body);
   void FetchNextList();
   void OnList(std::string name, std::unique_ptr<std::string> body);
   void FinishCheck(bool success);

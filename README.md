@@ -49,7 +49,8 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | Website (`website/`, plain-browser.app) | Static Next.js site with the privacy and security policies, EN and PL |
 | Adblock UI: toolbar button with a blocked-count badge, bubble with a per-site toggle shared by adblock, parameter stripping and fingerprint protection, the list of excepted sites in Settings > Privacy and security; English and Polish | Done (`scripts/test-shields.ps1`, `test-shields-ui.ps1`, `test-shields-settings.ps1`; `docs/ADBLOCK.md`, "UI and per-site exceptions") |
 | Generic cosmetic filtering (class/id rules for the names a page has) | Done (`scripts/test-cosmetic-lists.ps1`; `docs/ADBLOCK.md`, "Generic element hiding") |
-| Filter list updates between releases: daily from our mirror `lists.plain-browser.app` (`infra/filter-lists`), verified by hash, switch in Settings | Browser side done and tested against a local server; the Worker needs deploying (`infra/filter-lists/README.md`) |
+| Filter list updates between releases: daily from our mirror `lists.plain-browser.app` (`infra/filter-lists`), Ed25519-signed manifest, hashes per list, switch in Settings | Browser side done and tested against a local server; the Worker needs deploying and the public key setting (`infra/filter-lists/README.md`) |
+| `$redirect` stand-ins, scriptlets, procedural filters (own resources, MPL-2.0) | Done (`scripts/test-cosmetic-lists.ps1`; `docs/ADBLOCK.md`) |
 | Curated MV2 extension repository | Not started (`docs/ARCHITECTURE.md`, section 8.2) |
 
 Tests: `scripts/test-*.ps1` run headless on the build VM; C++ unit tests in `docs/TESTING.md`.

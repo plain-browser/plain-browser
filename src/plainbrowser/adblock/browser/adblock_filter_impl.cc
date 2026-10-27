@@ -66,12 +66,46 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
                       const GURL& top_level_url,
                       GetCosmeticCssCallback callback) override {
     if (IsExceptedPage(top_level_url)) {
-      std::move(callback).Run(std::string(), /*generic_hide=*/true);
+      std::move(callback).Run(std::string(), /*generic_hide=*/true, {}, {});
       return;
     }
     AdBlockService::Cosmetic cosmetic =
         AdBlockService::GetInstance()->CosmeticResources(url);
-    std::move(callback).Run(std::move(cosmetic.css), cosmetic.generic_hide);
+    std::move(callback).Run(std::move(cosmetic.css), cosmetic.generic_hide,
+                            std::move(cosmetic.procedural_actions),
+                            std::move(cosmetic.procedural_selectors));
+  }
+
+  void GetScriptlets(const GURL& url,
+                     const GURL& top_level_url,
+                     GetScriptletsCallback callback) override {
+    if (IsExceptedPage(top_level_url)) {
+      std::move(callback).Run(std::string());
+      return;
+    }
+    std::move(callback).Run(AdBlockService::GetInstance()->Scriptlets(url));
+  }
+
+  void GetRedirectHosts(GetRedirectHostsCallback callback) override {
+    std::move(callback).Run(AdBlockService::GetInstance()->RedirectHosts());
+  }
+
+  void GetRedirect(const GURL& url,
+                   const GURL& source_url,
+                   const GURL& top_level_url,
+                   const std::optional<blink::LocalFrameToken>& frame_token,
+                   GetRedirectCallback callback) override {
+    if (IsExceptedPage(top_level_url)) {
+      std::move(callback).Run(std::string());
+      return;
+    }
+    std::string data_url =
+        AdBlockService::GetInstance()->RedirectUrl(url, source_url);
+    if (!data_url.empty() && frame_token) {
+      shields::BlockedRequestsCounter::CountBlocked(
+          receivers_.current_context(), *frame_token);
+    }
+    std::move(callback).Run(std::move(data_url));
   }
 
   void GetGenericCosmeticCss(const GURL& url,

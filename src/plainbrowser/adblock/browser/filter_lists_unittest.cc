@@ -5,11 +5,13 @@
 #include <utility>
 #include <vector>
 
+#include "base/base64.h"
 #include "base/files/file_util.h"
 #include "base/files/scoped_temp_dir.h"
 #include "base/strings/string_number_conversions.h"
 #include "crypto/hash.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "third_party/boringssl/src/include/openssl/curve25519.h"
 #include "url/gurl.h"
 
 namespace plainbrowser::adblock::filter_lists {
@@ -80,12 +82,45 @@ TEST(FilterListsTest, ListMatchesChecksSizeHashAndHeader) {
   EXPECT_TRUE(ListMatches(EntryFor(bom), bom));
 }
 
+TEST(FilterListsTest, ManifestSignatureIsEd25519OverTheExactBytes) {
+  uint8_t public_key[ED25519_PUBLIC_KEY_LEN];
+  uint8_t private_key[ED25519_PRIVATE_KEY_LEN];
+  ED25519_keypair(public_key, private_key);
+  uint8_t other_public[ED25519_PUBLIC_KEY_LEN];
+  uint8_t other_private[ED25519_PRIVATE_KEY_LEN];
+  ED25519_keypair(other_public, other_private);
+
+  const std::string manifest = ManifestJson("");
+  uint8_t signature[ED25519_SIGNATURE_LEN];
+  ASSERT_EQ(1, ED25519_sign(signature,
+                            reinterpret_cast<const uint8_t*>(manifest.data()),
+                            manifest.size(), private_key));
+  const std::string sig = base::Base64Encode(signature);
+  const std::string key = base::Base64Encode(public_key);
+  const std::string other = base::Base64Encode(other_public);
+
+  const std::string_view right[] = {"", key};
+  EXPECT_TRUE(VerifyManifestSignature(manifest, sig, right));
+  EXPECT_TRUE(VerifyManifestSignature(manifest, sig + "\n", right));
+  // Any change to the bytes, another key, or a broken signature fails.
+  EXPECT_FALSE(VerifyManifestSignature(manifest + " ", sig, right));
+  const std::string_view wrong[] = {other};
+  EXPECT_FALSE(VerifyManifestSignature(manifest, sig, wrong));
+  EXPECT_FALSE(VerifyManifestSignature(manifest, "not base64!", right));
+  EXPECT_FALSE(VerifyManifestSignature(manifest, base::Base64Encode("short"),
+                                       right));
+  // A key that is not compiled in (the production keys) is refused.
+  EXPECT_FALSE(VerifyManifestSignature(manifest, sig, kListSigningKeys));
+}
+
 TEST(FilterListsTest, Urls) {
   const GURL server(kDefaultServerUrl);
   EXPECT_EQ(GURL("https://lists.plain-browser.app/v1/manifest.json"),
             ManifestUrl(server));
   EXPECT_EQ(GURL("https://lists.plain-browser.app/v1/lists/easylist.txt"),
             ListUrl(server, "easylist"));
+  EXPECT_EQ(GURL("https://lists.plain-browser.app/v1/manifest.json.sig"),
+            ManifestSignatureUrl(server));
 }
 
 TEST(FilterListsTest, ChangedListsAreTheNewAndTheDifferentOnes) {

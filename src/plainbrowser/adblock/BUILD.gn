@@ -17,12 +17,49 @@ mojom("mojom") {
 rust_static_library("ffi") {
   crate_name = "plainbrowser_adblock_ffi"
   crate_root = "rs/src/lib.rs"
-  sources = [ "rs/src/lib.rs" ]
+  sources = [
+    "rs/src/lib.rs",
+    "rs/src/resources.rs",
+  ]
   inputs = [
     "lists/easylist.txt",
     "lists/easylistpolish.txt",
     "lists/easyprivacy.txt",
     "lists/plainbrowser-removeparam.txt",
+    "resources/redirects/1x1.gif",
+    "resources/redirects/2x2.png",
+    "resources/redirects/chartbeat.js",
+    "resources/redirects/fingerprint2.js",
+    "resources/redirects/google-analytics_analytics.js",
+    "resources/redirects/googlesyndication_adsbygoogle.js",
+    "resources/redirects/googletagmanager_gtm.js",
+    "resources/redirects/noop.css",
+    "resources/redirects/noop.html",
+    "resources/redirects/noop.js",
+    "resources/redirects/noop.json",
+    "resources/redirects/noop.txt",
+    "resources/scriptlets/abort-current-script.js",
+    "resources/scriptlets/abort-on-property-read.js",
+    "resources/scriptlets/abort-on-property-write.js",
+    "resources/scriptlets/abort-on-stack-trace.js",
+    "resources/scriptlets/addEventListener-defuser.js",
+    "resources/scriptlets/cookie-remover.js",
+    "resources/scriptlets/json-prune.js",
+    "resources/scriptlets/no-fetch-if.js",
+    "resources/scriptlets/no-setInterval-if.js",
+    "resources/scriptlets/no-setTimeout-if.js",
+    "resources/scriptlets/no-xhr-if.js",
+    "resources/scriptlets/pb-storage.fn.js",
+    "resources/scriptlets/pb-timers.fn.js",
+    "resources/scriptlets/pb-utils.fn.js",
+    "resources/scriptlets/remove-attr.js",
+    "resources/scriptlets/remove-class.js",
+    "resources/scriptlets/remove-node-text.js",
+    "resources/scriptlets/set-constant.js",
+    "resources/scriptlets/set-cookie.js",
+    "resources/scriptlets/set-local-storage-item.js",
+    "resources/scriptlets/set-session-storage-item.js",
+    "resources/scriptlets/window.open-defuser.js",
   ]
   cxx_bindings = [ "rs/src/lib.rs" ]
   allow_unsafe = true
@@ -57,6 +94,7 @@ source_set("lists") {
   deps = [
     "//base",
     "//crypto",
+    "//third_party/boringssl",
     "//url",
   ]
 }
@@ -126,19 +164,38 @@ source_set("url_loader_throttle") {
   ]
 }
 
+# cosmetic_script.js (procedural filters, DOM observer) as a C++ constant.
+action("embed_cosmetic_script") {
+  script = "//plainbrowser/fingerprint/renderer/embed_text.py"
+  sources = [ "renderer/cosmetic_script.js" ]
+  outputs = [ "$target_gen_dir/cosmetic_script.cc" ]
+  args = [
+    rebase_path(sources[0], root_build_dir),
+    rebase_path(outputs[0], root_build_dir),
+    "kCosmeticScript",
+    "plainbrowser::adblock",
+  ]
+}
+
 source_set("renderer") {
   sources = [
     "renderer/adblock_throttle_factory.cc",
     "renderer/adblock_throttle_factory.h",
     "renderer/cosmetic_filter_agent.cc",
     "renderer/cosmetic_filter_agent.h",
+    "renderer/cosmetic_script.h",
+    "renderer/request_redirector.cc",
+    "renderer/request_redirector.h",
   ]
+  sources += get_target_outputs(":embed_cosmetic_script")
   public_deps = [
     ":mojom",
     ":url_loader_throttle",
   ]
   deps = [
+    ":embed_cosmetic_script",
     "//base",
+    "//content/public/common",
     "//content/public/renderer",
     "//mojo/public/cpp/bindings",
     "//net",
@@ -146,6 +203,7 @@ source_set("renderer") {
     "//third_party/blink/public:blink",
     "//third_party/blink/public/common",
     "//url",
+    "//v8",
   ]
 }
 
@@ -173,6 +231,7 @@ source_set("unit_tests") {
     "//services/network/public/cpp",
     "//testing/gtest",
     "//third_party/blink/public/common",
+    "//third_party/boringssl",
     "//url",
   ]
 }

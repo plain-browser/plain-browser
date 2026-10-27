@@ -62,10 +62,28 @@ class AdBlockService {
   // Hide rules for a document: the per-site stylesheet and whether a
   // $generichide exception turns generic (class/id) rules off for it.
   struct Cosmetic {
+    Cosmetic();
+    Cosmetic(Cosmetic&&);
+    Cosmetic& operator=(Cosmetic&&);
+    ~Cosmetic();
     std::string css;
     bool generic_hide = false;
+    // For the renderer's procedural script: adblock-rust action JSON and
+    // selectors with non-CSS operators.
+    std::vector<std::string> procedural_actions;
+    std::vector<std::string> procedural_selectors;
   };
   Cosmetic CosmeticResources(const GURL& url);
+
+  // The scriptlets for a document, as one script for its main world; empty
+  // when none apply.
+  std::string Scriptlets(const GURL& url);
+
+  // A data: URL replacing `url` under a $redirect rule, or empty.
+  std::string RedirectUrl(const GURL& url, const GURL& source_url);
+
+  // Hosts named by $redirect rules (renderers ask RedirectUrl only for them).
+  std::vector<std::string> RedirectHosts();
 
   // Generic hide rules for classes and ids found in the document at `url`.
   std::string GenericCosmeticCss(const GURL& url,

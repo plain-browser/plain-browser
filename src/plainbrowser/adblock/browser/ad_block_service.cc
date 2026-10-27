@@ -99,15 +99,63 @@ GURL AdBlockService::RewrittenUrl(const GURL& url,
   return rewritten;
 }
 
+AdBlockService::Cosmetic::Cosmetic() = default;
+AdBlockService::Cosmetic::Cosmetic(Cosmetic&&) = default;
+AdBlockService::Cosmetic& AdBlockService::Cosmetic::operator=(Cosmetic&&) =
+    default;
+AdBlockService::Cosmetic::~Cosmetic() = default;
+
 AdBlockService::Cosmetic AdBlockService::CosmeticResources(const GURL& url) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  Cosmetic out;
   if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
     // No engine yet: report generic hiding off too, so the renderer does not
     // collect classes for nothing. Non-web documents never get rules.
-    return {std::string(), /*generic_hide=*/true};
+    out.generic_hide = true;
+    return out;
   }
   CosmeticResult r = (*engine_)->cosmetic_resources(rust::Str(url.spec()));
-  return {std::string(r.css), r.generic_hide};
+  out.css = std::string(r.css);
+  out.generic_hide = r.generic_hide;
+  for (const rust::String& a : r.procedural_actions) {
+    out.procedural_actions.emplace_back(a);
+  }
+  for (const rust::String& s : r.procedural_selectors) {
+    out.procedural_selectors.emplace_back(s);
+  }
+  return out;
+}
+
+std::string AdBlockService::Scriptlets(const GURL& url) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    return std::string();
+  }
+  return std::string((*engine_)->scriptlets(rust::Str(url.spec())));
+}
+
+std::string AdBlockService::RedirectUrl(const GURL& url,
+                                        const GURL& source_url) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    return std::string();
+  }
+  const std::string& spec = url.spec();
+  const std::string& source = source_url.is_valid() ? source_url.spec() : spec;
+  return std::string(
+      (*engine_)->redirect_url(rust::Str(spec), rust::Str(source)));
+}
+
+std::vector<std::string> AdBlockService::RedirectHosts() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  std::vector<std::string> hosts;
+  if (!engine_) {
+    return hosts;
+  }
+  for (const rust::String& h : (*engine_)->redirect_hosts()) {
+    hosts.emplace_back(h);
+  }
+  return hosts;
 }
 
 std::string AdBlockService::GenericCosmeticCss(

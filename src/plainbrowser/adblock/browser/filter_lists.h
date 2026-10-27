@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/containers/span.h"
 #include "base/files/file_path.h"
 
 class GURL;
@@ -31,6 +32,18 @@ inline constexpr std::array<std::string_view, 3> kUpdatableLists = {
 inline constexpr char kDefaultServerUrl[] = "https://lists.plain-browser.app/v1/";
 
 inline constexpr size_t kMaxManifestBytes = 64 * 1024;
+inline constexpr size_t kMaxSignatureBytes = 1024;
+
+// Ed25519 public keys (base64 of the 32 raw bytes) whose signature over the
+// manifest is accepted; the Worker signs with the private key
+// (infra/filter-lists/scripts/keygen.mjs). Empty entries are skipped, so with
+// no key set every update is refused and the bundled lists stay in use. Two
+// slots allow rotating to a new key one release before the Worker switches.
+inline constexpr std::array<std::string_view, 2> kListSigningKeys = {
+    "+ZuojnXniM+QYfewXOxhyv1RgwqkM81plLyg8wMYud0=",  // 2026-10-27
+    "",  // Next key, for rotation.
+};
+
 // EasyList is about 2 MB; anything much bigger is not a list we serve.
 inline constexpr size_t kMaxListBytes = 16 * 1024 * 1024;
 
@@ -60,9 +73,18 @@ std::string SerializeManifest(const Manifest& manifest);
 // like an Adblock Plus list (first line "[Adblock Plus ...]").
 bool ListMatches(const ListEntry& entry, std::string_view text);
 
-// <server>/lists/<name>.txt and <server>/manifest.json.
+// True when `signature_base64` (base64 of 64 bytes) is a valid Ed25519
+// signature of the exact bytes of `manifest` by one of `public_keys` (base64 of
+// 32 bytes; empty or malformed entries are skipped).
+bool VerifyManifestSignature(std::string_view manifest,
+                             std::string_view signature_base64,
+                             base::span<const std::string_view> public_keys);
+
+// <server>/lists/<name>.txt, <server>/manifest.json and its signature
+// <server>/manifest.json.sig.
 GURL ListUrl(const GURL& server, std::string_view name);
 GURL ManifestUrl(const GURL& server);
+GURL ManifestSignatureUrl(const GURL& server);
 
 // The lists names in `wanted` whose entry differs from `stored`'s (new or
 // changed), in kUpdatableLists order.

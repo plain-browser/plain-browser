@@ -36,13 +36,21 @@ function mockPublishers(bodies: Record<string, string | number>) {
 }
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
-const manifestOf = (kv: FakeKv) => JSON.parse(kv.data.get("manifest")!) as Manifest;
+const signedOf = (kv: FakeKv) => JSON.parse(kv.data.get("signed-manifest")!) as { manifest: string; signature: string };
+const manifestOf = (kv: FakeKv) => JSON.parse(signedOf(kv).manifest) as Manifest;
+
+// A signing key for the tests, as the Worker gets it (base64 PKCS#8), and its public half for checking.
+const keys = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"])) as CryptoKeyPair;
+const SIGNING_KEY = Buffer.from(await crypto.subtle.exportKey("pkcs8", keys.privateKey)).toString("base64");
+const verify = (text: string, sigB64: string) =>
+  crypto.subtle.verify({ name: "Ed25519" }, keys.publicKey, Buffer.from(sigB64, "base64"), new TextEncoder().encode(text));
+const signing = (kv: FakeKv): Env => ({ LISTS: kv, SIGNING_KEY });
 
 test("refresh publishes valid lists with hash, size and rule count; list before manifest", async () => {
   const kv = new FakeKv();
   const bodies = { easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") };
   mockPublishers(bodies);
-  const report = await refresh({ LISTS: kv }, new Date("2026-10-27T12:00:00Z"));
+  const report = await refresh(signing(kv), new Date("2026-10-27T12:00:00Z"));
   assert.deepEqual(report, { easylist: "published", easyprivacy: "published", easylistpolish: "published" });
   const m = manifestOf(kv);
   assert.equal(m.format, 1);
@@ -51,13 +59,25 @@ test("refresh publishes valid lists with hash, size and rule count; list before 
   assert.equal(m.lists.easylist.size, Buffer.byteLength(bodies.easylist));
   assert.equal(m.lists.easylist.rules, 2000);
   assert.equal(kv.data.get("list:easylistpolish"), bodies.easylistpolish);
-  assert.equal(kv.puts.at(-1), "manifest");
+  assert.equal(kv.puts.at(-1), "signed-manifest");
+  // The signature covers the exact manifest text that is served.
+  const { manifest, signature } = signedOf(kv);
+  assert.ok(await verify(manifest, signature));
+  assert.ok(!(await verify(manifest + " ", signature)));
+});
+
+test("refresh publishes nothing without a signing key", async () => {
+  const kv = new FakeKv();
+  mockPublishers({ easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") });
+  const report = await refresh({ LISTS: kv });
+  assert.match(report.refused, /SIGNING_KEY/);
+  assert.deepEqual(kv.puts, []);
 });
 
 test("refresh keeps the published version when a source fails or looks wrong", async () => {
   const kv = new FakeKv();
   mockPublishers({ easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") });
-  await refresh({ LISTS: kv });
+  await refresh(signing(kv));
   const before = manifestOf(kv);
   kv.puts = [];
   mockPublishers({
@@ -65,7 +85,7 @@ test("refresh keeps the published version when a source fails or looks wrong", a
     easyprivacy: "<html>Cloudflare error</html>".padEnd(20000, " "),
     easylistpolish: list("pl2", 900), // shrank by more than half
   });
-  const report = await refresh({ LISTS: kv });
+  const report = await refresh(signing(kv));
   assert.equal(report.easylist, "kept: HTTP 503");
   assert.equal(report.easyprivacy, "kept: no [Adblock Plus] header");
   assert.match(report.easylistpolish, /^kept: (only|shrank)/);
@@ -76,12 +96,16 @@ test("refresh keeps the published version when a source fails or looks wrong", a
 test("refresh writes only what changed", async () => {
   const kv = new FakeKv();
   mockPublishers({ easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") });
-  await refresh({ LISTS: kv });
+  await refresh(signing(kv));
   kv.puts = [];
   mockPublishers({ easylist: list("a"), easyprivacy: list("p-new"), easylistpolish: list("pl") });
-  const report = await refresh({ LISTS: kv });
+  const report = await refresh(signing(kv));
   assert.deepEqual(report, { easylist: "unchanged", easyprivacy: "published", easylistpolish: "unchanged" });
-  assert.deepEqual(kv.puts, ["list:easyprivacy", "manifest"]);
+  assert.deepEqual(kv.puts, ["list:easyprivacy", "signed-manifest"]);
+  // Nothing new and the same key: nothing written at all.
+  kv.puts = [];
+  await refresh(signing(kv));
+  assert.deepEqual(kv.puts, []);
 });
 
 test("rejectReason bounds", () => {
@@ -92,7 +116,7 @@ test("rejectReason bounds", () => {
   assert.equal(rejectReason("﻿" + list("bom")), null);
 });
 
-const env = (kv: FakeKv, extra: Partial<Env> = {}): Env => ({ LISTS: kv, REQUIRED_CLIENT: "PlainBrowser", ...extra });
+const env = (kv: FakeKv, extra: Partial<Env> = {}): Env => ({ LISTS: kv, REQUIRED_CLIENT: "PlainBrowser", SIGNING_KEY, ...extra });
 const get = (path: string, headers: Record<string, string> = { "X-Client": "PlainBrowser/0.1.2" }, method = "GET") =>
   new Request("https://lists.example" + path, { method, headers });
 
@@ -100,12 +124,16 @@ test("serves the manifest and the lists to the browser", async () => {
   const kv = new FakeKv();
   const bodies = { easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") };
   mockPublishers(bodies);
-  await refresh({ LISTS: kv });
+  await refresh(signing(kv));
 
   const res = await handle(get("/v1/manifest.json"), env(kv));
   assert.equal(res.status, 200);
   assert.equal(res.headers.get("Content-Type"), "application/json");
-  const m = (await res.json()) as Manifest;
+  const manifestText = await res.text();
+  const m = JSON.parse(manifestText) as Manifest;
+  const sig = await handle(get("/v1/manifest.json.sig"), env(kv));
+  assert.equal(sig.status, 200);
+  assert.ok(await verify(manifestText, await sig.text()), "served signature verifies the served bytes");
   assert.equal(m.lists.easyprivacy.sha256, sha(bodies.easyprivacy));
 
   const l = await handle(get("/v1/lists/easyprivacy.txt"), env(kv));
@@ -123,7 +151,7 @@ test("serves the manifest and the lists to the browser", async () => {
 test("refuses other paths, methods and clients", async () => {
   const kv = new FakeKv();
   mockPublishers({ easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") });
-  await refresh({ LISTS: kv });
+  await refresh(signing(kv));
   assert.equal((await handle(get("/v1/lists/other.txt"), env(kv))).status, 404);
   assert.equal((await handle(get("/v1/lists/../manifest"), env(kv))).status, 404);
   assert.equal((await handle(get("/"), env(kv))).status, 404);
@@ -140,7 +168,7 @@ test("503 before the first refresh, 429 from the rate limiter", async () => {
   assert.equal(empty.status, 503);
   assert.equal(empty.headers.get("Cache-Control"), "no-store");
   mockPublishers({ easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") });
-  await refresh({ LISTS: kv });
+  await refresh(signing(kv));
   const limited = await handle(
     get("/v1/manifest.json"),
     env(kv, { RATE_LIMITER: { limit: async () => ({ success: false }) } }),

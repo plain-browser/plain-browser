@@ -2,6 +2,7 @@
 #include "plainbrowser/adblock/browser/filter_list_updater.h"
 
 #include <algorithm>
+#include <string_view>
 
 #include "base/command_line.h"
 #include "base/functional/bind.h"
@@ -29,6 +30,9 @@ namespace {
 // Test hook: another server for the manifest and the lists (an http:// URL is
 // accepted only here), and a first check a few seconds after start-up.
 constexpr char kServerSwitch[] = "plainbrowser-filter-lists-url";
+// Test hook, honoured only together with kServerSwitch: one more accepted
+// signing key (base64 of the raw Ed25519 public key).
+constexpr char kKeySwitch[] = "plainbrowser-filter-lists-key";
 
 constexpr base::TimeDelta kFirstCheckDelay = base::Minutes(2);
 constexpr base::TimeDelta kTestFirstCheckDelay = base::Seconds(3);
@@ -227,8 +231,39 @@ void FilterListUpdater::Fetch(
 }
 
 void FilterListUpdater::OnManifest(std::unique_ptr<std::string> body) {
+  if (!body) {
+    VLOG(1) << "Plain Browser filter lists: no manifest from "
+            << server_.spec();
+    FinishCheck(/*success=*/false);
+    return;
+  }
+  Fetch(filter_lists::ManifestSignatureUrl(server_),
+        filter_lists::kMaxSignatureBytes,
+        base::BindOnce(&FilterListUpdater::OnSignature,
+                       weak_factory_.GetWeakPtr(), std::move(*body)));
+}
+
+void FilterListUpdater::OnSignature(std::string manifest_json,
+                                    std::unique_ptr<std::string> body) {
+  std::vector<std::string_view> keys(filter_lists::kListSigningKeys.begin(),
+                                     filter_lists::kListSigningKeys.end());
+  const base::CommandLine* cl = base::CommandLine::ForCurrentProcess();
+  const std::string test_key = cl->HasSwitch(kServerSwitch)
+                                   ? cl->GetSwitchValueASCII(kKeySwitch)
+                                   : std::string();
+  if (!test_key.empty()) {
+    keys.push_back(test_key);
+  }
+  if (!body ||
+      !filter_lists::VerifyManifestSignature(manifest_json, *body, keys)) {
+    // Also the case while no key is compiled in: nothing is downloaded.
+    LOG(WARNING) << "Plain Browser filter lists: manifest signature missing "
+                    "or not valid; keeping the current lists";
+    FinishCheck(/*success=*/false);
+    return;
+  }
   std::optional<filter_lists::Manifest> manifest =
-      body ? filter_lists::ParseManifest(*body) : std::nullopt;
+      filter_lists::ParseManifest(manifest_json);
   if (!manifest) {
     VLOG(1) << "Plain Browser filter lists: no valid manifest from "
             << server_.spec();

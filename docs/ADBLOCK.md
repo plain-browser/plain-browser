@@ -117,13 +117,59 @@ so the page must be asked (`Engine::hidden_class_id_selectors`). EasyList has ab
 
 - `GetCosmeticCss` answers with the per-site stylesheet and `generic_hide`: true under a `$generichide` exception,
   on an excepted site, or before the engine is ready. Then the renderer asks for nothing more.
-- Otherwise `CosmeticFilterAgent` collects `[class],[id]` from the document at DOMContentLoaded, at load and
-  1, 3, 10 and 30 s after load, and sends only names it has not sent for this document (at most 2000 per call,
-  50,000 per document; the browser refuses calls with more than 10,000). `GetGenericCosmeticCss` returns
-  `display: none !important` for the matching selectors minus the document's `#@#` exceptions; the agent inserts it
-  as another user stylesheet. A new document resets everything (late replies are dropped).
-- Limit: content added more than 30 s after load is not looked at (no MutationObserver from C++). A page-world
-  observer or a Blink hook would close that; neither is worth the patch cost yet.
+- Otherwise `CosmeticFilterAgent` collects `[class],[id]` from the document at DOMContentLoaded and at load;
+  after that the isolated-world script's MutationObserver (see "Procedural filters") reports every class name or
+  id that appears, at any time, through `__plainbrowserCosmeticReport`, a function the agent installs in that
+  world. Only names not sent before for the document go out (at most 2000 per call, 50,000 per document; the
+  browser refuses calls with more than 10,000). `GetGenericCosmeticCss` returns `display: none !important` for the
+  matching selectors minus the document's `#@#` exceptions; the agent inserts it as another user stylesheet. A new
+  document resets everything (late replies are dropped).
+- Every selector gets its own CSS rule. Blink drops a whole rule when one selector of its list is invalid, and the
+  lists contain selectors Blink does not know; with one rule for a whole site, a single such selector used to switch
+  off all hiding on that site.
+
+## $redirect resources and scriptlets
+Status 2026-10-27: done with our own resources (MPL-2.0, `src/plainbrowser/adblock/resources`), verified headless
+(`scripts/test-cosmetic-lists.ps1`, part 1) and with Node tests (`resources/scriptlets_test.js`).
+
+- **Resources** (`rs/src/resources.rs`): every engine gets `Engine::use_resources` with our files under the names
+  and aliases the lists use. Redirects: `noop.js`/`noopjs`, `noop.txt`/`nooptext`, `noop.json`/`noopjson`,
+  `noop.html`/`noopframe`, `noop.css`, `1x1.gif`, `2x2.png`, and stand-ins that keep pages working without
+  loading anything: `googletagmanager_gtm.js` (runs `eventCallback`s), `google-analytics_analytics.js` (`ga()`
+  runs `hitCallback`), `googlesyndication_adsbygoogle.js`, `chartbeat.js`, `fingerprint2.js`. Scriptlets
+  (function style: adblock-rust calls the function a file starts with): `set-constant` (`set`),
+  `abort-on-property-read`/`-write` (`aopr`/`aopw`), `abort-current-script` (`acs`, `acis`),
+  `abort-on-stack-trace` (`aost`), `remove-node-text` (`rmnt`), `no-fetch-if`, `no-xhr-if`,
+  `addEventListener-defuser` (`aeld`), `no-setTimeout-if` (`nostif`), `no-setInterval-if` (`nosiif`),
+  `set-local-storage-item`, `set-session-storage-item`, `set-cookie`, `cookie-remover`, `json-prune`,
+  `remove-attr` (`ra`), `remove-class` (`rc`), `window.open-defuser` (`nowoif`); shared helpers in `*.fn.js`. A
+  rule naming a scriptlet we do not have (EasyPrivacy's one `json-edit`) is skipped.
+- **Scriptlets in the page**: when the main world's script context is created, `CosmeticFilterAgent` makes a sync
+  `GetScriptlets` call and runs the answer at once, wrapped in a function so our helpers are not page globals.
+  Sync on purpose: they must run before the page's first script (Brave does the same).
+- **Redirects**: the URL loader throttle decides asynchronously and can no longer change a URL, so redirects use
+  `ChromeContentRendererClient::WillSendRequest` (`patches/30-adblock/0007`, `renderer/request_redirector.*`), the
+  last renderer hook that may replace a subresource URL. The renderer fetches the hosts that `$redirect` rules name
+  once per process (sync `GetRedirectHosts`, refreshed after a minute, so list updates arrive); for a request to one of them it asks
+  `GetRedirect` (sync) and replaces the URL with the `data:` URL of our resource, which Blink loads itself. The
+  replacement counts as a blocked request. Everything else goes on to the throttle as before.
+- Limit: that hook does not know the request's destination, so the engine is asked with a type guessed from the
+  file extension (`.js` script, images, `.css`, `.json`, `.html`, media; no extension: script, then image, then
+  xmlhttprequest). A `$redirect` rule restricted to another type than the guess falls back to a plain block.
+
+## Procedural filters
+Status 2026-10-27: done, verified headless (`scripts/test-cosmetic-lists.ps1`, part 1).
+
+adblock-rust is built without its `css-validation` feature (it would need the `selectors`/`cssparser` crates
+vendored), so it hands procedural rules over as plain selectors. `cosmetic_resources` splits them out:
+selectors with a non-CSS operator go to `procedural_selectors`, `:-abp-has()` becomes CSS `:has()` and
+`:-abp-contains()` `:has-text()`; action rules (`:remove()`, `:style()`, `:remove-attr()`, `:remove-class()`)
+come as adblock-rust's JSON (`procedural_actions`). The agent injects `renderer/cosmetic_script.js` into an
+isolated world (`kCosmeticWorldId`) with both lists; the script parses the operators (`:has-text`, `:upward`,
+`:xpath`, `:matches-css(-before/-after)`, `:min-text-length`, `:matches-attr`, `:matches-path`, and `:has`/`:not`
+around them), applies the actions (no action: `display: none !important` inline) at once, at DOMContentLoaded, at
+load and after DOM changes (batched), and runs the class/id observer described above. EasyList has about 290 such
+`#?#` rules, EasyPrivacy a few `:style()` rules.
 
 ## Filter list updates
 Status 2026-10-27: browser side and Worker done, verified with a local server (`scripts/test-cosmetic-lists.ps1`,
@@ -137,8 +183,10 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   (`patches/30-adblock/0006`). At start-up it loads the lists stored in `<user data>\PlainBrowser Filter Lists`
   (each checked against the stored manifest) into a new engine. Two minutes after start-up and then every 24 h
   (Local State `plainbrowser.adblock.list_updates.last_check`, so restarts do not check more often; 1 h after a
-  failure) it fetches the manifest, downloads the lists whose hash changed, verifies size, SHA-256 and the
-  header, writes them atomically and loads the store again. Requests: no cookies, cache bypassed,
+  failure) it fetches the manifest and `manifest.json.sig`, checks the Ed25519 signature over the manifest's exact
+  bytes against `filter_lists::kListSigningKeys` (BoringSSL `ED25519_verify`; two slots for key rotation; while
+  both are empty every manifest is refused), downloads the lists whose hash changed, verifies size, SHA-256 and
+  the header, writes them atomically and loads the store again. Requests: no cookies, cache bypassed,
   `X-Client: PlainBrowser/<major.minor.patch>`, a network traffic annotation `plainbrowser_filter_lists`.
 - **Engine swap**: `AdBlockService::UseLists()` builds the new engine on the thread pool (about a second for
   EasyList) while the old one keeps answering, then swaps it in on the engine sequence; a newer call wins over an
@@ -149,12 +197,13 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   in the "Sites with protections off" section of `chrome://settings/privacy` (`patches/60-ui/0009`). Off: no
   requests, the store is deleted, the engine goes back to the compiled-in lists.
 - **Testing**: `--plainbrowser-filter-lists-url=<base>` points the updater at another server (http allowed) and
-  makes the first check run 3 s after start-up.
-- Not done: signed lists (today: HTTPS plus the hashes in the manifest, which come from the same server), a
-  "last updated" line in Settings, delta updates.
+  makes the first check run 3 s after start-up; `--plainbrowser-filter-lists-key=<base64>` adds one accepted key,
+  only together with the URL switch.
+- Not done: a "last updated" line in Settings, delta updates.
 
 ## Not done yet (alpha scope)
-- `$redirect` resources (treated as block), scriptlets, procedural cosmetic filters.
+- Scriptlets beyond our set (uBO's resources are GPLv3; we write our own), `$redirect` for request types the
+  file extension does not reveal, procedural operators `:others()`, `:watch-attr()`, `:matches-prop()`.
 - `chrome://adblock` page.
 - Navigation (`$document`) blocking; requests started from the browser process.
 - `$removeparam` on subresources: the renderer throttle decides asynchronously and a deferred request's URL may

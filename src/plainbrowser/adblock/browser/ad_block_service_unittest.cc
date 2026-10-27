@@ -1,11 +1,13 @@
 // Copyright Plain Browser contributors. MPL-2.0.
 #include "plainbrowser/adblock/browser/ad_block_service.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "base/functional/bind.h"
+#include "base/strings/string_util.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -85,6 +87,17 @@ class AdBlockServiceTest : public testing::Test {
         base::BindOnce(&AdBlockService::GenericCosmeticCss,
                        base::Unretained(service_.get()), GURL(url),
                        std::move(classes), std::move(ids)),
+        result.GetCallback());
+    return result.Take();
+  }
+
+  template <typename R, typename... Args>
+  R OnEngine(R (AdBlockService::*method)(Args...), Args... args) {
+    base::test::TestFuture<R> result;
+    service_->task_runner()->PostTaskAndReplyWithResult(
+        FROM_HERE,
+        base::BindOnce(method, base::Unretained(service_.get()),
+                       std::move(args)...),
         result.GetCallback());
     return result.Take();
   }
@@ -202,6 +215,41 @@ TEST_F(AdBlockServiceTest, TheLatestUseListsCallWins) {
   ASSERT_TRUE(second.Wait());
   EXPECT_TRUE(ShouldBlock("https://second.test/", kPage, "script"));
   EXPECT_FALSE(ShouldBlock("https://first.test/", kPage, "script"));
+}
+
+// EasyPrivacy: ||static.chartbeat.com/js/chartbeat.js$redirect=chartbeat.js,script
+TEST_F(AdBlockServiceTest, RedirectRulesServeOurStandIns) {
+  const std::string data = OnEngine<std::string, const GURL&, const GURL&>(
+      &AdBlockService::RedirectUrl,
+      GURL("https://static.chartbeat.com/js/chartbeat.js"), GURL(kPage));
+  EXPECT_TRUE(base::StartsWith(data, "data:application/javascript;base64,"))
+      << data;
+  EXPECT_EQ(std::string(),
+            (OnEngine<std::string, const GURL&, const GURL&>(
+                &AdBlockService::RedirectUrl, GURL(kControlScript),
+                GURL(kPage))));
+  const std::vector<std::string> hosts =
+      OnEngine<std::vector<std::string>>(&AdBlockService::RedirectHosts);
+  EXPECT_NE(hosts.end(), std::ranges::find(hosts, "static.chartbeat.com"));
+}
+
+// EasyPrivacy: madewell.com##+js(cookie-remover, dns_cookie)
+TEST_F(AdBlockServiceTest, ScriptletsComeFromOurResources) {
+  const std::string script = OnEngine<std::string, const GURL&>(
+      &AdBlockService::Scriptlets, GURL("https://www.madewell.com/"));
+  EXPECT_NE(std::string::npos, script.find("function pbCookieRemover(")) << script;
+  EXPECT_NE(std::string::npos, script.find("dns_cookie")) << script;
+  EXPECT_EQ(std::string(), (OnEngine<std::string, const GURL&>(
+                               &AdBlockService::Scriptlets, GURL(kPage))));
+}
+
+// EasyList: cjleo.com#?#.alt-widget-title:has-text(advertisement)
+TEST_F(AdBlockServiceTest, ProceduralSelectorsStayOutOfTheStylesheet) {
+  const AdBlockService::Cosmetic c = CosmeticResources("https://cjleo.com/");
+  EXPECT_NE(c.procedural_selectors.end(),
+            std::ranges::find(c.procedural_selectors,
+                              ".alt-widget-title:has-text(advertisement)"));
+  EXPECT_EQ(std::string::npos, c.css.find(":has-text(")) << c.css;
 }
 
 }  // namespace

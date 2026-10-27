@@ -3,6 +3,7 @@
 
 #include <algorithm>
 
+#include "base/base64.h"
 #include "base/files/file_util.h"
 #include "base/files/important_file_writer.h"
 #include "base/json/json_reader.h"
@@ -11,6 +12,7 @@
 #include "base/strings/string_util.h"
 #include "base/values.h"
 #include "crypto/hash.h"
+#include "third_party/boringssl/src/include/openssl/curve25519.h"
 #include "url/gurl.h"
 
 namespace plainbrowser::adblock::filter_lists {
@@ -101,6 +103,31 @@ GURL ListUrl(const GURL& server, std::string_view name) {
 
 GURL ManifestUrl(const GURL& server) {
   return server.Resolve("manifest.json");
+}
+
+GURL ManifestSignatureUrl(const GURL& server) {
+  return server.Resolve("manifest.json.sig");
+}
+
+bool VerifyManifestSignature(std::string_view manifest,
+                             std::string_view signature_base64,
+                             base::span<const std::string_view> public_keys) {
+  std::optional<std::vector<uint8_t>> signature = base::Base64Decode(
+      base::TrimWhitespaceASCII(signature_base64, base::TRIM_ALL));
+  if (!signature || signature->size() != ED25519_SIGNATURE_LEN) {
+    return false;
+  }
+  for (std::string_view key_base64 : public_keys) {
+    std::optional<std::vector<uint8_t>> key = base::Base64Decode(key_base64);
+    if (!key || key->size() != ED25519_PUBLIC_KEY_LEN) {
+      continue;
+    }
+    if (ED25519_verify(reinterpret_cast<const uint8_t*>(manifest.data()),
+                       manifest.size(), signature->data(), key->data()) == 1) {
+      return true;
+    }
+  }
+  return false;
 }
 
 std::vector<std::string> ChangedLists(const Manifest& stored,

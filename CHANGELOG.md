@@ -18,6 +18,12 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   while the page loads); "Sites with protections off" on Settings > Privacy and security (list, add, remove; a
   typed URL or host is stored as its site); a "Manage sites" link in the bubble; all shields strings translated
   into Polish (`src/plainbrowser/shields/resources`).
+- `$redirect` rules serve our own stand-ins (noop scripts, a 1x1 GIF, tag manager / analytics / adsbygoogle
+  stubs, ...) instead of a hard block; `##+js(...)` scriptlets run from our own implementations (set-constant,
+  abort-current-script, no-fetch-if, json-prune and 15 more); procedural rules (`:has-text()`, `:upward()`,
+  `:xpath()`, `:remove()`, `:style()`, ...) apply, also to content added later; generic class/id rules follow the
+  DOM for as long as the page is open. All resources are ours, under MPL-2.0.
+- The filter list manifest is signed (Ed25519); the browser accepts updates only with a valid signature.
 - Generic element hiding: EasyList's class and id rules (`##.ad-box`, `###top-ad`, ...) now apply, matched against
   the class names and ids a page has, at load and on a few passes after it.
 - Filter list updates between releases: once a day the browser fetches EasyList, EasyPrivacy and EasyList Polish
@@ -28,6 +34,10 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   switch for the only Google service the browser still talks to (through our proxy).
 - Project website (`website/`, plain-browser.app) with the privacy and security policies in English and Polish.
 - Polish security policy (`docs/SECURITY.pl.md`).
+
+### Fixed
+- Element hiding: one invalid selector in a site's rules (for example an Adblock Plus `#?#` rule) switched off all
+  hide rules for that site, because they were one CSS rule; each selector now has its own.
 
 ### Changed
 - Distribution decision: Plain Browser ships as an MSIX through the Microsoft Store only. The Store signs the package
