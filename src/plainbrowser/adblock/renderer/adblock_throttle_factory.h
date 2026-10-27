@@ -5,9 +5,11 @@
 #include <memory>
 
 #include "base/sequence_checker.h"
+#include "base/types/optional_ref.h"
 #include "plainbrowser/adblock/common/adblock.mojom.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/remote.h"
+#include "third_party/blink/public/common/tokens/tokens.h"
 
 namespace blink {
 class ThreadSafeBrowserInterfaceBrokerProxy;
@@ -17,6 +19,7 @@ class URLLoaderThrottle;
 namespace network {
 struct ResourceRequest;
 }  // namespace network
+
 
 namespace plainbrowser::adblock {
 
@@ -35,8 +38,11 @@ class AdblockThrottleFactory {
   // For URLLoaderThrottleProvider::Clone(): a factory for another sequence.
   std::unique_ptr<AdblockThrottleFactory> Clone();
 
-  // Returns nullptr for frame (navigation) resources.
+  // Returns nullptr for frame (navigation) resources. `local_frame_token` is
+  // the requesting frame (absent for workers); on the main thread it gives the
+  // top-level frame's origin, which the per-site exception list is keyed by.
   std::unique_ptr<blink::URLLoaderThrottle> MaybeCreateThrottle(
+      base::optional_ref<const blink::LocalFrameToken> local_frame_token,
       const network::ResourceRequest& request);
 
  private:

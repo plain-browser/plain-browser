@@ -2,9 +2,9 @@
 #ifndef PLAINBROWSER_ADBLOCK_BROWSER_TRACKING_PARAMS_NAVIGATION_THROTTLE_H_
 #define PLAINBROWSER_ADBLOCK_BROWSER_TRACKING_PARAMS_NAVIGATION_THROTTLE_H_
 
-#include "base/feature_list.h"
 #include "base/memory/weak_ptr.h"
 #include "content/public/browser/navigation_throttle.h"
+#include "plainbrowser/adblock/browser/tracking_params_rules.h"
 #include "url/gurl.h"
 
 namespace content {
@@ -13,10 +13,7 @@ class NavigationThrottleRegistry;
 
 namespace plainbrowser::adblock {
 
-// Kill switch: --disable-features=PlainBrowserTrackingParams. Also off when
-// PlainBrowserAdblock is disabled (same engine, same lists).
-BASE_DECLARE_FEATURE(kPlainBrowserTrackingParams);
-
+// Kill switch kPlainBrowserTrackingParams: see tracking_params_rules.h.
 // Removes tracking parameters (utm_*, fbclid, gclid, ...: the $removeparam
 // rules in the engine's lists) from frame navigations. The renderer-side
 // subresource throttle cannot rewrite a URL once it has deferred (the request

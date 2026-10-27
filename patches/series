@@ -22,6 +22,9 @@
 60-ui/0001-first-run-no-ungoogled-page.patch
 60-ui/0002-no-web-store-app.patch
 60-ui/0004-no-web-store-shortcut.patch
+60-ui/0005-shields-prefs.patch
+60-ui/0006-shields-toolbar-button.patch
+60-ui/0007-shields-renderer-config.patch
 70-safebrowsing/0001-proxy-and-client-header.patch
 70-safebrowsing/0002-no-signin-pref-includes.patch
 70-safebrowsing/0003-public-lists-only.patch

@@ -2,6 +2,7 @@
 #ifndef PLAINBROWSER_ADBLOCK_RENDERER_ADBLOCK_URL_LOADER_THROTTLE_H_
 #define PLAINBROWSER_ADBLOCK_RENDERER_ADBLOCK_URL_LOADER_THROTTLE_H_
 
+#include <optional>
 #include <string>
 
 #include "base/memory/raw_ptr.h"
@@ -11,6 +12,7 @@
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "third_party/blink/public/common/loader/url_loader_throttle.h"
+#include "third_party/blink/public/common/tokens/tokens.h"
 #include "url/gurl.h"
 
 namespace plainbrowser::adblock {
@@ -23,7 +25,12 @@ class AdblockURLLoaderThrottle : public blink::URLLoaderThrottle {
   // `filter` is owned by the AdblockThrottleFactory of the creating
   // URLLoaderThrottleProvider and outlives requests on this sequence (the same
   // contract Chrome's safe_browsing::RendererURLLoaderThrottle relies on).
-  explicit AdblockURLLoaderThrottle(mojom::AdblockFilter* filter);
+  // `top_level_url`: origin of the page's top-level frame (per-site
+  // exceptions); `frame_token`: the requesting frame, if known (per-tab
+  // blocked-request counter).
+  AdblockURLLoaderThrottle(mojom::AdblockFilter* filter,
+                           const GURL& top_level_url,
+                           std::optional<blink::LocalFrameToken> frame_token);
   ~AdblockURLLoaderThrottle() override;
 
   // blink::URLLoaderThrottle:
@@ -48,6 +55,8 @@ class AdblockURLLoaderThrottle : public blink::URLLoaderThrottle {
   mojo::PendingRemote<mojom::AdblockFilter> pending_filter_;
   mojo::Remote<mojom::AdblockFilter> own_filter_;
   GURL url_;
+  const GURL top_level_url_;
+  const std::optional<blink::LocalFrameToken> frame_token_;
   base::WeakPtrFactory<AdblockURLLoaderThrottle> weak_factory_{this};
 };
 

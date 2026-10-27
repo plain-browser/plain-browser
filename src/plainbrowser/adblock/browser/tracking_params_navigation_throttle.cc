@@ -12,12 +12,12 @@
 #include "content/public/browser/web_contents.h"
 #include "plainbrowser/adblock/browser/ad_block_service.h"
 #include "plainbrowser/adblock/browser/renderer_interfaces.h"
+#include "plainbrowser/adblock/browser/tracking_params_rules.h"
+#include "plainbrowser/shields/browser/shields_service.h"
+#include "plainbrowser/shields/common/site_util.h"
 #include "url/origin.h"
 
 namespace plainbrowser::adblock {
-
-// Feature name "PlainBrowserTrackingParams" (derived from the identifier).
-BASE_FEATURE(kPlainBrowserTrackingParams, base::FEATURE_ENABLED_BY_DEFAULT);
 
 namespace {
 
@@ -38,7 +38,8 @@ void TrackingParamsNavigationThrottle::MaybeCreateAndAdd(
     return;
   }
   content::NavigationHandle& handle = registry.GetNavigationHandle();
-  if (!handle.GetURL().SchemeIsHTTPOrHTTPS() || handle.IsPost() ||
+  if (!tracking_params::IsEligibleNavigation(handle.GetURL(),
+                                             handle.IsPost()) ||
       !handle.GetWebContents()) {
     return;
   }
@@ -70,12 +71,21 @@ content::NavigationThrottle::ThrottleCheckResult
 TrackingParamsNavigationThrottle::Check() {
   content::NavigationHandle* handle = navigation_handle();
   const GURL& url = handle->GetURL();
-  if (!url.SchemeIsHTTPOrHTTPS() || !url.has_query() || handle->IsPost()) {
+  if (!tracking_params::NeedsCheck(url, handle->IsPost())) {
     return PROCEED;
   }
-  const std::optional<url::Origin>& initiator = handle->GetInitiatorOrigin();
+  // Per-site exceptions: the same merged list the adblock filter consults.
+  // MaybeCreateAndAdd() only adds the throttle when there is a WebContents.
+  content::WebContents* web_contents = handle->GetWebContents();
+  const GURL& exception_url = tracking_params::ExceptionUrlFor(
+      handle->IsInMainFrame(), url,
+      web_contents ? web_contents->GetLastCommittedURL() : url);
+  if (shields::ShieldsService::GetInstance()->IsExcepted(
+          shields::SiteFor(exception_url))) {
+    return PROCEED;
+  }
   const GURL source_url =
-      initiator && !initiator->opaque() ? initiator->GetURL() : url;
+      tracking_params::SourceUrlFor(handle->GetInitiatorOrigin(), url);
   AdBlockService* service = AdBlockService::GetInstance();
   // Unretained: the service is never destroyed.
   service->task_runner()->PostTaskAndReplyWithResult(
@@ -94,8 +104,7 @@ void TrackingParamsNavigationThrottle::OnRewritten(const GURL& original,
   content::NavigationHandle* handle = navigation_handle();
   // The navigation may have been redirected again while we were waiting; only
   // act on an answer for the URL we asked about.
-  if (!rewritten.is_valid() || rewritten == original ||
-      handle->GetURL() != original) {
+  if (!tracking_params::ShouldReissue(original, rewritten, handle->GetURL())) {
     Resume();
     return;
   }

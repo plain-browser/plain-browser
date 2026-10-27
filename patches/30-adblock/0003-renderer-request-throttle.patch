@@ -2,6 +2,8 @@ From: Plain Browser
 Subject: [adblock] Add the Plain Browser adblock throttle to renderer subresource loads
 
 Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
+The frame token is passed along so the throttle can tell the browser the page's top-level origin
+(per-site exceptions) and which tab the request belongs to (blocked-request counter).
 ---
 --- a/chrome/renderer/url_loader_throttle_provider_impl.cc
 +++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
@@ -42,14 +44,15 @@ Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wire
  }
  
  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
-@@ -191,6 +198,13 @@
+@@ -191,6 +198,14 @@
  
    DCHECK(!is_frame_resource ||
           type_ == blink::URLLoaderThrottleProviderType::kFrame);
 +
 +  // Plain Browser adblock: subresources only (returns null for frame resources).
 +  if (plainbrowser_adblock_) {
-+    if (auto throttle = plainbrowser_adblock_->MaybeCreateThrottle(request)) {
++    if (auto throttle = plainbrowser_adblock_->MaybeCreateThrottle(
++            local_frame_token, request)) {
 +      throttles.emplace_back(std::move(throttle));
 +    }
 +  }

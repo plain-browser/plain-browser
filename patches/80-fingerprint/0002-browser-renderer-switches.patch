@@ -1,6 +1,9 @@
 From: Plain Browser
 Subject: [fingerprint] Pass the fingerprint session key and exceptions to renderers
 
+The exceptions are the --fingerprint-exceptions switch plus the profile's per-site exception
+list (prefs::kShieldsExceptions), looked up through the renderer's process id.
+
 Category: 80-fingerprint. Code lives in //plainbrowser/fingerprint; this patch only wires it in.
 Applies after 30-adblock/0005 (same include block).
 ---
@@ -14,12 +17,13 @@ Applies after 30-adblock/0005 (same include block).
  #include "chrome/browser/content_settings/cookie_settings_factory.h"
  #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
  #include "chrome/browser/contextual_tasks/contextual_tasks_ui_service.h"
-@@ -2989,6 +2990,8 @@
+@@ -2989,6 +2990,9 @@
  #endif
  
    if (process_type == switches::kRendererProcess) {
 +    // Plain Browser: fingerprint session key and exception list.
-+    plainbrowser::fingerprint::AppendRendererCommandLineSwitches(command_line);
++    plainbrowser::fingerprint::AppendRendererCommandLineSwitches(command_line,
++                                                                 child_process_id);
      content::RenderProcessHost* process =
          content::RenderProcessHost::FromID(child_process_id);
      if (process) {

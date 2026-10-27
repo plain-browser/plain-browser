@@ -1,0 +1,26 @@
+From: Plain Browser
+Subject: [ui] Register the per-site exception list pref (plainbrowser.shields.exceptions)
+
+Category: 60-ui. Code lives in //plainbrowser/shields; this patch only wires it in.
+One profile pref, a list of eTLD+1 sites on which ad blocking, tracking-parameter stripping and
+fingerprint protection are off. Edited from the toolbar bubble (60-ui/0006).
+---
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -8,6 +8,7 @@
+ #include <optional>
+ #include <string>
+ #include <string_view>
++#include "plainbrowser/shields/browser/shields_prefs.h"
+ 
+ #include "ash/constants/ash_login_pref_names.h"
+ #include "base/files/file_path.h"
+@@ -1850,6 +1851,8 @@
+ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+                           const std::string& locale) {
+   TRACE_EVENT0("browser", "chrome::RegisterProfilePrefs");
++  // Plain Browser: per-site exception list shared by the protections.
++  plainbrowser::shields::RegisterProfilePrefs(registry);
+   // User prefs. Please keep this list alphabetized.
+   AccessibilityLabelsService::RegisterProfilePrefs(registry);
+   registry->RegisterBooleanPref(prefs::kRendererAccessibilityEnabled, true);

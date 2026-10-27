@@ -11,6 +11,9 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 - Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) via a `$removeparam` list.
 - Fingerprint protection (canvas, audio, WebGL strings, `hardwareConcurrency`, `deviceMemory`) with a built-in
   compatibility list for banking and payment sites and `--fingerprint-exceptions`.
+- Per-site exceptions ("shields"): a toolbar button and bubble that turn ad blocking, tracking-parameter stripping
+  and fingerprint protection off for the current site; one profile list (`plainbrowser.shields.exceptions`) read by
+  all three.
 - Project website (`website/`, plain-browser.app) with the privacy and security policies in English and Polish.
 - Polish security policy (`docs/SECURITY.pl.md`).
 

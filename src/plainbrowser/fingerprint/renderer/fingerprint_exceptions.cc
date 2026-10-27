@@ -11,6 +11,7 @@
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "plainbrowser/fingerprint/common/switches.h"
+#include "plainbrowser/shields/renderer/shields_config_impl.h"
 
 namespace plainbrowser::fingerprint {
 
@@ -37,22 +38,27 @@ constexpr std::array<std::string_view, 36> kBuiltInExceptions = {
 };
 
 const std::vector<std::string>& SwitchExceptions() {
-  static const base::NoDestructor<std::vector<std::string>> list([] {
-    std::vector<std::string> out;
-    const base::CommandLine& cmd = *base::CommandLine::ForCurrentProcess();
-    for (std::string_view item : base::SplitStringPiece(
-             cmd.GetSwitchValueASCII(switches::kFingerprintExceptions), ",",
-             base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY)) {
-      out.push_back(base::ToLowerASCII(item));
-    }
-    return out;
-  }());
+  static const base::NoDestructor<std::vector<std::string>> list(
+      ParseExceptionList(
+          base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
+              switches::kFingerprintExceptions)));
   return *list;
 }
 
 }  // namespace
 
-bool IsExceptedSite(std::string_view site) {
+std::vector<std::string> ParseExceptionList(std::string_view value) {
+  std::vector<std::string> out;
+  for (std::string_view item :
+       base::SplitStringPiece(value, ",", base::TRIM_WHITESPACE,
+                              base::SPLIT_WANT_NONEMPTY)) {
+    out.push_back(base::ToLowerASCII(item));
+  }
+  return out;
+}
+
+bool IsExceptedSite(std::string_view site,
+                    base::span<const std::string> user_exceptions) {
   if (site.empty()) {
     return false;
   }
@@ -61,8 +67,16 @@ bool IsExceptedSite(std::string_view site) {
       kBuiltInExceptions.end()) {
     return true;
   }
-  const std::vector<std::string>& user = SwitchExceptions();
-  return std::find(user.begin(), user.end(), lower) != user.end();
+  return std::find(user_exceptions.begin(), user_exceptions.end(), lower) !=
+         user_exceptions.end();
+}
+
+bool IsExceptedSite(std::string_view site) {
+  // --fingerprint-exceptions is read once per process; the list pushed over
+  // mojom::ShieldsConfig follows pref changes while the process runs (the
+  // bubble's reload reuses the renderer).
+  return IsExceptedSite(site, SwitchExceptions()) ||
+         shields::IsExceptedSite(base::ToLowerASCII(site));
 }
 
 }  // namespace plainbrowser::fingerprint

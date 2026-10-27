@@ -1,0 +1,50 @@
+From: Plain Browser
+Subject: [ui] Add the Plain Browser protections button right of the omnibox
+
+Category: 60-ui. Code lives in //plainbrowser/shields/ui; this patch only wires it in.
+ToolbarView gets one more ToolbarButton (shield icon) after the location bar; its bubble shows the
+site, a toggle "Protections on for this site" (per-site exception list) and the number of requests
+blocked on the page. //plainbrowser/shields:ui is linked through //plainbrowser:browser (00-build).
+---
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -71,6 +71,10 @@
+ class LabelButton;
+ }  // namespace views
+ 
++namespace plainbrowser::shields {
++class ShieldsButton;
++}
++
+ namespace glic {
+ class ToolbarGlicButton;
+ class ToolbarGlicButtonInterface;
+@@ -421,6 +425,7 @@
+   raw_ptr<SplitTabsToolbarButton> split_tabs_ = nullptr;
+   raw_ptr<CustomTabBarView> custom_tab_bar_ = nullptr;
+   raw_ptr<LocationBarView> location_bar_view_ = nullptr;
++  raw_ptr<plainbrowser::shields::ShieldsButton> shields_button_ = nullptr;
+ 
+   // An alias for `location_bar_view_` or `toolbar_webview_->GetLocationBar()`.
+   raw_ptr<LocationBar> location_bar_ = nullptr;
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -125,6 +125,7 @@
+ #include "chrome/common/chrome_features.h"
+ #include "chrome/common/pref_names.h"
+ #include "chrome/common/webui_url_constants.h"
++#include "plainbrowser/shields/ui/shields_button.h"
+ #include "chrome/grit/branded_strings.h"
+ #include "chrome/grit/generated_resources.h"
+ #include "chrome/grit/theme_resources.h"
+@@ -491,6 +492,10 @@
+     location_bar_ = toolbar_webview_->GetLocationBar();
+   }
+ 
++  // Plain Browser: protections button (per-site toggle), right of the omnibox.
++  shields_button_ = AddChildView(
++      std::make_unique<plainbrowser::shields::ShieldsButton>(browser_));
++
+   bool is_glic_left_of_profile =
+       features::kGlicToolbarButtonLocationParam.Get() ==
+           features::GlicToolbarButtonLocation::kLeftOfProfileChip ||

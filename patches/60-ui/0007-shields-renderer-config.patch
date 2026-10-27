@@ -1,0 +1,27 @@
+From: Plain Browser
+Subject: [ui] Expose the renderer's ShieldsConfig receiver to the browser
+
+Category: 60-ui. Code lives in //plainbrowser/shields; this patch only wires it in.
+The browser pushes the per-site exception list to every renderer over this interface, so the
+fingerprint agent (which decides synchronously when a document's script context is created) sees
+changes made in the toolbar bubble without a new renderer process.
+---
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -106,6 +106,7 @@
+ #include "components/no_state_prefetch/renderer/no_state_prefetch_helper.h"
+ #include "components/no_state_prefetch/renderer/no_state_prefetch_render_frame_observer.h"
+ #include "components/no_state_prefetch/renderer/no_state_prefetch_utils.h"
++#include "plainbrowser/shields/renderer/shields_config_impl.h"
+ #include "components/optimization_guide/core/optimization_guide_features.h"
+ #include "components/page_content_annotations/content/renderer/page_stability_monitor_manager.h"
+ #include "components/page_content_annotations/core/page_content_annotations_features.h"
+@@ -648,6 +649,8 @@
+   // definition of |ExposeChromeRendererInterfacesToBrowser()| to ensure
+   // security review coverage.
+   ExposeChromeRendererInterfacesToBrowser(this, binders);
++  // Plain Browser: per-site exception list pushed by the browser.
++  plainbrowser::shields::ExposeRendererInterfacesToBrowser(binders);
+ }
+ 
+ void ChromeContentRendererClient::RenderFrameCreated(

@@ -4,7 +4,10 @@ import("//mojo/public/tools/bindings/mojom.gni")
 
 mojom("mojom") {
   sources = [ "common/adblock.mojom" ]
-  public_deps = [ "//url/mojom:url_mojom_gurl" ]
+  public_deps = [
+    "//third_party/blink/public/mojom/tokens:tokens",
+    "//url/mojom:url_mojom_gurl",
+  ]
 }
 
 # adblock-rust behind a cxx bridge. Built by GN with Chromium's Rust toolchain
@@ -28,10 +31,24 @@ rust_static_library("ffi") {
   visibility = [ ":*" ]
 }
 
-source_set("browser") {
+# Engine owner and the pure navigation-throttle rules: no //content, so unit
+# tests link them alone.
+source_set("engine") {
   sources = [
     "browser/ad_block_service.cc",
     "browser/ad_block_service.h",
+    "browser/tracking_params_rules.cc",
+    "browser/tracking_params_rules.h",
+  ]
+  public_deps = [ ":ffi" ]
+  deps = [
+    "//base",
+    "//url",
+  ]
+}
+
+source_set("browser") {
+  sources = [
     "browser/adblock_filter_impl.cc",
     "browser/adblock_filter_impl.h",
     "browser/renderer_interfaces.cc",
@@ -39,13 +56,35 @@ source_set("browser") {
     "browser/tracking_params_navigation_throttle.cc",
     "browser/tracking_params_navigation_throttle.h",
   ]
-  public_deps = [ "//services/service_manager/public/cpp" ]
-  deps = [
-    ":ffi",
+  public_deps = [
+    ":engine",
     ":mojom",
+    "//services/service_manager/public/cpp",
+  ]
+  deps = [
     "//base",
     "//content/public/browser",
     "//mojo/public/cpp/bindings",
+    "//plainbrowser/shields:browser",
+    "//third_party/blink/public/common",
+    "//url",
+  ]
+}
+
+# The subresource throttle alone: needs only blink/public/common, so unit tests
+# link it without the rest of Blink.
+source_set("url_loader_throttle") {
+  sources = [
+    "renderer/adblock_url_loader_throttle.cc",
+    "renderer/adblock_url_loader_throttle.h",
+  ]
+  public_deps = [ ":mojom" ]
+  deps = [
+    "//base",
+    "//mojo/public/cpp/bindings",
+    "//net",
+    "//services/network/public/cpp",
+    "//third_party/blink/public/common",
     "//url",
   ]
 }
@@ -54,12 +93,13 @@ source_set("renderer") {
   sources = [
     "renderer/adblock_throttle_factory.cc",
     "renderer/adblock_throttle_factory.h",
-    "renderer/adblock_url_loader_throttle.cc",
-    "renderer/adblock_url_loader_throttle.h",
     "renderer/cosmetic_filter_agent.cc",
     "renderer/cosmetic_filter_agent.h",
   ]
-  public_deps = [ ":mojom" ]
+  public_deps = [
+    ":mojom",
+    ":url_loader_throttle",
+  ]
   deps = [
     "//base",
     "//content/public/renderer",

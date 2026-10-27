@@ -2,24 +2,30 @@ From: Plain Browser
 Subject: [adblock] Expose plainbrowser.adblock.mojom.AdblockFilter to renderers
 
 Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
+The render process host is passed along: the filter uses its id to count blocked requests per tab,
+and //plainbrowser/shields binds its ShieldsConfig remote (per-site exception list) in the new renderer.
 ---
 --- a/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
 +++ b/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
-@@ -52,6 +52,7 @@
+@@ -52,6 +52,8 @@
  #include "content/public/browser/security_principal.h"
  #include "content/public/browser/service_worker_version_base_info.h"
  #include "content/public/common/buildflags.h"
 +#include "plainbrowser/adblock/browser/renderer_interfaces.h"
++#include "plainbrowser/shields/browser/shields_service.h"
  #include "extensions/buildflags/buildflags.h"
  #include "extensions/common/extension_id.h"
  #include "media/mojo/buildflags.h"
-@@ -231,6 +232,9 @@
+@@ -231,6 +233,12 @@
        content::GetUIThreadTaskRunner({});
    registry->AddInterface<metrics::mojom::CallStackProfileCollector>(
        base::BindRepeating(&metrics::CallStackProfileCollector::Create));
 +
-+  // Plain Browser: adblock filter for renderer subresource and cosmetic filtering.
-+  plainbrowser::adblock::ExposeInterfacesToRenderer(registry);
++  // Plain Browser: adblock filter for renderer subresource and cosmetic filtering,
++  // and the per-site exception list for the renderer.
++  plainbrowser::adblock::ExposeInterfacesToRenderer(registry, render_process_host);
++  plainbrowser::shields::ShieldsService::GetInstance()->OnRendererProcessCreated(
++      render_process_host);
  
    if (NetBenchmarking::CheckBenchmarkingEnabled()) {
      Profile* profile =

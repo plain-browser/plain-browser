@@ -7,10 +7,13 @@
 
 namespace plainbrowser::adblock {
 
-// Binds a renderer's AdblockFilter receiver. Must run on
+// Binds a renderer's AdblockFilter receiver. `process_id` is the renderer
+// process the receiver belongs to (used to resolve frame tokens for the
+// per-tab blocked-request counter). Must run on
 // AdBlockService::GetInstance()->task_runner(); all receivers live in one
 // ReceiverSet on that sequence.
-void BindAdblockFilter(mojo::PendingReceiver<mojom::AdblockFilter> receiver);
+void BindAdblockFilter(int process_id,
+                       mojo::PendingReceiver<mojom::AdblockFilter> receiver);
 
 }  // namespace plainbrowser::adblock
 

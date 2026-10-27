@@ -10,8 +10,13 @@
 
 namespace plainbrowser::adblock {
 
-AdblockURLLoaderThrottle::AdblockURLLoaderThrottle(mojom::AdblockFilter* filter)
-    : filter_(filter) {}
+AdblockURLLoaderThrottle::AdblockURLLoaderThrottle(
+    mojom::AdblockFilter* filter,
+    const GURL& top_level_url,
+    std::optional<blink::LocalFrameToken> frame_token)
+    : filter_(filter),
+      top_level_url_(top_level_url),
+      frame_token_(std::move(frame_token)) {}
 
 AdblockURLLoaderThrottle::~AdblockURLLoaderThrottle() = default;
 
@@ -91,7 +96,8 @@ void AdblockURLLoaderThrottle::WillStartRequest(
   // binds it), mojo drops the callback; default to "allow" so the deferred
   // request cannot hang.
   filter->ShouldBlockRequest(
-      request->url, source_url, RequestTypeFor(*request),
+      request->url, source_url, RequestTypeFor(*request), top_level_url_,
+      frame_token_,
       mojo::WrapCallbackWithDefaultInvokeIfNotRun(
           base::BindOnce(&AdblockURLLoaderThrottle::OnDecision,
                          weak_factory_.GetWeakPtr()),

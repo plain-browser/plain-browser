@@ -6,6 +6,8 @@ group("browser") {
   public_deps = [
     "//plainbrowser/adblock:browser",
     "//plainbrowser/fingerprint:browser",
+    "//plainbrowser/shields:browser",
+    "//plainbrowser/shields:ui",
   ]
 }
 
@@ -13,6 +15,7 @@ group("renderer") {
   public_deps = [
     "//plainbrowser/adblock:renderer",
     "//plainbrowser/fingerprint:renderer",
+    "//plainbrowser/shields:renderer",
   ]
 }
 

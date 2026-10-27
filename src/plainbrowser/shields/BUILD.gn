@@ -1,0 +1,84 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# "Shields": the user-facing side of the protections. One per-site exception
+# list (profile pref) honoured by adblock, tracking-parameter stripping and
+# fingerprint protection, and the toolbar button + bubble that edits it.
+import("//mojo/public/tools/bindings/mojom.gni")
+
+mojom("mojom") {
+  sources = [ "common/shields.mojom" ]
+}
+
+source_set("common") {
+  sources = [
+    "common/pref_names.h",
+    "common/site_util.cc",
+    "common/site_util.h",
+  ]
+  deps = [
+    "//base",
+    "//net",
+    "//url",
+  ]
+}
+
+source_set("browser") {
+  sources = [
+    "browser/blocked_requests_counter.cc",
+    "browser/blocked_requests_counter.h",
+    "browser/shields_prefs.cc",
+    "browser/shields_prefs.h",
+    "browser/shields_service.cc",
+    "browser/shields_service.h",
+  ]
+  public_deps = [
+    ":common",
+    ":mojom",
+  ]
+  deps = [
+    "//base",
+    "//components/pref_registry",
+    "//components/prefs",
+    "//components/user_prefs",
+    "//content/public/browser",
+    "//mojo/public/cpp/bindings",
+    "//third_party/blink/public/common",
+  ]
+}
+
+source_set("renderer") {
+  sources = [
+    "renderer/shields_config_impl.cc",
+    "renderer/shields_config_impl.h",
+  ]
+  public_deps = [ ":mojom" ]
+  deps = [
+    "//base",
+    "//mojo/public/cpp/bindings",
+  ]
+}
+
+# Toolbar button and bubble. Linked into chrome through //plainbrowser:browser
+# (chrome/browser:browser depends on it); ToolbarView includes
+# ui/shields_button.h (patches/60-ui). Depends on //chrome/browser/ui for the
+# toolbar and bubble base classes; that target does not depend on us, so there
+# is no cycle.
+source_set("ui") {
+  sources = [
+    "ui/shields_bubble_view.cc",
+    "ui/shields_bubble_view.h",
+    "ui/shields_button.cc",
+    "ui/shields_button.h",
+  ]
+  deps = [
+    ":browser",
+    ":common",
+    "//base",
+    "//chrome/browser/ui",
+    "//components/tabs:public",
+    "//components/user_prefs",
+    "//components/vector_icons",
+    "//content/public/browser",
+    "//ui/base",
+    "//ui/views",
+  ]
+}

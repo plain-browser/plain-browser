@@ -30,7 +30,17 @@ authentication, and a fingerprint that changes every session triggers extra veri
 Online banking and payment services are the typical example. Sites on the compatibility list get no script at all:
 - built-in list in `renderer/fingerprint_exceptions.cc` (today: Polish banks, BLIK, Przelewy24, PayU, PayPal,
   Revolut, Wise; any site with the same problem belongs there);
-- `--fingerprint-exceptions=mbank.pl,example.com` (eTLD+1, comma-separated) is forwarded to renderers.
+- `--fingerprint-exceptions=mbank.pl,example.com` (eTLD+1, comma-separated) is forwarded to renderers;
+- **the user's per-site exception list** (profile pref `plainbrowser.shields.exceptions`, edited with the toggle in
+  the toolbar bubble; the same list turns off ad blocking and tracking-parameter stripping for the site, see
+  [ADBLOCK.md](ADBLOCK.md), "UI and per-site exceptions"). The renderer needs the list synchronously (the script is
+  injected when the document's script context is created), so the browser pushes it into every renderer process
+  over `shields.mojom.ShieldsConfig` when the process starts and again on every change
+  (`//plainbrowser/shields/renderer/shields_config_impl.*`); a new renderer also gets it merged into
+  `--fingerprint-exceptions` (`browser/renderer_switches.cc`). The bubble reloads the tab after a change, so the
+  next document already sees the new state.
+
+Which list matched does not matter: `IsExceptedSite(site)` checks the three in that order.
 
 Kill switch: `--disable-features=PlainBrowserFingerprintProtection`.
 
@@ -39,13 +49,17 @@ Kill switch: `--disable-features=PlainBrowserFingerprintProtection`.
   script can snapshot a pristine iframe early or compare timing. This slice buys protection against the common
   fingerprinting libraries at near-zero rebase cost; Blink patches for canvas and audio are the next step if needed.
 - Not covered: workers (no document), WebGL `readPixels`, fonts, screen size, `navigator.plugins`.
-- No UI for the exception list yet; the switch is the only user control.
+- UI: the toolbar bubble toggles a site; there is no settings page listing all exceptions yet and the built-in list
+  cannot be edited from the UI.
 
 ## Wiring
 - `patches/80-fingerprint/0001-renderer-agent.patch`: `FingerprintAgent::Create` in
   `ChromeContentRendererClient::RenderFrameCreated` (next to the adblock cosmetic agent).
 - `patches/80-fingerprint/0002-browser-renderer-switches.patch`: `AppendRendererCommandLineSwitches` in
-  `ChromeContentBrowserClient::AppendExtraCommandLineSwitches`.
+  `ChromeContentBrowserClient::AppendExtraCommandLineSwitches` (gets the renderer's process id to find its
+  profile's exception list).
+- `patches/60-ui/0007`: the renderer's `ShieldsConfig` receiver; `patches/30-adblock/0002`: the browser binds it
+  per renderer process.
 - `patches/00-build/0001-gn-deps.patch`: `//plainbrowser:browser` and `//plainbrowser:renderer` groups.
 - `renderer/embed_text.py` turns the `.js` into a C++ constant at build time (GN action).
 

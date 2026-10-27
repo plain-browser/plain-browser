@@ -1,0 +1,12 @@
+// Copyright Plain Browser contributors. MPL-2.0.
+module plainbrowser.shields.mojom;
+
+// Browser -> renderer: the per-site exception list (eTLD+1 sites on which
+// protections are off). Bound once per renderer process when the process is
+// created and called again whenever the list changes, so a renderer-side
+// decision that cannot wait for an answer from the browser (the fingerprint
+// script is injected synchronously when a document's script context is
+// created) sees the current list.
+interface ShieldsConfig {
+  SetExceptions(array<string> sites);
+};

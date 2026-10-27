@@ -5,9 +5,12 @@
 #include "content/public/renderer/render_frame.h"
 #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
 #include "third_party/blink/public/platform/platform.h"
+#include "third_party/blink/public/platform/web_security_origin.h"
 #include "third_party/blink/public/platform/web_string.h"
 #include "third_party/blink/public/web/web_document.h"
+#include "third_party/blink/public/web/web_frame.h"
 #include "third_party/blink/public/web/web_local_frame.h"
+#include "url/origin.h"
 
 namespace plainbrowser::adblock {
 
@@ -31,9 +34,13 @@ void CosmeticFilterAgent::DidCreateDocumentElement() {
     blink::Platform::Current()->GetBrowserInterfaceBroker()->GetInterface(
         filter_.BindNewPipeAndPassReceiver());
   }
+  // The per-site exception list is keyed by the top-level site.
+  const GURL top_level_url =
+      url::Origin(frame->Top()->GetSecurityOrigin()).GetURL();
   filter_->GetCosmeticCss(
-      url, base::BindOnce(&CosmeticFilterAgent::OnCss,
-                          weak_factory_.GetWeakPtr(), url));
+      url, top_level_url,
+      base::BindOnce(&CosmeticFilterAgent::OnCss, weak_factory_.GetWeakPtr(),
+                     url));
 }
 
 void CosmeticFilterAgent::OnCss(const GURL& document_url,

@@ -2,6 +2,7 @@
 #ifndef PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 #define PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -23,6 +24,14 @@ namespace plainbrowser::adblock {
 class AdBlockService {
  public:
   static AdBlockService* GetInstance();
+
+  // Tests only: a service whose engine loads on the current ThreadPool (the
+  // test's TaskEnvironment). While it is alive, GetInstance() returns it, so the
+  // mojo filter and the throttles under test use it instead of the process-wide
+  // instance (whose task runner would outlive the test's thread pool). Run the
+  // task environment until idle before using or destroying it.
+  static std::unique_ptr<AdBlockService> CreateForTesting();
+  ~AdBlockService();
 
   AdBlockService(const AdBlockService&) = delete;
   AdBlockService& operator=(const AdBlockService&) = delete;
@@ -46,7 +55,6 @@ class AdBlockService {
  private:
   friend class base::NoDestructor<AdBlockService>;
   AdBlockService();
-  ~AdBlockService();
 
   void LoadDefaultEngine();
 

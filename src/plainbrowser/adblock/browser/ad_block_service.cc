@@ -11,10 +11,24 @@
 
 namespace plainbrowser::adblock {
 
+namespace {
+AdBlockService* g_instance_for_testing = nullptr;
+}  // namespace
+
 // static
 AdBlockService* AdBlockService::GetInstance() {
+  if (g_instance_for_testing) {
+    return g_instance_for_testing;
+  }
   static base::NoDestructor<AdBlockService> instance;
   return instance.get();
+}
+
+// static
+std::unique_ptr<AdBlockService> AdBlockService::CreateForTesting() {
+  std::unique_ptr<AdBlockService> service(new AdBlockService());
+  g_instance_for_testing = service.get();
+  return service;
 }
 
 AdBlockService::AdBlockService()
@@ -28,7 +42,11 @@ AdBlockService::AdBlockService()
                                         base::Unretained(this)));
 }
 
-AdBlockService::~AdBlockService() = default;
+AdBlockService::~AdBlockService() {
+  if (g_instance_for_testing == this) {
+    g_instance_for_testing = nullptr;
+  }
+}
 
 void AdBlockService::LoadDefaultEngine() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);

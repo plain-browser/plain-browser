@@ -21,6 +21,10 @@ source_set("browser") {
   deps = [
     ":common",
     "//base",
+    "//components/prefs",
+    "//components/user_prefs",
+    "//content/public/browser",
+    "//plainbrowser/shields:browser",
   ]
 }
 
@@ -37,18 +41,38 @@ action("embed_script") {
   ]
 }
 
+# The compatibility list and the --fingerprint-exceptions parser: no Blink, so
+# unit tests link it alone.
+source_set("exceptions") {
+  sources = [
+    "renderer/fingerprint_exceptions.cc",
+    "renderer/fingerprint_exceptions.h",
+  ]
+  deps = [
+    ":common",
+    "//base",
+    "//plainbrowser/shields:renderer",
+  ]
+}
+
+# The embedded script as a linkable constant.
+source_set("script") {
+  sources = [ "renderer/fingerprint_script.h" ]
+  sources += get_target_outputs(":embed_script")
+  deps = [ ":embed_script" ]
+}
+
 source_set("renderer") {
   sources = [
     "renderer/fingerprint_agent.cc",
     "renderer/fingerprint_agent.h",
-    "renderer/fingerprint_exceptions.cc",
-    "renderer/fingerprint_exceptions.h",
-    "renderer/fingerprint_script.h",
   ]
-  sources += get_target_outputs(":embed_script")
+  public_deps = [
+    ":exceptions",
+    ":script",
+  ]
   deps = [
     ":common",
-    ":embed_script",
     "//base",
     "//content/public/common",
     "//content/public/renderer",
