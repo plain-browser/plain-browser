@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright Plain Browser contributors. MPL-2.0.
+     Strings of //plainbrowser/shields: the toolbar button, its bubble and the
+     exception list in Settings > Privacy and security. Part of
+     chrome/app/generated_resources.grd (patches/60-ui/0008), so the IDS_ ids
+     are in chrome/grit/generated_resources.h. Translations:
+     plainbrowser_shields_strings_<lang>.xtb next to this file, listed in the
+     same grd; ids are grit's message fingerprints, see README.md here. Every message has
+     the same meaning attribute: it is part of the fingerprint, so our ids never
+     collide with a Chromium message of the same English text (grit asserts on
+     a second translation of one id). -->
+<grit-part>
+  <!-- Toolbar button. -->
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_BUTTON_NAME" desc="Accessible name and tooltip of the Plain Browser protections button in the toolbar, when the current page is not a website.">
+    Plain Browser protections
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_TOOLTIP_ON" desc="Tooltip of the Plain Browser protections button when protections are on for the website in the current tab.">
+    Plain Browser protections: on for <ph name="SITE">$1<ex>example.com</ex></ph>
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_TOOLTIP_OFF" desc="Tooltip of the Plain Browser protections button when the user turned protections off for the website in the current tab.">
+    Plain Browser protections: off for <ph name="SITE">$1<ex>example.com</ex></ph>
+  </message>
+
+  <!-- Bubble under the button. -->
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_THIS_PAGE" desc="Shown in the protections bubble instead of a site name when the current page is not a website (for example a settings page).">
+    This page
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_TOGGLE" desc="Label of the on/off switch in the protections bubble. On means ad blocking, tracking-parameter stripping and fingerprint protection apply to the current website.">
+    Protections on for this site
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_NOT_APPLICABLE" desc="Status line in the protections bubble when the current page is not a website.">
+    Protections do not apply to this page.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_RELOADING_ON" desc="Status line in the protections bubble right after the user turned protections back on; the page reloads.">
+    Protections on. The page is reloading.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_RELOADING_OFF" desc="Status line in the protections bubble right after the user turned protections off for the site; the page reloads.">
+    Protections off for this site. The page is reloading.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_OFF_STATUS" desc="Status line in the protections bubble when protections are off for the current website.">
+    Ad blocking, tracking-parameter stripping and fingerprint protection are off for this site.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_BLOCKED_COUNT" desc="Status line in the protections bubble and accessible description of the toolbar button: how many network requests (ads, trackers) were blocked on the page in the current tab.">
+    {COUNT, plural, =0 {No requests blocked on this page.} =1 {1 request blocked on this page.} other {# requests blocked on this page.}}
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_SHIELDS_MANAGE" desc="Link in the protections bubble that opens the list of all sites with protections off, in Settings.">
+    Manage sites
+  </message>
+
+  <!-- Settings > Privacy and security. -->
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_TITLE" desc="Heading of the list of sites on which the user turned Plain Browser protections off, on the Privacy and security settings page.">
+    Sites with protections off
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_DESC" desc="Description under the heading of the list of sites with Plain Browser protections off.">
+    Ad blocking, tracking-parameter stripping and fingerprint protection are off on these sites, including their subdomains. You can also turn them off for the current site with the shield button next to the address bar.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_EMPTY" desc="Shown in place of the list when no site has Plain Browser protections off.">
+    No sites added
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_ADD" desc="Button that opens a dialog to add a site to the list of sites with Plain Browser protections off; also the confirm button of that dialog.">
+    Add
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_ADD_TITLE" desc="Title of the dialog in which the user types a site to turn Plain Browser protections off for.">
+    Turn protections off for a site
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_SITE_LABEL" desc="Label of the text field in the add-site dialog.">
+    Site
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_INVALID" desc="Error under the text field in the add-site dialog when the text is not a website address.">
+    Enter a site, for example example.com
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SHIELDS_REMOVE" desc="Tooltip and accessible name of the button that removes a site from the list of sites with Plain Browser protections off (protections turn back on for it).">
+    Turn protections back on for <ph name="SITE">$1<ex>example.com</ex></ph>
+  </message>
+</grit-part>

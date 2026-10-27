@@ -37,5 +37,6 @@ test("plainbrowser_unittests") {
     "//mojo/core/test:run_all_unittests",
     "//plainbrowser/adblock:unit_tests",
     "//plainbrowser/fingerprint:unit_tests",
+    "//plainbrowser/shields:unit_tests",
   ]
 }

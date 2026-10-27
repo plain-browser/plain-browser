@@ -33,11 +33,12 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
   is the most expensive to maintain against the "small, rebase-friendly patch set" goal.
 - Compatibility exceptions (for example banks): one per-site list shared with the adblock and parameter-stripping
   toggles. The toolbar control exists (toggle in the bubble, 2026-10-26; a list pref rather than a content setting,
-  so no `components/content_settings` patch); a settings page listing the exceptions does not yet.
+  so no `components/content_settings` patch); the exceptions are listed and edited on
+  `chrome://settings/privacy` (2026-10-27, `patches/60-ui/0009`).
 - Done as a first slice without Blink patches: a script injected into every page's main world (canvas, audio,
   WebGL strings, hardwareConcurrency, deviceMemory) with a per-site, per-session seed; built-in compatibility list of
   sites that need a stable fingerprint (online banking, payments) plus `--fingerprint-exceptions=a.pl,b.pl`. Details and limits in [FINGERPRINT.md](FINGERPRINT.md).
-  The per-site toggle in the toolbar bubble is done. Next: a settings page for the exception list, then Blink-level
+  The per-site toggle in the toolbar bubble and the settings page for the exception list are done. Next: Blink-level
   farbling for the surfaces where a page-world override is too easy to detect.
 
 ### Safe Browsing settings (done 2026-10-27, `patches/70-safebrowsing/0005`)

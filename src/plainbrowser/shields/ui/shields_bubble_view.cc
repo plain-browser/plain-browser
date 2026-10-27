@@ -5,10 +5,11 @@
 #include <utility>
 
 #include "base/functional/bind.h"
-#include "base/strings/string_number_conversions.h"
+#include "base/functional/callback_helpers.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
+#include "chrome/grit/generated_resources.h"
 #include "components/user_prefs/user_prefs.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/navigation_controller.h"
@@ -17,10 +18,12 @@
 #include "plainbrowser/shields/browser/blocked_requests_counter.h"
 #include "plainbrowser/shields/browser/shields_prefs.h"
 #include "plainbrowser/shields/common/site_util.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/mojom/dialog_button.mojom.h"
 #include "ui/views/accessibility/view_accessibility.h"
 #include "ui/views/controls/button/toggle_button.h"
 #include "ui/views/controls/label.h"
+#include "ui/views/controls/link.h"
 #include "ui/views/layout/box_layout.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/style/typography.h"
@@ -64,7 +67,8 @@ void OnBubbleClosed(views::Widget::ClosedReason reason) {
 // static
 void ShieldsBubbleView::Show(views::View* anchor,
                              content::WebContents* web_contents,
-                             base::RepeatingClosure on_changed) {
+                             base::RepeatingClosure on_changed,
+                             base::RepeatingClosure on_manage) {
   if (g_widget) {
     g_widget->CloseWithReason(views::Widget::ClosedReason::kUnspecified);
     return;
@@ -77,7 +81,8 @@ void ShieldsBubbleView::Show(views::View* anchor,
     return;
   }
   g_delegate = new ShieldsBubbleView(anchor, web_contents,
-                                     std::move(on_changed));
+                                     std::move(on_changed),
+                                     std::move(on_manage));
   g_widget = views::BubbleDialogDelegate::CreateBubble(
                  g_delegate, base::BindOnce(&OnBubbleClosed))
                  .release();
@@ -91,7 +96,8 @@ bool ShieldsBubbleView::IsShowing() {
 
 ShieldsBubbleView::ShieldsBubbleView(views::View* anchor,
                                      content::WebContents* web_contents,
-                                     base::RepeatingClosure on_changed)
+                                     base::RepeatingClosure on_changed,
+                                     base::RepeatingClosure on_manage)
     : views::BubbleDialogDelegate(anchor, views::BubbleBorder::TOP_RIGHT),
       web_contents_(web_contents ? web_contents->GetWeakPtr()
                                  : base::WeakPtr<content::WebContents>()),
@@ -100,8 +106,9 @@ ShieldsBubbleView::ShieldsBubbleView(views::View* anchor,
                  : nullptr),
       site_(web_contents ? SiteFor(web_contents->GetLastCommittedURL())
                          : std::string()),
-      on_changed_(std::move(on_changed)) {
-  SetTitle(u"Plain Browser");
+      on_changed_(std::move(on_changed)),
+      on_manage_(std::move(on_manage)) {
+  SetTitle(u"Plain Browser");  // Product name, not translated.
   SetShowCloseButton(true);
   SetButtons(static_cast<int>(ui::mojom::DialogButton::kNone));
   set_fixed_width(kBubbleWidth);
@@ -117,7 +124,8 @@ ShieldsBubbleView::ShieldsBubbleView(views::View* anchor,
 
   // Row 1: the site.
   auto* site_label = contents->AddChildView(std::make_unique<views::Label>(
-      applicable ? base::UTF8ToUTF16(site_) : u"This page",
+      applicable ? base::UTF8ToUTF16(site_)
+                 : l10n_util::GetStringUTF16(IDS_PLAINBROWSER_SHIELDS_THIS_PAGE),
       views::style::CONTEXT_DIALOG_BODY_TEXT, views::style::STYLE_PRIMARY));
   site_label->SetHorizontalAlignment(gfx::ALIGN_LEFT);
 
@@ -128,8 +136,10 @@ ShieldsBubbleView::ShieldsBubbleView(views::View* anchor,
       provider->GetDistanceMetric(views::DISTANCE_RELATED_CONTROL_HORIZONTAL)));
   row_layout->set_cross_axis_alignment(
       views::BoxLayout::CrossAxisAlignment::kCenter);
+  const std::u16string toggle_text =
+      l10n_util::GetStringUTF16(IDS_PLAINBROWSER_SHIELDS_TOGGLE);
   auto* toggle_label = row->AddChildView(std::make_unique<views::Label>(
-      u"Protections on for this site", views::style::CONTEXT_DIALOG_BODY_TEXT,
+      toggle_text, views::style::CONTEXT_DIALOG_BODY_TEXT,
       views::style::STYLE_PRIMARY));
   toggle_label->SetHorizontalAlignment(gfx::ALIGN_LEFT);
   row_layout->SetFlexForView(toggle_label, 1);
@@ -138,7 +148,7 @@ ShieldsBubbleView::ShieldsBubbleView(views::View* anchor,
                           base::Unretained(this))));
   toggle_->SetIsOn(applicable && !excepted);
   toggle_->SetEnabled(applicable);
-  toggle_->GetViewAccessibility().SetName(u"Protections on for this site");
+  toggle_->GetViewAccessibility().SetName(toggle_text);
 
   // Row 3: status line.
   status_ = contents->AddChildView(std::make_unique<views::Label>(
@@ -146,32 +156,61 @@ ShieldsBubbleView::ShieldsBubbleView(views::View* anchor,
       views::style::STYLE_SECONDARY));
   status_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
   status_->SetMultiLine(true);
+
+  // Row 4: link to the full list in Settings.
+  if (on_manage_) {
+    auto* manage = contents->AddChildView(std::make_unique<views::Link>(
+        l10n_util::GetStringUTF16(IDS_PLAINBROWSER_SHIELDS_MANAGE)));
+    manage->SetCallback(base::BindRepeating(
+        &ShieldsBubbleView::OnManageClicked, base::Unretained(this)));
+    manage->SetHorizontalAlignment(gfx::ALIGN_LEFT);
+  }
   SetContentsView(std::move(contents));
+
+  // Keep the count current while the page is still loading.
+  if (applicable && web_contents) {
+    BlockedRequestsCounter::CreateForWebContents(web_contents);
+    count_subscription_ =
+        BlockedRequestsCounter::FromWebContents(web_contents)
+            ->AddCountChangedCallback(base::IgnoreArgs<int>(base::BindRepeating(
+                &ShieldsBubbleView::UpdateStatus, base::Unretained(this))));
+    // The widget, and with it status_, is deleted before this delegate
+    // (OnBubbleClosed): stop the updates when the window closes.
+    RegisterWindowClosingCallback(base::BindOnce(
+        [](ShieldsBubbleView* view) { view->count_subscription_ = {}; },
+        base::Unretained(this)));
+  }
   UpdateStatus();
 }
 
 ShieldsBubbleView::~ShieldsBubbleView() = default;
 
 void ShieldsBubbleView::UpdateStatus() {
-  std::u16string text;
+  int id;
   if (site_.empty() || !prefs_) {
-    text = u"Protections do not apply to this page.";
+    id = IDS_PLAINBROWSER_SHIELDS_NOT_APPLICABLE;
   } else if (reloaded_) {
-    text = toggle_->GetIsOn()
-               ? u"Protections on. The page is reloading."
-               : u"Protections off for this site. The page is reloading.";
+    id = toggle_->GetIsOn() ? IDS_PLAINBROWSER_SHIELDS_RELOADING_ON
+                            : IDS_PLAINBROWSER_SHIELDS_RELOADING_OFF;
   } else if (IsSiteExcepted(prefs_, site_)) {
-    text =
-        u"Ad blocking, tracking-parameter stripping and fingerprint "
-        u"protection are off for this site.";
+    id = IDS_PLAINBROWSER_SHIELDS_OFF_STATUS;
   } else {
-    const int blocked =
-        BlockedRequestsCounter::CountFor(web_contents_.get());
-    text = base::NumberToString16(blocked) +
-           (blocked == 1 ? u" request blocked on this page."
-                         : u" requests blocked on this page.");
+    status_->SetText(l10n_util::GetPluralStringFUTF16(
+        IDS_PLAINBROWSER_SHIELDS_BLOCKED_COUNT,
+        BlockedRequestsCounter::CountFor(web_contents_.get())));
+    return;
   }
-  status_->SetText(text);
+  status_->SetText(l10n_util::GetStringUTF16(id));
+}
+
+void ShieldsBubbleView::OnManageClicked() {
+  // Copy first: closing the widget deletes this delegate (posted, but the
+  // callback must not depend on that).
+  base::RepeatingClosure on_manage = on_manage_;
+  if (GetWidget()) {
+    GetWidget()->CloseWithReason(views::Widget::ClosedReason::kUnspecified);
+  }
+  on_manage.Run();
 }
 
 void ShieldsBubbleView::OnToggled() {

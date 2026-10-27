@@ -1,0 +1,42 @@
+From: Plain Browser
+Subject: [ui] Strings of the protections UI as a grdp part of generated_resources.grd, with Polish translations
+
+Category: 60-ui. The strings of //plainbrowser/shields (toolbar button, bubble, the exception list in
+Settings) live with their code in src/plainbrowser/shields/resources: one .grdp and one .xtb per translated
+language. This patch only lists them in chrome/app/generated_resources.grd (a <part> and a <file> in
+<translations>; grit merges several xtb files of one language) and in its .gritdeps, which grit_info
+compares with the grd's real inputs at build time. The IDS_ ids land in chrome/grit/generated_resources.h,
+and the locale .pak files carry the strings without any change to the repack rules. Every message has a
+"meaning" attribute, so its translation id cannot collide with a Chromium message of the same English text.
+---
+--- a/chrome/app/generated_resources.grd
++++ b/chrome/app/generated_resources.grd
+@@ -249,6 +249,8 @@
+     <file path="resources/generated_resources_or.xtb" lang="or" />
+     <file path="resources/generated_resources_pa.xtb" lang="pa" />
+     <file path="resources/generated_resources_pl.xtb" lang="pl" />
++    <!-- Plain Browser: translations of plainbrowser_shields_strings.grdp. -->
++    <file path="../../plainbrowser/shields/resources/plainbrowser_shields_strings_pl.xtb" lang="pl" />
+     <file path="resources/generated_resources_pt-BR.xtb" lang="pt-BR" />
+     <file path="resources/generated_resources_pt-PT.xtb" lang="pt-PT" />
+     <file path="resources/generated_resources_ro.xtb" lang="ro" />
+@@ -309,6 +311,11 @@
+ 
+       <!-- Shortcut Input specific strings -->
+       <part file="shortcut_input_strings.grdp" />
++
++      <!-- Plain Browser: toolbar button, bubble and settings section of the
++           protections (//plainbrowser/shields). Outside this directory on
++           purpose: the strings live with their code. -->
++      <part file="../../plainbrowser/shields/resources/plainbrowser_shields_strings.grdp" />
+ 
+       <!-- Chrome-OS-specific strings -->
+       <if expr="is_chromeos">
+--- a/chrome/app/generated_resources.grd.gritdeps
++++ b/chrome/app/generated_resources.grd.gritdeps
+@@ -108,3 +108,5 @@
+ chrome/app/support_tool_strings.grdp
+ chrome/app/vr_strings.grdp
+ chrome/app/whats_new_strings.grdp
++plainbrowser/shields/resources/plainbrowser_shields_strings.grdp
++plainbrowser/shields/resources/plainbrowser_shields_strings_pl.xtb

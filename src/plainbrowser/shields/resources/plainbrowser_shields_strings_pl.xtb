@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<!DOCTYPE translationbundle>
+<translationbundle lang="pl">
+<!-- Polish translations of plainbrowser_shields_strings.grdp. Ids: scripts/grit-ids.py (README.md here). -->
+<translation id="7880046913804588843">Ochrona Plain Browser</translation>
+<translation id="7588071554616981613">Ochrona Plain Browser: włączona dla <ph name="SITE" /></translation>
+<translation id="6448422203278305934">Ochrona Plain Browser: wyłączona dla <ph name="SITE" /></translation>
+<translation id="4908847314368827524">Ta strona</translation>
+<translation id="1808069800901032026">Ochrona włączona na tej witrynie</translation>
+<translation id="4725278459588685576">Ochrona nie dotyczy tej strony.</translation>
+<translation id="888390145648876817">Ochrona włączona. Strona wczytuje się ponownie.</translation>
+<translation id="3842738817138805688">Ochrona wyłączona na tej witrynie. Strona wczytuje się ponownie.</translation>
+<translation id="5891082244763309562">Blokowanie reklam, usuwanie parametrów śledzących i ochrona przed fingerprintingiem są wyłączone na tej witrynie.</translation>
+<translation id="2548172275515237691">{COUNT, plural, =0 {Na tej stronie nie zablokowano żadnych żądań.} =1 {Na tej stronie zablokowano 1 żądanie.} few {Na tej stronie zablokowano # żądania.} many {Na tej stronie zablokowano # żądań.} other {Na tej stronie zablokowano # żądania.}}</translation>
+<translation id="2663829518985069677">Zarządzaj witrynami</translation>
+<translation id="7707383106945981379">Witryny z wyłączoną ochroną</translation>
+<translation id="8504326310948201892">Blokowanie reklam, usuwanie parametrów śledzących i ochrona przed fingerprintingiem są wyłączone na tych witrynach, także w ich subdomenach. Ochronę bieżącej witryny możesz też wyłączyć przyciskiem z tarczą obok paska adresu.</translation>
+<translation id="7676722686617519425">Nie dodano żadnych witryn</translation>
+<translation id="6902994320933381569">Dodaj</translation>
+<translation id="938113090818501241">Wyłącz ochronę dla witryny</translation>
+<translation id="6284400030989800663">Witryna</translation>
+<translation id="2695417193754801563">Wpisz witrynę, na przykład example.com</translation>
+<translation id="7140235993367976388">Włącz ponownie ochronę dla <ph name="SITE" /></translation>
+</translationbundle>

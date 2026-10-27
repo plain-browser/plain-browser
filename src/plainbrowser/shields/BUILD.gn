@@ -22,22 +22,36 @@ source_set("common") {
   ]
 }
 
+# The exception-list pref and its helpers. No //content, so unit tests link it
+# alone (docs/TESTING.md).
+source_set("prefs") {
+  sources = [
+    "browser/shields_prefs.cc",
+    "browser/shields_prefs.h",
+  ]
+  public_deps = [ ":common" ]
+  deps = [
+    "//base",
+    "//components/pref_registry",
+    "//components/prefs",
+    "//url",
+  ]
+}
+
 source_set("browser") {
   sources = [
     "browser/blocked_requests_counter.cc",
     "browser/blocked_requests_counter.h",
-    "browser/shields_prefs.cc",
-    "browser/shields_prefs.h",
     "browser/shields_service.cc",
     "browser/shields_service.h",
   ]
   public_deps = [
     ":common",
     ":mojom",
+    ":prefs",
   ]
   deps = [
     "//base",
-    "//components/pref_registry",
     "//components/prefs",
     "//components/user_prefs",
     "//content/public/browser",
@@ -59,28 +73,53 @@ source_set("renderer") {
   ]
 }
 
-# Toolbar button and bubble. Linked into chrome through //plainbrowser:browser
+# Toolbar button and bubble, and the strings of the settings section that lists
+# the exceptions. Linked into chrome through //plainbrowser:browser
 # (chrome/browser:browser depends on it); ToolbarView includes
-# ui/shields_button.h (patches/60-ui). Depends on //chrome/browser/ui for the
-# toolbar and bubble base classes; that target does not depend on us, so there
-# is no cycle.
+# ui/shields_button.h and the settings strings provider
+# ui/shields_settings_strings.h (patches/60-ui). Depends on //chrome/browser/ui
+# for the toolbar and bubble base classes; that target does not depend on us,
+# so there is no cycle. Strings: resources/plainbrowser_shields_strings.grdp,
+# a part of chrome/app/generated_resources.grd (patches/60-ui/0008).
 source_set("ui") {
   sources = [
     "ui/shields_bubble_view.cc",
     "ui/shields_bubble_view.h",
     "ui/shields_button.cc",
     "ui/shields_button.h",
+    "ui/shields_settings_strings.cc",
+    "ui/shields_settings_strings.h",
   ]
   deps = [
     ":browser",
     ":common",
     "//base",
+    "//cc/paint",
+    "//chrome/app:generated_resources",
     "//chrome/browser/ui",
+    "//chrome/common",
     "//components/tabs:public",
     "//components/user_prefs",
     "//components/vector_icons",
     "//content/public/browser",
+    "//skia",
     "//ui/base",
+    "//ui/color",
+    "//ui/gfx",
     "//ui/views",
+  ]
+}
+
+# Part of //plainbrowser:plainbrowser_unittests (see docs/TESTING.md).
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "browser/shields_prefs_unittest.cc" ]
+  deps = [
+    ":prefs",
+    "//base",
+    "//components/prefs",
+    "//components/prefs:test_support",
+    "//testing/gmock",
+    "//testing/gtest",
   ]
 }

@@ -1,0 +1,291 @@
+From: Plain Browser
+Subject: [ui] Settings > Privacy and security: the list of sites with protections off
+
+Category: 60-ui. A section under "Site settings" on chrome://settings/privacy lists
+plainbrowser.shields.exceptions (the per-site exception list of 60-ui/0005) with a remove button per site
+and an Add dialog. The element is new (privacy_page/plainbrowser_shields_exceptions.*, Polymer like the
+page around it) and edits the pref through settingsPrivate, which needs the pref in prefs_util.cc's
+allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 sites. Strings come from
+//plainbrowser/shields (AddSettingsStrings, strings in 60-ui/0008).
+---
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -82,6 +82,7 @@
+ #include "extensions/browser/extension_system.h"
+ #include "extensions/browser/management_policy.h"
+ #include "extensions/common/extension.h"
++#include "plainbrowser/shields/common/pref_names.h"
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include "ash/constants/ash_login_pref_names.h"
+@@ -439,6 +440,10 @@
+       settings_api::PrefType::kString;
+ #endif
+ 
++  // Plain Browser: sites with protections off (Privacy and security page).
++  (*s_allowlist)[plainbrowser::shields::prefs::kShieldsExceptions] =
++      settings_api::PrefType::kList;
++
+   // Privacy Guide
+   (*s_allowlist)[::prefs::kPrivacyGuideViewed] =
+       settings_api::PrefType::kBoolean;
+--- a/chrome/browser/resources/settings/BUILD.gn
++++ b/chrome/browser/resources/settings/BUILD.gn
+@@ -74,6 +74,7 @@
+     "controls/settings_toggle_button.ts",
+     "privacy_page/cookies_page.ts",
+     "privacy_page/personalization_options.ts",
++    "privacy_page/plainbrowser_shields_exceptions.ts",
+     "privacy_page/privacy_page.ts",
+     "privacy_page/privacy_page_index.ts",
+     "privacy_page/security/fingerprint_progress_arc.ts",
+--- /dev/null
++++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.html
+@@ -0,0 +1,52 @@
++<style include="cr-shared-style cr-hidden-style settings-shared">
++  :host {
++    display: block;
++  }
++</style>
++<div class="settings-box two-line">
++  <div class="start settings-box-text">
++    <div>$i18n{plainBrowserShieldsTitle}</div>
++    <div class="secondary">$i18n{plainBrowserShieldsDesc}</div>
++  </div>
++  <cr-button id="addSite" class="header-aligned-button"
++      on-click="onAddClick_">
++    $i18n{plainBrowserShieldsAdd}
++  </cr-button>
++</div>
++<div id="list" class="list-frame vertical-list" role="list">
++  <template is="dom-repeat" items="[[sites_]]">
++    <div class="list-item" role="listitem">
++      <div class="start text-elide">[[item]]</div>
++      <cr-icon-button class="icon-delete-gray"
++          title="[[removeLabel_(item)]]" aria-label="[[removeLabel_(item)]]"
++          on-click="onRemoveClick_">
++      </cr-icon-button>
++    </div>
++  </template>
++  <div id="empty" class="list-item secondary"
++      hidden="[[hasSites_(sites_)]]">
++    $i18n{plainBrowserShieldsEmpty}
++  </div>
++</div>
++<template is="dom-if" if="[[showDialog_]]" restamp>
++  <cr-dialog id="dialog" close-text="$i18n{close}" show-on-attach
++      on-close="onDialogClose_">
++    <div slot="title">$i18n{plainBrowserShieldsAddTitle}</div>
++    <div slot="body">
++      <cr-input id="input" label="$i18n{plainBrowserShieldsSiteLabel}"
++          placeholder="example.com" value="{{input_}}" invalid="[[invalid_]]"
++          error-message="$i18n{plainBrowserShieldsInvalid}"
++          on-input="onInput_" spellcheck="false" autofocus>
++      </cr-input>
++    </div>
++    <div slot="button-container">
++      <cr-button class="cancel-button" on-click="onCancelClick_">
++        $i18n{cancel}
++      </cr-button>
++      <cr-button id="confirm" class="action-button"
++          on-click="onConfirmClick_" disabled="[[!input_]]">
++        $i18n{plainBrowserShieldsAdd}
++      </cr-button>
++    </div>
++  </cr-dialog>
++</template>
+--- /dev/null
++++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.ts
+@@ -0,0 +1,153 @@
++// Copyright Plain Browser contributors. MPL-2.0.
++
++/**
++ * @fileoverview
++ * 'settings-plainbrowser-shields-exceptions' lists the sites on which Plain
++ * Browser's protections (ad blocking, tracking-parameter stripping,
++ * fingerprint protection) are off: pref plainbrowser.shields.exceptions, the
++ * list the toolbar bubble edits (//plainbrowser/shields). Entries are stored as
++ * typed; the browser rewrites them as sites (eTLD+1), so
++ * "https://www.example.com/a" shows up as "example.com" a moment later.
++ */
++import 'chrome://resources/cr_elements/cr_button/cr_button.js';
++import 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
++import 'chrome://resources/cr_elements/cr_hidden_style.css.js';
++import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
++import 'chrome://resources/cr_elements/cr_input/cr_input.js';
++import 'chrome://resources/cr_elements/cr_shared_style.css.js';
++import '../settings_shared.css.js';
++
++import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
++import type {CrButtonElement} from 'chrome://resources/cr_elements/cr_button/cr_button.js';
++import type {CrDialogElement} from 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
++import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js';
++import {focusWithoutInk} from 'chrome://resources/js/focus_without_ink.js';
++import type {DomRepeatEvent} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++
++import {getTemplate} from './plainbrowser_shields_exceptions.html.js';
++
++const EXCEPTIONS_PREF = 'plainbrowser.shields.exceptions';
++
++/**
++ * The host named by what the user typed in the add dialog ("example.com",
++ * "www.example.com", "https://example.com/path"), or '' when the text is not
++ * an http(s) address.
++ */
++export function hostFromInput(text: string): string {
++  const trimmed = text.trim();
++  if (!trimmed || /\s/.test(trimmed)) {
++    return '';
++  }
++  try {
++    const url =
++        new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
++    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
++      return '';
++    }
++    return url.hostname;
++  } catch {
++    return '';
++  }
++}
++
++export interface SettingsPlainBrowserShieldsExceptionsElement {
++  $: {
++    addSite: CrButtonElement,
++  };
++}
++
++const SettingsPlainBrowserShieldsExceptionsElementBase =
++    I18nMixin(PrefsMixin(PolymerElement));
++
++export class SettingsPlainBrowserShieldsExceptionsElement extends
++    SettingsPlainBrowserShieldsExceptionsElementBase {
++  static get is() {
++    return 'settings-plainbrowser-shields-exceptions';
++  }
++
++  static get template() {
++    return getTemplate();
++  }
++
++  static get properties() {
++    return {
++      sites_: {
++        type: Array,
++        computed:
++            'computeSites_(prefs.plainbrowser.shields.exceptions.value.*)',
++      },
++      showDialog_: {type: Boolean, value: false},
++      input_: {type: String, value: ''},
++      invalid_: {type: Boolean, value: false},
++    };
++  }
++
++  declare private sites_: string[];
++  declare private showDialog_: boolean;
++  declare private input_: string;
++  declare private invalid_: boolean;
++
++  private computeSites_(): string[] {
++    const pref = this.getPref<unknown[]>(EXCEPTIONS_PREF);
++    return Array.isArray(pref.value) ?
++        pref.value.filter((s): s is string => typeof s === 'string') :
++        [];
++  }
++
++  private hasSites_(): boolean {
++    return !!this.sites_ && this.sites_.length > 0;
++  }
++
++  private removeLabel_(site: string): string {
++    return this.i18n('plainBrowserShieldsRemove', site);
++  }
++
++  private onRemoveClick_(e: DomRepeatEvent<string>) {
++    this.deletePrefListItem(EXCEPTIONS_PREF, e.model.item);
++  }
++
++  private onAddClick_() {
++    this.input_ = '';
++    this.invalid_ = false;
++    this.showDialog_ = true;
++  }
++
++  private onInput_() {
++    this.invalid_ = false;
++  }
++
++  private onConfirmClick_() {
++    const host = hostFromInput(this.input_);
++    if (!host) {
++      this.invalid_ = true;
++      return;
++    }
++    this.appendPrefListItem(EXCEPTIONS_PREF, host);
++    this.closeDialog_();
++  }
++
++  private onCancelClick_() {
++    this.closeDialog_();
++  }
++
++  private closeDialog_() {
++    this.shadowRoot!.querySelector<CrDialogElement>('#dialog')!.close();
++  }
++
++  private onDialogClose_() {
++    this.showDialog_ = false;
++    focusWithoutInk(this.$.addSite);
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    'settings-plainbrowser-shields-exceptions':
++        SettingsPlainBrowserShieldsExceptionsElement;
++  }
++}
++
++customElements.define(
++    SettingsPlainBrowserShieldsExceptionsElement.is,
++    SettingsPlainBrowserShieldsExceptionsElement);
+--- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
++++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
+@@ -34,6 +34,8 @@
+         sub-label="$i18n{siteSettingsSublabel}"
+         on-click="onSiteSettingsLinkRowClick_"
+         role-description="$i18n{subpageArrowRoleDescription}"></cr-link-row>
++    <settings-plainbrowser-shields-exceptions prefs="{{prefs}}">
++    </settings-plainbrowser-shields-exceptions>
+     <cr-toast id="deleteBrowsingDataToast" duration="5000">
+       <div>[[dbdDeletionConfirmationToastLabel_]]</div>
+     </cr-toast>
+--- a/chrome/browser/resources/settings/privacy_page/privacy_page.ts
++++ b/chrome/browser/resources/settings/privacy_page/privacy_page.ts
+@@ -16,6 +16,7 @@
+ import '../privacy_icons.html.js';
+ import '../settings_page/settings_section.js';
+ import '../settings_shared.css.js';
++import './plainbrowser_shields_exceptions.js';
+ import './privacy_guide/privacy_guide_dialog.js';
+ 
+ import {PrefsMixin} from '/shared/settings/prefs/prefs_mixin.js';
+--- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
++++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
+@@ -64,6 +64,7 @@
+ #include "chrome/browser/ui/webui/settings/glic_handler.h"
+ #include "chrome/browser/ui/webui/settings/reset_settings_handler.h"
+ #include "chrome/browser/ui/webui/settings/shared_settings_localized_strings_provider.h"
++#include "plainbrowser/shields/ui/shields_settings_strings.h"
+ #include "chrome/browser/ui/webui/version/version_ui.h"
+ #include "chrome/common/channel_info.h"
+ #include "chrome/common/chrome_features.h"
+@@ -4668,6 +4669,7 @@
+   AddPrivacySandboxStrings(html_source, profile);
+   AddPrivacyGuideStrings(html_source, profile);
+   AddPrivacyStrings(html_source, profile);
++  plainbrowser::shields::AddSettingsStrings(html_source);
+   AddSafetyHubStrings(html_source);
+   AddShortcutInputStrings(html_source);
+   AddResetStrings(html_source, profile);

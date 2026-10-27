@@ -14,6 +14,10 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 - Per-site exceptions ("shields"): a toolbar button and bubble that turn ad blocking, tracking-parameter stripping
   and fingerprint protection off for the current site; one profile list (`plainbrowser.shields.exceptions`) read by
   all three.
+- Shields UI follow-ups: a badge on the toolbar button with the number of requests blocked on the page (live
+  while the page loads); "Sites with protections off" on Settings > Privacy and security (list, add, remove; a
+  typed URL or host is stored as its site); a "Manage sites" link in the bubble; all shields strings translated
+  into Polish (`src/plainbrowser/shields/resources`).
 - Settings > You and Google > Google services: a toggle "Safe Browsing through the Plain Browser proxy", the one
   switch for the only Google service the browser still talks to (through our proxy).
 - Project website (`website/`, plain-browser.app) with the privacy and security policies in English and Polish.

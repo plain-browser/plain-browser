@@ -25,6 +25,8 @@
 60-ui/0005-shields-prefs.patch
 60-ui/0006-shields-toolbar-button.patch
 60-ui/0007-shields-renderer-config.patch
+60-ui/0008-shields-strings.patch
+60-ui/0009-shields-settings-page.patch
 70-safebrowsing/0001-proxy-and-client-header.patch
 70-safebrowsing/0002-no-signin-pref-includes.patch
 70-safebrowsing/0003-public-lists-only.patch

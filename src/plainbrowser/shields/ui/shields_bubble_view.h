@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "base/callback_list.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
@@ -23,8 +24,9 @@ class ToggleButton;
 namespace plainbrowser::shields {
 
 // Bubble under the toolbar button: the current site, a toggle "Protections on
-// for this site" (edits prefs::kShieldsExceptions and reloads the tab) and the
-// number of requests blocked on the page.
+// for this site" (edits prefs::kShieldsExceptions and reloads the tab), the
+// number of requests blocked on the page (kept current while the bubble is
+// open) and a link to the list of all excepted sites in Settings.
 //
 // A BubbleDialogDelegate, not a BubbleDialogDelegateView (deprecated, private
 // constructor). The contents are a separate View set with SetContentsView();
@@ -33,27 +35,33 @@ class ShieldsBubbleView : public views::BubbleDialogDelegate {
  public:
   // Closes an open bubble (second click on the button) or opens one anchored
   // to `anchor` for `web_contents` (may be null: no tab). `on_changed` runs
-  // after the toggle changed the pref.
+  // after the toggle changed the pref; `on_manage` opens the settings page
+  // (the bubble closes first).
   static void Show(views::View* anchor,
                    content::WebContents* web_contents,
-                   base::RepeatingClosure on_changed);
+                   base::RepeatingClosure on_changed,
+                   base::RepeatingClosure on_manage);
   static bool IsShowing();
 
   // Use Show(). Public for std::make_unique.
   ShieldsBubbleView(views::View* anchor,
                     content::WebContents* web_contents,
-                    base::RepeatingClosure on_changed);
+                    base::RepeatingClosure on_changed,
+                    base::RepeatingClosure on_manage);
   ~ShieldsBubbleView() override;
 
  private:
   void OnToggled();
+  void OnManageClicked();
   void UpdateStatus();
 
   base::WeakPtr<content::WebContents> web_contents_;
   raw_ptr<PrefService> prefs_ = nullptr;
   const std::string site_;
   const base::RepeatingClosure on_changed_;
+  const base::RepeatingClosure on_manage_;
   bool reloaded_ = false;
+  base::CallbackListSubscription count_subscription_;
 
   raw_ptr<views::ToggleButton> toggle_ = nullptr;
   raw_ptr<views::Label> status_ = nullptr;

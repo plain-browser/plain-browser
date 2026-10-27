@@ -6,12 +6,17 @@
      2. flip the toggle: the pref changes while the renderer runs, the tab reloads, the title shows ad_* allowed, the
         tracking parameter kept and the real core count (the ShieldsConfig push, not the start-up switch);
      3. click the button again: the bubble closes; click once more: it reopens showing "off";
-     4. flip it back on, Esc closes the bubble, the reloaded title shows the protections again.
+     4. flip it back on, Esc closes the bubble, the reloaded title shows the protections again;
+     5. the button shows the count badge (blue pixels in the button) while protections are on and none while they are
+        off, and "Manage sites" in the bubble opens chrome://settings/privacy.
+   The UI language is forced with --lang (default en-US): the checks match English strings. The Polish strings are
+   checked by scripts\test-shields-settings.ps1.
    The browser process must survive every open/close (the bubble owns its widget by hand). Screenshots of the whole
    screen go to <Out>\shots, the log to <Out>\bubble.log, the last line is PASS or FAIL.
-   Usage: powershell -File scripts\test-shields-ui.ps1 [-Exe <chrome.exe>] [-Out C:\dw-test-shields\ui] #>
+   Usage: powershell -File scripts\test-shields-ui.ps1 [-Exe <chrome.exe>] [-Out C:\dw-test-shields\ui] [-Lang en-US] #>
 param([string]$Exe = "C:\dw-build\ucw\build\src\out\Default\chrome.exe",
-      [string]$Out = "C:\dw-test-shields\ui")
+      [string]$Out = "C:\dw-test-shields\ui",
+      [string]$Lang = "en-US")
 $ErrorActionPreference = "Continue"
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Drawing, System.Windows.Forms
 Add-Type @"
@@ -33,6 +38,17 @@ function Shot($name) {
   $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
   $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
   $bmp.Save("$Out\shots\$name.png"); $g.Dispose(); $bmp.Dispose(); Log "shot $name"
+}
+# Bluish pixels inside the toolbar button (inset 4 px, past any focus ring): the count badge is the only blue on the
+# otherwise grey icon (ui::kColorBadgeBackground), so this is about 60 with a badge and 0 without.
+function BadgePixels($el) {
+  $r = $el.Current.BoundingRectangle; $w = [int]$r.Width - 8; $h = [int]$r.Height - 8
+  if ($w -le 0 -or $h -le 0) { return -1 }
+  $bmp = New-Object System.Drawing.Bitmap $w, $h
+  $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen([int]$r.X + 4, [int]$r.Y + 4, 0, 0, $bmp.Size)
+  $n = 0
+  for ($x = 0; $x -lt $w; $x++) { for ($y = 0; $y -lt $h; $y++) { $c = $bmp.GetPixel($x, $y); if ($c.B -gt $c.R + 40 -and $c.B -gt 150) { $n++ } } }
+  $g.Dispose(); $bmp.Dispose(); $n
 }
 function KillMine { Get-CimInstance Win32_Process -Filter "Name = 'chrome.exe'" | Where-Object { $_.CommandLine -like "*$Out*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } }
 # --- UI Automation helpers -------------------------------------------------------------------------------------
@@ -116,7 +132,7 @@ $port = 9375
 # One renderer for everything (no spare process either): the renderer-survival check and the new-tab checks then
 # speak about the process that already runs, i.e. about the list pushed over ShieldsConfig, not a start-up snapshot.
 $a = @("--no-first-run","--no-default-browser-check","--disable-gpu","--window-position=0,0","--window-size=1000,720",
-       "--renderer-process-limit=1",
+       "--renderer-process-limit=1","--lang=$Lang",
        "--user-data-dir=$Out\profile","--remote-debugging-port=$port",("--host-resolver-rules=" + [char]34 + $rules + [char]34),
        "http://example.com:8000/t.html?utm_source=test&keep=1")
 $p = Start-Process -FilePath $Exe -ArgumentList $a -PassThru
@@ -150,6 +166,8 @@ if ($bubble) {
   Log ("toggle: " + $toggle.Current.ControlType.ProgrammaticName + " state=" + (ToggleState $toggle))
   Check ((ToggleState $toggle) -eq "On") "toggle is On for a protected site"
   Check ((Texts $bubble) -like "*4 requests blocked on this page.*") "status counts 4 blocked requests"
+  $bp = BadgePixels $btn; Log "badge pixels with 4 blocked: $bp"
+  Check ($bp -gt 20) "the button shows the count badge"
   # --- 2. turn off ---------------------------------------------------------------------------------------------
   ClickCenter $toggle; Start-Sleep 1
   Log ("after toggle, texts: " + (Texts $bubble) + " state=" + (ToggleState $toggle))
@@ -189,6 +207,8 @@ if ($bubble) {
   Log ("reopened: state=" + (ToggleState $toggle) + " texts: " + (Texts $bubble))
   Check ((ToggleState $toggle) -eq "Off") "toggle is Off for the excepted site"
   Check ((Texts $bubble) -like "*are off for this site.*") "status says protections are off"
+  $bp = BadgePixels $btn; Log "badge pixels on the excepted site: $bp"
+  Check ($bp -eq 0) "no badge while protections are off"
   # --- 4. turn back on, Esc ------------------------------------------------------------------------------------
   $tBefore = Title $port
   ClickCenter $toggle; Start-Sleep 1
@@ -204,6 +224,18 @@ if ($bubble) {
   # that start-up list, or the site stays excepted there for good.
   Check ($tn -match "hc=(2|4|8)( |$)") "on again: a new document in the running renderer gets fingerprint noise"
   Shot "05-on-again"
+}
+# --- 5. Manage sites -----------------------------------------------------------------------------------------------
+ClickCenter $btn; Start-Sleep 1
+$bubble = WaitFor "bubble (manage)" 5 { Bubble $p.Id }
+$link = if ($bubble) { Named $bubble "Manage sites" } else { $null }
+Check ($null -ne $link) "bubble has the 'Manage sites' link"
+if ($link) {
+  ClickCenter $link
+  $settings = WaitFor "settings tab" 10 { (Invoke-RestMethod "http://127.0.0.1:$port/json/list" -TimeoutSec 3) | Where-Object { $_.url -like "chrome://settings/privacy*" } | Select-Object -First 1 }
+  Check ($null -ne $settings) "'Manage sites' opened chrome://settings/privacy"
+  Check ($null -eq (Bubble $p.Id)) "the bubble closed"
+  Start-Sleep 2; Shot "06-settings"
 }
 Check (-not $p.HasExited) "browser alive at the end"
 Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; KillMine

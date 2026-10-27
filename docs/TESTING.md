@@ -8,7 +8,7 @@ Three layers, from fast to slow:
 | Node | `fingerprint_script.js` (noise, determinism, native-looking wrappers) | `src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js` | any machine with Node |
 | **gtest** | **our C++: `plainbrowser_unittests`** (this page) | `*_unittest.cc` next to the code | the Chromium tree on the build VM |
 | headless | the whole browser: `scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`, `test-shields.ps1` | `scripts/` | the build VM, against `out\Default\chrome.exe` |
-| UI | toolbar button and bubble in a normal window, driven by UI Automation: `scripts/test-shields-ui.ps1` (opens, toggles, closes; checks the pushed exception list in the running renderer; screenshots); the Safe Browsing settings: `scripts/test-safebrowsing-settings.ps1` (the toggle under You and Google, no Enhanced protection, the pref on disk) | `scripts/` | the build VM's interactive desktop session (a scheduled task with `-LogonType Interactive`, not SSH) |
+| UI | toolbar button and bubble in a normal window, driven by UI Automation: `scripts/test-shields-ui.ps1` (opens, toggles, closes; checks the pushed exception list in the running renderer, the blocked count on the button and the "Manage sites" link; English UI via `--lang`; screenshots); the Polish strings and the exception list in Settings: `scripts/test-shields-settings.ps1` (plural form of the count, add a URL and see its site, remove, the pref on disk); the Safe Browsing settings: `scripts/test-safebrowsing-settings.ps1` (the toggle under You and Google, no Enhanced protection, the pref on disk) | `scripts/` | the build VM's interactive desktop session (a scheduled task with `-LogonType Interactive`, not SSH) |
 
 ## plainbrowser_unittests
 
@@ -48,11 +48,19 @@ all of `content/browser` and Blink into a second chrome-sized executable.
 - embedded script (`renderer/fingerprint_script_unittest.cc`): `embed_text.py` output carries both seed
   placeholders.
 
+`shields` (`src/plainbrowser/shields/**/*_unittest.cc`):
+
+- exception-list prefs (`browser/shields_prefs_unittest.cc`): `SiteForEntry` turns sites, hosts and URLs into
+  the eTLD+1 and rejects non-web entries; `GetExceptions` normalises and drops duplicates; `SetSiteExcepted`
+  removes every entry standing for a site; `NormalizeExceptions` rewrites typed entries and leaves a normal list
+  untouched (returns false, writes nothing).
+
 Not unit-tested, covered by the headless scripts instead: everything that needs `//content` or Blink, namely
 `TrackingParamsNavigationThrottle` (`content::NavigationHandle`), `AdblockFilterImpl` and
 `ExposeInterfacesToRenderer` (they resolve `RenderProcessHost` ids and consult the shields exception list),
 `AdblockThrottleFactory`, `CosmeticFilterAgent`, `FingerprintAgent`, `AppendRendererCommandLineSwitches` (reads
-profile prefs through `RenderProcessHost::FromID`) and the shields UI.
+profile prefs through `RenderProcessHost::FromID`) and the shields UI (button, badge, bubble, settings section:
+the UI scripts above).
 
 ### Build and run on the build VM
 
@@ -81,6 +89,8 @@ engine from the full lists in `SetUp` (about a second each in a release build). 
 - `//plainbrowser/adblock:url_loader_throttle` = the renderer throttle alone (`blink/public/common` only);
   `:renderer` adds the factory and the cosmetic agent (full Blink).
 - `//plainbrowser/fingerprint:exceptions` and `:script` are the Blink-free parts of `:renderer`.
+- `//plainbrowser/shields:prefs` = the exception-list pref helpers (prefs, `//net` for the site), no `//content`;
+  `:browser` adds `ShieldsService` and the blocked-request counter.
 
 Chromium's `//plainbrowser:browser` and `//plainbrowser:renderer` groups are unchanged, so
 `patches/00-build/0001-gn-deps.patch` is untouched.

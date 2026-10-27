@@ -6,7 +6,9 @@
 
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "base/supports_user_data.h"
+#include "base/task/sequenced_task_runner.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "components/prefs/pref_service.h"
 #include "components/user_prefs/user_prefs.h"
@@ -31,17 +33,36 @@ class ShieldsService::ProfileWatcher : public base::SupportsUserData::Data {
       : service_(service), prefs_(prefs) {
     registrar_.Init(prefs);
     registrar_.Add(prefs::kShieldsExceptions,
-                   base::BindRepeating(&ShieldsService::Rebuild,
-                                       base::Unretained(service_)));
+                   base::BindRepeating(&ProfileWatcher::OnChanged,
+                                       base::Unretained(this)));
+    PostNormalize();
   }
   ~ProfileWatcher() override { service_->OnWatcherDestroyed(this); }
 
   const PrefService* prefs() const { return prefs_; }
 
  private:
+  void OnChanged() {
+    service_->Rebuild();
+    PostNormalize();
+  }
+
+  // The settings page stores entries as typed ("www.example.com"); the list
+  // is read through SiteForEntry() anyway, but rewriting it shows the user the
+  // sites it applies to. Posted so that the pref is not written from inside
+  // its own change notification; the rewrite notifies again and then finds
+  // nothing to do.
+  void PostNormalize() {
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, base::BindOnce(&ProfileWatcher::Normalize,
+                                  weak_factory_.GetWeakPtr()));
+  }
+  void Normalize() { NormalizeExceptions(prefs_); }
+
   const raw_ptr<ShieldsService> service_;
   const raw_ptr<PrefService> prefs_;
   PrefChangeRegistrar registrar_;
+  base::WeakPtrFactory<ProfileWatcher> weak_factory_{this};
 };
 
 // static
