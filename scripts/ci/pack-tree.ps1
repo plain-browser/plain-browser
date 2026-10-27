@@ -8,6 +8,10 @@ param([string]$Work = "C:\pb", [string]$Out = "")
 if (-not $Out) { $Out = Join-Path $Work "tree.zip" }
 if (Test-Path $Out) { Remove-Item $Out -Force }
 Write-Step "7z a $Out"
-Run 7z a "-tzip" $Out (Join-Path $Work "ucw") "-mx=3" "-mtc=on" "-xr!download_cache"
+# 7z exits 1 for warnings (the Chromium tree has a few dangling links it cannot open, e.g. under third_party\nearby);
+# the archive is complete then. Upstream's stage action passes ignoreReturnCode for the same reason. 2 and above is a failure.
+& 7z a "-tzip" $Out (Join-Path $Work "ucw") "-mx=3" "-mtc=on" "-xr!download_cache"
+if ($LASTEXITCODE -gt 1) { throw "7z exited with $LASTEXITCODE" }
+if ($LASTEXITCODE -eq 1) { Write-Host "7z finished with warnings (exit 1), continuing" }
 Write-Host "tree.zip: $([math]::Round((Get-Item $Out).Length / 1GB, 1)) GB"
 Write-DiskFree
