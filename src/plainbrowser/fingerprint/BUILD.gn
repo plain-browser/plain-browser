@@ -82,3 +82,21 @@ source_set("renderer") {
     "//v8",
   ]
 }
+
+# Part of //plainbrowser:plainbrowser_unittests (see docs/TESTING.md).
+source_set("unit_tests") {
+  testonly = true
+  sources = [
+    "common/features_unittest.cc",
+    "renderer/fingerprint_exceptions_unittest.cc",
+    "renderer/fingerprint_script_unittest.cc",
+  ]
+  deps = [
+    ":common",
+    ":exceptions",
+    ":script",
+    "//base",
+    "//base/test:test_support",
+    "//testing/gtest",
+  ]
+}

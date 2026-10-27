@@ -1,5 +1,7 @@
 # Copyright Plain Browser contributors. MPL-2.0.
 # Copied to chromium/src/plainbrowser/ by scripts/prepare.py / apply-plainbrowser.ps1.
+import("//testing/test.gni")
+
 # Chromium targets depend on //plainbrowser:browser and //plainbrowser:renderer
 # (patches/00-build/0001-gn-deps.patch); each feature adds itself here.
 group("browser") {
@@ -23,5 +25,17 @@ group("plainbrowser") {
   public_deps = [
     ":browser",
     ":renderer",
+  ]
+}
+
+# gtest unit tests for our C++ code: ninja -C out\Default plainbrowser_unittests
+# (reachable because chrome depends on //plainbrowser). Needs no //content: the
+# features are split so the testable parts link alone; see docs/TESTING.md.
+# //mojo/core/test:run_all_unittests initialises mojo for the filter tests.
+test("plainbrowser_unittests") {
+  deps = [
+    "//mojo/core/test:run_all_unittests",
+    "//plainbrowser/adblock:unit_tests",
+    "//plainbrowser/fingerprint:unit_tests",
   ]
 }
