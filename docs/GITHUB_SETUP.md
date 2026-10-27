@@ -66,6 +66,23 @@ updatera.
 6. Po certyfikacji sprawdź na czystej maszynie, że aktualizacja Store faktycznie wchodzi (Microsoft Store →
    Biblioteka → Pobierz aktualizacje).
 
+### Automatyczne wysyłanie do Store (`store-submit.yml`)
+
+Pierwsze zgłoszenie (nazwa, ankieta wieku, listing, ceny, pierwsza paczka) robisz ręcznie w Partner Center; API
+aktualizuje istniejący produkt. Dalej:
+
+1. Partner Center → Account settings → User management → Azure AD applications: dodaj aplikację (Entra ID) z rolą
+   Manager lub Developer, utwórz dla niej sekret. Zapisz tenant ID, client ID, secret oraz seller ID (Account
+   settings → Organization profile → Legal info).
+2. GitHub → Settings → Environments → nowe środowisko **`store`**: dodaj **Required reviewers** (siebie i drugą osobę),
+   ogranicz do gałęzi/tagów `v*` i `main`. Sekrety środowiska: `PARTNER_CENTER_TENANT_ID`, `PARTNER_CENTER_SELLER_ID`,
+   `PARTNER_CENTER_CLIENT_ID`, `PARTNER_CENTER_CLIENT_SECRET`. Sekrety repozytorium nie, bo zobaczyłby je build.
+3. Zmienne repozytorium: `STORE_PRODUCT_ID` (Store ID produktu, 12 znaków, z Partner Center → Product identity),
+   opcjonalnie `STORE_ROLLOUT_PERCENT`; `MSIX_*` z punktu 2 już muszą być ustawione.
+4. Sekret klienta Entra ID wygasa (maks. 24 miesiące): zapisz datę w kalendarzu.
+5. Pierwszy przebieg zrób ręcznie (Actions → store-submit → Run workflow) z `commit=false` i obejrzyj szkic w
+   Partner Center, zanim włączysz wysyłanie przy publikacji wydania.
+
 ## 6. Co z tego wynika dla aktualizacji
 
 Aplikacje ze Store aktualizują się automatycznie (ustawienie „Aktualizacje aplikacji” w Microsoft Store, domyślnie

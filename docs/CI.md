@@ -123,12 +123,41 @@ costs nothing but time; the storage of the `tree-*` artifacts (several tens of G
   is not called. The MSIX gets the Store identity from the repository variables `MSIX_IDENTITY_NAME`,
   `MSIX_PUBLISHER`, `MSIX_PUBLISHER_DISPLAY` (Partner Center, Product identity); without them it is the dev package.
 
+## Microsoft Store submission
+
+`.github/workflows/store-submit.yml` is separate from the build on purpose: the build runs code fetched from the
+network for a day and a half and must not see the Partner Center credentials. The chain is
+
+1. tag `v*` -> `build-windows.yml` -> draft release with the MSIX;
+2. `sign-release.yml` (manual) -> `SHA256SUMS.txt` and cosign bundles on the release;
+3. publish the release (by hand; a release created with `GITHUB_TOKEN` starts nothing) or run `store-submit` for a tag;
+4. the job waits for a reviewer of the `store` environment, downloads the MSIX, checks the cosign bundles and the
+   checksum, checks that `AppxManifest.xml` carries `MSIX_IDENTITY_NAME` (a dev package is refused), and runs
+   `msstore publish dist -i dist -id <STORE_PRODUCT_ID> --packageRolloutPercentage <n>` (Microsoft Store Developer CLI,
+   installed with `microsoft/setup-msstore-cli`, pinned to a commit).
+
+The manual run has `commit=false`, which passes `--noCommit`: the submission stays a draft in Partner Center and you
+send it from there. Rollout is the `rollout` input, else the variable `STORE_ROLLOUT_PERCENT`, else 10 %; raise it in
+Partner Center after the update has reached a clean machine. Certification takes hours to days and the job does not
+wait for it; the result is in Partner Center.
+
+Not verified (the workflow has not run): the exact behaviour of `msstore publish <dir> -i <dir>` for a bare `.msix`
+without a project, and whether a rollout percentage is accepted while the product has no earlier published package
+(if not, drop `STORE_ROLLOUT_PERCENT` to 100 for the first automated submission). Option names were read from the
+CLI source (`MSStore.CLI/Commands/PublishCommand.cs`).
+
+**Package version.** `scripts/ci/package.ps1` turns `0.1.0-alpha.1` into `0.1.0.0`, so `alpha.2` would give the same
+`0.1.0.0` and the Store refuses a version that is not higher than the last submitted one. Before the second Store
+submission the mapping needs the pre-release number (for example `0.1.<n>.0` or a bump of the patch part); that is a
+decision about the version scheme and is not made here.
+
 ## Still manual
 
 - Set the three `MSIX_*` repository variables (Settings, Secrets and variables, Actions, Variables) before a Store build.
 - Push the tag (`git tag -s v0.1.0-alpha.2 && git push origin v0.1.0-alpha.2`), wait about a day and a half.
 - Review the draft release, run `sign-release.yml` on the tag, publish the release.
-- Upload the MSIX from the release to Partner Center; the Store signs and distributes it.
+- Publish the release: `store-submit.yml` then waits for a reviewer of the `store` environment and sends the MSIX to
+  certification (next section). Without the Partner Center setup, upload the MSIX by hand instead.
 - Smoke test the build (`scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`) still runs on a
   Windows machine by hand; the workflow builds and packages but does not run the browser.
 - Bumping the upstream tag: `versions.toml`, the patch dry-run (`patches-check.yml`) and, if the Windows SDK pin in
