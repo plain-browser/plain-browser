@@ -74,3 +74,20 @@ nowe pliki wchodzą przy kolejnym uruchomieniu. Ograniczenia: certyfikacja trwa 
 poprawka bezpieczeństwa Chromium dociera do użytkowników później niż przy własnym kanale; użytkownik, który
 wyłączył automatyczne aktualizacje Store, nie dostanie nic. Jeśli kiedyś wrócimy do dystrybucji poza Store,
 potrzebny będzie własny updater (`docs/ARCHITECTURE.md`, sekcja 6) i certyfikat.
+
+Sprawy otwarte (2026-10-27):
+
+1. **Przeglądarka otwarta tygodniami nie dostanie aktualizacji.** Store czeka, aż aplikacja się zamknie, a w
+   środku nie ma podpowiedzi „jest nowa wersja, uruchom ponownie” (mechanizm Chromium, `UpgradeDetector`, wykrywa
+   nową wersję na dysku, której przy MSIX nie ma, dopóki paczka nie wejdzie). Kierunek: aplikacja pakowana z
+   `runFullTrust` może sama pytać Store przez `Windows.Services.Store.StoreContext`
+   (`GetAppAndOptionalStorePackageUpdatesAsync`) i zainicjować pobranie z restartem
+   (`RequestDownloadAndInstallStorePackageUpdatesAsync`). Niezweryfikowane w kodzie; do sprawdzenia, zanim trafi
+   do planu.
+2. **Przepustowość builda, nie Store, ogranicza tempo łatek.** Chromium stable wydaje poprawki bezpieczeństwa co
+   1–2 tygodnie; każda to pełny build (na VM z 9 GB RAM około doby z przerwami, `scripts/build.ps1`), CI i
+   certyfikacja. Regularne aktualizacje wymagają albo więcej pamięci dla VM, albo buildów w GitHub Actions
+   (`docs/CI.md`, napisane, jeszcze nie uruchomione).
+3. **Wycofanie złej wersji** w Store to wgranie kolejnej; „cofnij” nie istnieje. Partner Center ma stopniowe
+   wdrażanie paczki (procent użytkowników): włączać je przy każdym wydaniu i podnosić dopiero po sprawdzeniu, że
+   aktualizacja wchodzi (punkt 6 w sekcji 5).
