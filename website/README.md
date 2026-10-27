@@ -47,11 +47,23 @@ npm run dev
 
 ## Deploy
 
-Locally, with `gcloud auth login` done once:
+Locally, with `gcloud auth login` done once (`gcloud auth login --no-launch-browser` in WSL or over SSH):
 
 ```bash
+gcloud config set project plain-browser   # once
 npm run deploy
 ```
+
+`npm run deploy` runs `scripts/deploy.sh`: it builds the site and syncs `out/` to `gs://$BUCKET` (default
+`plain-browser.app`; override with `BUCKET=...`). If `gcloud` was installed from the tarball into
+`~/google-cloud-sdk`, it is not on `PATH` in a fresh shell: `export PATH=$HOME/google-cloud-sdk/bin:$PATH` first.
+Check access with `gcloud auth list` and `gcloud storage ls gs://plain-browser.app`.
+
+The HTML is cached for 300 s, so a deploy shows up on the live site within about two to five minutes unless you
+purge the Cloudflare cache.
+
+Until the repository variables below are set, the `deploy` job in the workflow is skipped (the `build` job still
+runs), so a push to `main` does **not** publish the site; deploy by hand as above.
 
 From GitHub Actions: `.github/workflows/website.yml` runs on every push that touches `website/`, `docs/`,
 `SECURITY.md` or `versions.toml`, using Workload Identity Federation. It needs two repository variables:
