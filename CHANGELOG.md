@@ -36,6 +36,10 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 - Polish security policy (`docs/SECURITY.pl.md`).
 
 ### Fixed
+- Microsoft Store package: the taskbar button showed a blank page instead of the logo. The window pointed at the
+  profile icon, which the package writes to its virtualized AppData where Explorer cannot see it; it now carries the
+  package app's ID and the package's logo (`patches/60-ui/0010`). The package also gets a `resources.pri`, so the
+  shell finds the 16-256 px unplated logos.
 - Element hiding: one invalid selector in a site's rules (for example an Adblock Plus `#?#` rule) switched off all
   hide rules for that site, because they were one CSS rule; each selector now has its own.
 

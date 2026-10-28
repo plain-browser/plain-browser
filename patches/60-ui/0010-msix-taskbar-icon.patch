@@ -1,0 +1,59 @@
+From: Plain Browser
+Subject: [ui] Browser windows in the MSIX package: the package's taskbar icon, not the profile icon
+
+Category: 60-ui. Installed from the Microsoft Store, the browser runs from an MSIX package. Its writes to
+%LOCALAPPDATA%\PlainBrowser go to the package's virtualized copy (Packages\<family>\LocalCache\Local) unless that
+folder already exists for real, which on a machine that never ran the portable build it does not. Chromium gives
+each browser window relaunch details whose icon is the profile's "Google Profile.ico" at the real path; Explorer
+(outside the package) does not see the virtualized file, so the taskbar button was a blank page.
+When the process belongs to a package, a browser window now gets only the package app's App User Model ID
+(<PackageFamilyName>!PlainBrowser) and no relaunch details: the taskbar groups it with the Start entry and shows the
+package's logo (branding/icons/msix). Web app windows (earlier return) and the portable build are unchanged.
+---
+--- a/chrome/browser/ui/views/frame/browser_window_property_manager_win.cc
++++ b/chrome/browser/ui/views/frame/browser_window_property_manager_win.cc
+@@ -5,5 +5,9 @@
+ #include "chrome/browser/ui/views/frame/browser_window_property_manager_win.h"
+ 
++#include <windows.h>
++
++#include <appmodel.h>
++
+ #include "base/command_line.h"
+ #include "base/functional/bind.h"
+ #include "base/strings/utf_string_conversions.h"
+@@ -26,4 +30,19 @@
+ 
+ using extensions::ExtensionRegistry;
+ 
++namespace {
++
++// Plain Browser: the App User Model ID of the MSIX package's app
++// (<PackageFamilyName>!PlainBrowser) when the browser runs from the package
++// (Microsoft Store), empty otherwise.
++std::wstring PackageAppUserModelId() {
++  wchar_t id[APPLICATION_USER_MODEL_ID_MAX_LENGTH];
++  UINT32 length = APPLICATION_USER_MODEL_ID_MAX_LENGTH;
++  return ::GetCurrentApplicationUserModelId(&length, id) == ERROR_SUCCESS
++             ? std::wstring(id)
++             : std::wstring();
++}
++
++}  // namespace
++
+ BrowserWindowPropertyManager::BrowserWindowPropertyManager(
+@@ -87,4 +106,14 @@
+   }
+ 
++  // Plain Browser: inside the MSIX package the window takes the package app's
++  // ID and no relaunch details. The profile icon they point to is written to
++  // the package's virtualized AppData, which Explorer does not see, so the
++  // taskbar showed a blank page; the package's logo is used instead.
++  if (std::wstring package_app_id = PackageAppUserModelId();
++      !package_app_id.empty()) {
++    ui::win::SetAppIdForWindow(package_app_id, hwnd_);
++    return;
++  }
++
+   ProfileManager* const profile_manager = g_browser_process->profile_manager();
+   ProfileShortcutManager* const shortcut_manager =

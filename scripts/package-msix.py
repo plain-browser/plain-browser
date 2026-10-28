@@ -6,7 +6,7 @@
 
 Without --identity-name/--publisher it builds a dev package (identity PlainBrowser.Dev, publisher CN=PlainBrowser Dev)
 that only installs on a machine you control. For the Store, pass the three values Partner Center shows under
-Product identity; the Store signs the package itself, so upload it unsigned. Needs MakeAppx.exe from the Windows SDK.
+Product identity; the Store signs the package itself, so upload it unsigned. Needs MakeAppx.exe and MakePri.exe from the Windows SDK.
 The last version part must be 0 for the Store."""
 import argparse, glob, os, shutil, subprocess, sys, zipfile
 from xml.sax.saxutils import escape
@@ -109,6 +109,20 @@ def main():
         f.write(MANIFEST.format(name=escape(a.identity_name), publisher=escape(a.publisher, {'"': "&quot;"}),
                                 version=a.version, publisher_display=escape(a.publisher_display),
                                 html_types="".join("<uap:FileType>%s</uap:FileType>" % t for t in HTML_TYPES)))
+
+    # resources.pri maps Square44x44Logo.png to its targetsize-*/altform-unplated variants, which the taskbar, the
+    # Start menu list and Alt+Tab use; without it the shell only knows the plated 44x44 file. Indexed from a copy
+    # holding just the logos and the manifest, so the browser's own files (locales\*.pak etc.) stay out of it.
+    pri = os.path.join(a.out, "pri-stage")
+    shutil.rmtree(pri, ignore_errors=True)
+    shutil.copytree(os.path.join(stage, "Assets"), os.path.join(pri, "Assets"))
+    shutil.copy(os.path.join(stage, "AppxManifest.xml"), pri)
+    makepri = find_tool("makepri.exe")
+    subprocess.check_call([makepri, "createconfig", "/cf", os.path.join(pri, "priconfig.xml"), "/dq", "en-US",
+                           "/pv", "10.0.0", "/o"])
+    subprocess.check_call([makepri, "new", "/pr", pri, "/cf", os.path.join(pri, "priconfig.xml"),
+                           "/mn", os.path.join(pri, "AppxManifest.xml"), "/of", os.path.join(stage, "resources.pri"), "/o"])
+    shutil.rmtree(pri, ignore_errors=True)
 
     out = os.path.join(a.out, "PlainBrowser_%s_x64.msix" % a.version)
     if os.path.exists(out):
