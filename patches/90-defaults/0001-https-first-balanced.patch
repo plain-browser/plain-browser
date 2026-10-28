@@ -1,0 +1,22 @@
+From: Plain Browser
+Subject: [defaults] HTTPS-First Mode on by default, in its balanced setting
+
+Category: 90-defaults. Chromium 156 ships HTTPS-First Mode's balanced setting ("Warn you before going to insecure
+public sites") but leaves it off unless the user turns it on. Plain Browser turns it on for every profile whose user
+has not chosen: navigations are tried over HTTPS first and a public site that only answers over HTTP gets the
+"Connection is not secure" warning; local and non-unique hosts (192.168.x.x, *.local, intranet names) are not
+warned about. Settings > Privacy and security > Security > "Always use secure connections" shows the setting
+(GeneratedHttpsFirstModePref reads the same IsBalancedModeEnabled()), and a choice made there (off, balanced or
+strict) is stored in the prefs and wins over this default.
+---
+--- a/chrome/common/chrome_features.cc
++++ b/chrome/common/chrome_features.cc
+@@ -1230,6 +1230,7 @@
+ // Automatically enables HTTPS-First Mode in a balanced configuration when
+ // possible.
++// Plain Browser: on by default (patches/90-defaults/0001).
+ BASE_FEATURE(kHttpsFirstBalancedModeAutoEnable,
+-             base::FEATURE_DISABLED_BY_DEFAULT);
++             base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ // Kill switch for crbug.com/40892208.

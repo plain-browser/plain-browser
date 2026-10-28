@@ -52,6 +52,12 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   hide rules for that site, because they were one CSS rule; each selector now has its own.
 
 ### Changed
+- Secure defaults: HTTPS-First Mode is on in its balanced setting (a public site that only answers over HTTP gets
+  a warning first; local and intranet hosts do not), `patches/90-defaults/0001`; secure DNS is back in Chromium's
+  automatic mode, so lookups go over DNS-over-HTTPS when the resolver already in use offers it (ungoogled turns
+  this off; we drop two hunks of its `doh-changes.patch`, the removal of Google Public DNS stays). Both follow the
+  user's choice in Settings > Security. Third-party cookies stay blocked (ungoogled's default), which also keeps
+  Chromium's bounce tracking mitigation active.
 - The ad blocker's engine runs in its own sandboxed utility process ("Plain Browser ad blocker" in Task Manager), so
   filter lists, which now come from the network, are never parsed in the browser process. If that process crashes,
   nothing is blocked until it is restarted on the next request, without the downloaded lists.

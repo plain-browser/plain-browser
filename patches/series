@@ -39,3 +39,4 @@
 70-safebrowsing/0005-settings-ui.patch
 80-fingerprint/0001-renderer-agent.patch
 80-fingerprint/0002-browser-renderer-switches.patch
+90-defaults/0001-https-first-balanced.patch

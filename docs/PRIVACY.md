@@ -1,6 +1,6 @@
 # Plain Browser privacy policy
 
-Last updated: 27 October 2026 · [Polski](PRIVACY.pl.md)
+Last updated: 28 October 2026 · [Polski](PRIVACY.pl.md)
 
 Plain Browser is a web browser built from Chromium with the ungoogled-chromium patch set. This policy says what the
 browser does with your data. It describes version 0.1.2-alpha.1 and is updated whenever a release changes it.
@@ -40,6 +40,14 @@ standard request headers. That is how the web works, and the website's own priva
 The built-in ad blocker runs entirely on your device. Its filter lists (EasyList, EasyPrivacy, EasyList Polish) are
 bundled with the browser and, unless you turn updates off, kept current from our mirror (next section). The
 blocker does not report to anyone what it blocks.
+
+## Secure DNS
+
+To find a website, the browser asks a DNS resolver for its address. Plain Browser uses the resolver your network
+or Windows is already set to use. When that resolver also offers an encrypted DNS-over-HTTPS endpoint (for
+example Cloudflare or Quad9), the browser sends its lookups there encrypted instead of in plain text; otherwise it
+asks the resolver as before. No other DNS provider is added and we do not receive your lookups. You can turn this
+off, or choose a provider, in Settings > Privacy and security > Security > "Use secure DNS".
 
 ## Filter list updates
 

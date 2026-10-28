@@ -33,3 +33,11 @@ hunks:uc:core/ungoogled-chromium/remove-unused-preferences-fields.patch:safe_bro
 # Moves kJavascriptOptimizerBlockedForUnfamiliarSites out of the (pruned) Safe Browsing prefs; with those prefs
 # back the upstream code is right and the move would define the constant twice.
 uc:core/ungoogled-chromium/move-js-optimizer-unfamiliar-sites.patch
+# Secure DNS: ungoogled's doh-changes.patch turns DNS-over-HTTPS off and disables the automatic-mode upgrade table
+# (kDnsOverHttpsUpgrade), because that table listed Google Public DNS. The same patch also deletes the Google
+# entries from the table (net/dns/public/doh_provider_entry.cc) and the google.com probe host; those hunks stay.
+# With these two hunks dropped, secure DNS is back in Chromium's default "automatic" mode: a lookup goes over
+# DoH only when the resolver the system already uses has a DoH endpoint in the table (Cloudflare, Quad9, ...),
+# otherwise as before. No new party sees the queries. Off on domain-joined machines and with Windows parental
+# controls (upstream behaviour). docs/PRIVACY.md, "Secure DNS".
+hunks:uc:core/ungoogled-chromium/doh-changes.patch:default_dns_over_https_config_source\.cc|services/network/public/cpp/features\.cc

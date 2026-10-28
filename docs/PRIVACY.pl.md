@@ -1,6 +1,6 @@
 # Polityka prywatności Plain Browser
 
-Ostatnia aktualizacja: 27 października 2026 · [English](PRIVACY.md)
+Ostatnia aktualizacja: 28 października 2026 · [English](PRIVACY.md)
 
 Plain Browser to przeglądarka zbudowana z Chromium z zestawem poprawek ungoogled-chromium. Ta polityka opisuje, co
 przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.1.2-alpha.1 i jest aktualizowana przy każdym wydaniu, które to
@@ -43,6 +43,15 @@ nagłówki żądań. Tak działa sieć, a do tych danych stosuje się polityka p
 Wbudowany bloker reklam działa w całości na Twoim urządzeniu. Listy filtrów (EasyList, EasyPrivacy, EasyList
 Polish) są dołączone do przeglądarki i, o ile nie wyłączysz aktualizacji, odświeżane z naszego serwera (następna
 sekcja). Bloker nikomu nie zgłasza, co blokuje.
+
+## Bezpieczny DNS
+
+Żeby znaleźć stronę, przeglądarka pyta serwer DNS o jej adres. Plain Browser korzysta z serwera DNS, którego już
+używa Twoja sieć albo Windows. Jeśli ten serwer udostępnia też szyfrowany punkt DNS-over-HTTPS (na przykład
+Cloudflare albo Quad9), przeglądarka wysyła tam zapytania zaszyfrowane zamiast jawnym tekstem; w przeciwnym razie
+pyta serwer tak jak wcześniej. Nie dochodzi żaden inny dostawca DNS, a my nie dostajemy Twoich zapytań. Możesz to
+wyłączyć albo wybrać dostawcę w Ustawienia > Prywatność i bezpieczeństwo > Bezpieczeństwo > „Używaj bezpiecznego
+DNS”.
 
 ## Aktualizacje list filtrów
 
