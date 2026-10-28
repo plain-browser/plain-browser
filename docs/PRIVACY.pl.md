@@ -8,12 +8,12 @@ zmienia.
 
 ## W skrócie
 
-- Plain Browser **nie ma telemetrii, statystyk użycia ani raportów o awariach**, które trafiałyby do nas lub do
-  kogokolwiek innego.
+- Plain Browser **nie ma telemetrii ani statystyk użycia**. Raporty o awariach trafiają do nas **tylko wtedy, gdy
+  je włączysz** (domyślnie wyłączone, niżej).
 - Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera**, który odbierałby z
   przeglądarki dane o Tobie. Nie widzimy, co przeglądasz. Dwie nasze usługi, z którymi łączy się przeglądarka
   (proxy Safe Browsing i serwer list filtrów, opisane niżej), nie prowadzą logów i nie dostają nic o odwiedzanych
-  stronach.
+  stronach. Trzecia, serwer raportów o awariach, dostaje raport tylko wtedy, gdy włączysz raporty o awariach.
 - **Nie łączy się z usługami Google.** Poprawki ungoogled-chromium usuwają je (logowanie Google, tłumaczenie,
   Chrome Web Store i inne). Jedynym wyjątkiem jest Safe Browsing przez nasze własne anonimizujące
   proxy, opisane niżej; można go wyłączyć.
@@ -21,7 +21,7 @@ zmienia.
 
 ## Co zbieramy
 
-Nic. Nie otrzymujemy, nie zbieramy, nie przechowujemy ani nie sprzedajemy danych osobowych. W przeglądarce nie ma
+Nic, chyba że włączysz raporty o awariach (niżej). Nie sprzedajemy danych osobowych. W przeglądarce nie ma
 analityki, identyfikatora reklamowego ani kodu śledzącego.
 
 Sprawdziliśmy to dla pierwszego uruchomienia: przy świeżym profilu i bez otwartej strony Plain Browser przez 100
@@ -91,6 +91,26 @@ oferuje to bez przekazywania Google czegokolwiek o Tobie:
   adresy i treść stron, są wyłączone i nie da się ich włączyć.
 - Safe Browsing można wyłączyć w ustawieniach (Ty i Google → Usługi Google albo Prywatność i bezpieczeństwo →
   Bezpieczeństwo); wtedy przeglądarka nie wysyła do naszego proxy niczego.
+
+## Raporty o awariach
+
+Gdy przeglądarka albo strona ulegnie awarii, Plain Browser zapisuje raport o awarii na Twoim urządzeniu; raporty
+widać na stronie `chrome://crashes`. Są **wysyłane tylko wtedy, gdy włączysz** „Wysyłaj raporty o awariach do Plain
+Browser” w Ustawienia > Prywatność i bezpieczeństwo; **domyślnie to ustawienie jest wyłączone**. Gdy jest włączone,
+po awarii przeglądarka wysyła raport, najwyżej jeden na godzinę, na nasz serwer `crash.plain-browser.app`, żebyśmy
+mogli znaleźć i usunąć przyczynę.
+
+- Raport zawiera wersję przeglądarki, rodzaj procesu, który uległ awarii, techniczne szczegóły awarii i *minidump*:
+  zapis części pamięci tego procesu. Minidump może zawierać fragmenty tego, czym proces się zajmował, na przykład
+  stronę otwartą w karcie, która uległa awarii.
+- Zanim raport zostanie zapisany, serwer usuwa pola, które mogłyby wskazać Ciebie albo Twoje urządzenie:
+  identyfikator klienta, opcje wiersza poleceń przeglądarki (mogą zawierać Twoją nazwę użytkownika Windows) oraz
+  pola z adresem strony albo ścieżką pliku.
+- Serwer nie prowadzi logów i nie zapisuje Twojego adresu IP. Raporty są przechowywane u Cloudflare (naszego
+  dostawcy hostingu) i **usuwane po 90 dniach**. Używamy ich tylko do naprawiania błędów i nikomu ich nie
+  udostępniamy.
+- Wyłączenie ustawienia natychmiast zatrzymuje wysyłanie. Raporty zapisane już na urządzeniu zostają na nim;
+  odinstalowanie przeglądarki je usuwa.
 
 ## Rozszerzenia
 

@@ -1,0 +1,53 @@
+From: Plain Browser
+Subject: [ui] Settings > Privacy and security: "Send crash reports to Plain Browser"
+
+Category: 60-ui. A toggle under the "Sites with protections off" section (60-ui/0009) for the Local State pref
+plainbrowser.crash_reports.enabled (default off, //plainbrowser/crash, 95-crash/0001), allowlisted for
+settingsPrivate. privacy_page.ts imports settings_toggle_button.js itself (the web-component-missing-deps
+lint wants every element a template uses imported by its own page). Strings are in the shields grdp (English and
+Polish).
+---
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -82,6 +82,7 @@
+ #include "extensions/browser/management_policy.h"
+ #include "extensions/common/extension.h"
+ #include "plainbrowser/adblock/common/pref_names.h"
++#include "plainbrowser/crash/common/pref_names.h"
+ #include "plainbrowser/shields/common/pref_names.h"
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+@@ -451,6 +452,9 @@
+       settings_api::PrefType::kBoolean;
+   (*s_allowlist)[plainbrowser::adblock::prefs::kListUpdatesLastSuccess] =
+       settings_api::PrefType::kNumber;
++  // Plain Browser: "Send crash reports" (Local State).
++  (*s_allowlist)[plainbrowser::crash::prefs::kCrashReportsEnabled] =
++      settings_api::PrefType::kBoolean;
+ 
+   // Privacy Guide
+   (*s_allowlist)[::prefs::kPrivacyGuideViewed] =
+--- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
++++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
+@@ -36,6 +36,11 @@
+         role-description="$i18n{subpageArrowRoleDescription}"></cr-link-row>
+     <settings-plainbrowser-shields-exceptions prefs="{{prefs}}">
+     </settings-plainbrowser-shields-exceptions>
++    <settings-toggle-button id="plainBrowserCrashReports" class="hr"
++        pref="{{prefs.plainbrowser.crash_reports.enabled}}"
++        label="$i18n{plainBrowserCrashReports}"
++        sub-label="$i18n{plainBrowserCrashReportsDesc}">
++    </settings-toggle-button>
+     <cr-toast id="deleteBrowsingDataToast" duration="5000">
+       <div>[[dbdDeletionConfirmationToastLabel_]]</div>
+     </cr-toast>
+--- a/chrome/browser/resources/settings/privacy_page/privacy_page.ts
++++ b/chrome/browser/resources/settings/privacy_page/privacy_page.ts
+@@ -12,6 +12,7 @@
+ import 'chrome://resources/cr_elements/cr_link_row/cr_link_row.js';
+ import 'chrome://resources/cr_elements/cr_shared_style.css.js';
+ import 'chrome://resources/cr_elements/cr_toast/cr_toast.js';
++import '../controls/settings_toggle_button.js';
+ import '../icons.html.js';
+ import '../privacy_icons.html.js';
+ import '../settings_page/settings_section.js';

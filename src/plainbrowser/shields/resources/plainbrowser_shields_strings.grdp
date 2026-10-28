@@ -99,6 +99,14 @@
     Filter lists in use, the filter engine and blocked requests
   </message>
 
+  <!-- Crash reports (settings, //plainbrowser/crash). -->
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_CRASH_REPORTS" desc="Label of the settings toggle that turns uploading crash reports to Plain Browser on or off. Off by default.">
+    Send crash reports to Plain Browser
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_CRASH_REPORTS_DESC" desc="Description of the crash reports toggle: what is sent, where, and what a report can contain.">
+    When the browser or a page crashes, a report goes to crash.plain-browser.app so the problem can be fixed. A report can contain parts of the crashed process's memory, such as the page that was open. Reports are kept for 90 days.
+  </message>
+
   <!-- chrome://adblock -->
   <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_PAGE_TITLE" desc="Title of the chrome://adblock page, which shows the state of Plain Browser's ad blocker.">
     Ad blocker

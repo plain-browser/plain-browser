@@ -103,7 +103,7 @@ const en: Dict = {
     title: "What it does not do",
     lead: "The privacy policy fits in a sentence: we collect nothing, because there is nothing that could.",
     items: [
-      "No telemetry, usage statistics or crash reports",
+      "No telemetry or usage statistics; crash reports only if you turn them on",
       "No account, sign-in or sync",
       "No analytics or advertising identifier in the browser",
       "No filter list downloads: the lists ship inside the binary",
@@ -277,7 +277,7 @@ const pl: Dict = {
     title: "Czego nie robi",
     lead: "Polityka prywatności mieści się w jednym zdaniu: niczego nie zbieramy, bo nie ma czym.",
     items: [
-      "Brak telemetrii, statystyk użycia i raportów o awariach",
+      "Brak telemetrii i statystyk użycia; raporty o awariach tylko po ich włączeniu",
       "Brak konta, logowania i synchronizacji",
       "Brak analityki i identyfikatora reklamowego w przeglądarce",
       "Brak pobierania list filtrów: listy są w pliku binarnym",

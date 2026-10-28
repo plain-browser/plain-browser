@@ -7,10 +7,12 @@ browser does with your data. It describes version 0.1.2-alpha.1 and is updated w
 
 ## Summary
 
-- Plain Browser has **no telemetry, no usage statistics and no crash reports** that are sent to us or anyone else.
+- Plain Browser has **no telemetry and no usage statistics**. Crash reports are sent to us **only if you turn
+  them on** (off by default, below).
 - It has **no account, sign-in or sync service**, and we run **no server** that receives data about you from the
   browser. We cannot see what you browse. The two services of ours the browser talks to, the Safe Browsing proxy
-  and the filter list mirror (both below), keep no logs and get nothing about the pages you visit.
+  and the filter list mirror (both below), keep no logs and get nothing about the pages you visit. The third, the
+  crash report server, gets a report only if you turned crash reports on.
 - It does **not contact Google services**. The ungoogled-chromium patches remove them (Google sign-in,
   translation, the Chrome Web Store and others). The one exception is Safe Browsing through our own
   anonymizing proxy, described below; you can turn it off.
@@ -18,8 +20,8 @@ browser does with your data. It describes version 0.1.2-alpha.1 and is updated w
 
 ## What we collect
 
-Nothing. We do not receive, collect, store or sell personal information. There is no analytics, advertising
-identifier or tracking code in the browser.
+Nothing, unless you turn crash reports on (below). We do not sell personal information. There is no analytics,
+advertising identifier or tracking code in the browser.
 
 We checked this for the first start of the browser: with a fresh profile and no page open, Plain Browser made no
 network requests of its own over 100 seconds. The only network activity was the Windows proxy auto-detection
@@ -87,6 +89,24 @@ without Google learning anything about you:
   content, are disabled and cannot be turned on.
 - You can turn Safe Browsing off in the settings (You and Google > Google services, or Privacy and security >
   Security); with it off, the browser makes no requests to our proxy.
+
+## Crash reports
+
+When the browser or a page crashes, Plain Browser writes a crash report on your device; you can see the reports on
+`chrome://crashes`. They are **sent only if you turn on** "Send crash reports to Plain Browser" in Settings >
+Privacy and security, which is **off by default**. With it on, after a crash the browser sends the report, at most
+one an hour, to our server `crash.plain-browser.app`, so that we can find and fix the cause.
+
+- A report contains the browser version, the kind of process that crashed, technical details about the crash and a
+  *minidump*: a snapshot of part of the crashed process's memory. A minidump can contain fragments of what that
+  process was handling, for example the page that was open in a crashed tab.
+- Before a report is stored, the server removes fields that could identify you or your device: a client
+  identifier, the browser's command-line options (they can contain your Windows user name) and fields that name a
+  web address or a file path.
+- The server keeps no logs and does not store your IP address. Reports are stored with Cloudflare (our hosting
+  provider) and **deleted after 90 days**. We use them only to fix bugs and never share them.
+- Turning the setting off stops all uploads at once. Reports already on your device stay there; uninstalling the
+  browser removes them.
 
 ## Extensions
 

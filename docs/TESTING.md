@@ -7,10 +7,10 @@ Three layers, from fast to slow:
 | Rust | adblock-rust bridge (`cargo test`) | `src/plainbrowser/adblock/rs` | CI (`rust.yml`), any machine with cargo |
 | Node | `fingerprint_script.js` (noise, determinism, native-looking wrappers) | `src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js` | any machine with Node |
 | Node | our scriptlets (set-constant chains, aborts, timers, fetch, json-prune, storage, window.open) | `src/plainbrowser/adblock/resources/scriptlets_test.js` | any machine with Node |
-| Node | Workers: filter list mirror (`npm test` in `infra/filter-lists`: publish checks, manifest, serving, refusals) and Safe Browsing proxy (`infra/safebrowsing-proxy`) | `infra/*/test` | any machine with Node 22.18+ |
+| Node | Workers: filter list mirror (`npm test` in `infra/filter-lists`: publish checks, manifest, serving, refusals), Safe Browsing proxy (`infra/safebrowsing-proxy`) and crash report collector (`infra/crash-reports`: gzip and plain reports stored, identifying fields dropped, refusals, rate limit) | `infra/*/test` | any machine with Node 22.18+ |
 | **gtest** | **our C++: `plainbrowser_unittests`** (this page) | `*_unittest.cc` next to the code | the Chromium tree on the build VM |
 | headless | the whole browser: `scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`, `test-shields.ps1`, `test-cosmetic-lists.ps1` (generic hiding incl. content added 35 s after load, `$redirect`, scriptlets, procedural filters; signed list updates from a local server, bad signature, restart, switch off), `test-live-lists.ps1` (the real mirror lists.plain-browser.app with the compiled-in key: a fresh profile downloads manifest and lists by itself, stored = served by SHA-256, the downloaded EasyList blocks and hides; run once the Worker has published) | `scripts/` | the build VM, against `out\Default\chrome.exe` |
-| UI | toolbar button and bubble in a normal window, driven by UI Automation: `scripts/test-shields-ui.ps1` (opens, toggles, closes; checks the pushed exception list in the running renderer, the blocked count on the button and the "Manage sites" link; English UI via `--lang`; screenshots); the Polish strings and the exception list in Settings: `scripts/test-shields-settings.ps1` (plural form of the count, add a URL and see its site, remove, the pref on disk); the Safe Browsing settings: `scripts/test-safebrowsing-settings.ps1` (the toggle under You and Google, no Enhanced protection, the pref on disk) | `scripts/` | the build VM's interactive desktop session (a scheduled task with `-LogonType Interactive`, not SSH) |
+| UI | toolbar button and bubble in a normal window, driven by UI Automation: `scripts/test-shields-ui.ps1` (opens, toggles, closes; checks the pushed exception list in the running renderer, the blocked count on the button and the "Manage sites" link; English UI via `--lang`; screenshots); the Polish strings and the exception list in Settings: `scripts/test-shields-settings.ps1` (plural form of the count, add a URL and see its site, remove, the pref on disk); the Safe Browsing settings: `scripts/test-safebrowsing-settings.ps1` (the toggle under You and Google, no Enhanced protection, the pref on disk); `chrome://adblock` and the global switch: `scripts/test-adblock-webui.ps1` (blocked count, engine process, lists, the settings rows, switch off shown on the page and in Local State) | `scripts/` | the build VM's interactive desktop session (a scheduled task with `-LogonType Interactive`, not SSH) |
 
 ## plainbrowser_unittests
 
@@ -58,6 +58,11 @@ all of `content/browser` and Blink into a second chrome-sized executable.
   resume, non-http not deferred, initiator passed as source URL, top-level URL and frame token passed through
   (none for workers), fail-open after 3 s when the browser never answers (mock time), fail-open at once when the
   pipe closes, `DetachFromCurrentSequence` clones the pipe, destination -> adblock-rust request type mapping.
+
+`crash` (`src/plainbrowser/crash/browser/crash_consent_unittest.cc`):
+
+- `CrashConsent`: off by default and written to the registry at start (under a `RegistryOverrideManager`), follows
+  the pref both ways, corrects a stale registry value at start; the consent callback gets every value.
 
 `fingerprint` (`src/plainbrowser/fingerprint/**/*_unittest.cc`):
 

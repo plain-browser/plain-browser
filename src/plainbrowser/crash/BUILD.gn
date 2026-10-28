@@ -1,0 +1,50 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# Opt-in crash reports: Crashpad uploads to crash.plain-browser.app only when
+# "Send crash reports" is on (Local State pref, off by default). Chromium ties
+# the upload consent to metrics consent; patches/95-crash points chrome_elf's
+# crash reporter client and the metrics services manager at this instead.
+# Windows only, like the rest of the browser.
+
+# Header only, no deps: chrome_elf includes crash_constants.h.
+source_set("common") {
+  sources = [
+    "common/crash_constants.h",
+    "common/pref_names.h",
+  ]
+}
+
+# The pref and its mirror into the registry. No chrome_elf or install_static, so
+# unit tests link it alone (docs/TESTING.md).
+source_set("consent") {
+  sources = [
+    "browser/crash_consent.cc",
+    "browser/crash_consent.h",
+  ]
+  public_deps = [ ":common" ]
+  deps = [
+    "//base",
+    "//components/prefs",
+  ]
+}
+
+source_set("browser") {
+  sources = [ "browser/crash_consent_startup.cc" ]
+  public_deps = [ ":consent" ]
+  deps = [
+    "//base",
+    "//chrome/install_static:install_static_util",
+    "//components/crash/core/app:crash_export_thunk_include",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+  sources = [ "browser/crash_consent_unittest.cc" ]
+  deps = [
+    ":consent",
+    "//base",
+    "//base/test:test_support",
+    "//components/prefs:test_support",
+    "//testing/gtest",
+  ]
+}

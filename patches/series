@@ -32,6 +32,7 @@
 60-ui/0009-shields-settings-page.patch
 60-ui/0010-msix-taskbar-icon.patch
 60-ui/0011-adblock-webui.patch
+60-ui/0012-crash-reports-toggle.patch
 70-safebrowsing/0001-proxy-and-client-header.patch
 70-safebrowsing/0002-no-signin-pref-includes.patch
 70-safebrowsing/0003-public-lists-only.patch
@@ -40,3 +41,4 @@
 80-fingerprint/0001-renderer-agent.patch
 80-fingerprint/0002-browser-renderer-switches.patch
 90-defaults/0001-https-first-balanced.patch
+95-crash/0001-crashpad-consent-and-upload.patch

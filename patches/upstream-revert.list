@@ -41,3 +41,9 @@ uc:core/ungoogled-chromium/move-js-optimizer-unfamiliar-sites.patch
 # otherwise as before. No new party sees the queries. Off on domain-joined machines and with Windows parental
 # controls (upstream behaviour). docs/PRIVACY.md, "Secure DNS".
 hunks:uc:core/ungoogled-chromium/doh-changes.patch:default_dns_over_https_config_source\.cc|services/network/public/cpp/features\.cc
+# Crash reports: ungoogled's disable-crash-reporter.patch makes InitializeCrashpad return early on Windows and
+# empties the handler's upload URL. Plain Browser keeps Crashpad (dumps stay local unless the user turns "Send
+# crash reports" on; then they go to crash.plain-browser.app, patches/95-crash). Dropped whole: its
+# crash_reporter_client.cc hunk only repeats what upstream does for non-Google builds (no upload URL in the base
+# class), and ChromeCrashReporterClient overrides GetUploadUrl anyway.
+uc:core/ungoogled-chromium/disable-crash-reporter.patch

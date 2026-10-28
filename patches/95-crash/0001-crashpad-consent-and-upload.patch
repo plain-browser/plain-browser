@@ -1,0 +1,122 @@
+From: Plain Browser
+Subject: [crash] Crashpad uploads to crash.plain-browser.app when the user turned crash reports on
+
+Category: 95-crash. ungoogled's disable-crash-reporter.patch (dropped in upstream-revert.list) switches Crashpad
+off on Windows; with it back, dumps are written locally (chrome://crashes) as in Chromium. Uploading needs two
+things Chromium ties to Google Chrome and metrics:
+- the URL: ChromeCrashReporterClient::GetUploadUrl() returns plainbrowser::crash::kUploadUrl (a Cloudflare
+  Worker, infra/crash-reports); the base class returns one only for Google Chrome builds;
+- the consent: ChromeCrashReporterClient::GetCollectStatsConsent() reads our registry value
+  (HKCU\<install_static::GetRegistryPath()>\PlainBrowserCrashReports = 1) instead of the metrics "usagestats"
+  value; the MetricsReportingEnabled policy still wins. ChromeMetricsServicesManagerClient::UpdateRunningServices
+  no longer passes the metrics state to Crashpad, which would switch uploads off whenever metrics are off (always,
+  in Plain Browser).
+The Local State pref plainbrowser.crash_reports.enabled (default off, Settings > Privacy and security, 60-ui/0012)
+is registered in RegisterLocalState; StartCrashConsent (PostBrowserStart, after the filter list updater of
+30-adblock/0006) mirrors it into that registry value and the running Crashpad. Code: //plainbrowser/crash.
+---
+--- a/chrome/app/chrome_crash_reporter_client_win.h
++++ b/chrome/app/chrome_crash_reporter_client_win.h
+@@ -39,6 +39,9 @@
+ 
+   bool GetCollectStatsConsent() override;
+ 
++  // Plain Browser: crash.plain-browser.app (patches/95-crash/0001).
++  std::string GetUploadUrl() override;
++
+   bool GetCollectStatsInSample() override;
+ 
+   bool ReportingIsEnforcedByPolicy(bool* breakpad_enabled) override;
+--- a/chrome/app/chrome_crash_reporter_client_win.cc
++++ b/chrome/app/chrome_crash_reporter_client_win.cc
+@@ -23,11 +23,13 @@
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/win/current_module.h"
+ #include "chrome/chrome_elf/chrome_elf_constants.h"
++#include "chrome/chrome_elf/nt_registry/nt_registry.h"
+ #include "chrome/install_static/install_util.h"
+ #include "chrome/install_static/user_data_dir.h"
+ #include "components/crash/core/app/crashpad.h"
+ #include "components/metrics/system_profile_user_stream.h"
+ #include "components/version_info/channel.h"
++#include "plainbrowser/crash/common/crash_constants.h"
+ 
+ ChromeCrashReporterClient::ChromeCrashReporterClient() = default;
+ 
+@@ -150,8 +152,25 @@
+   return install_static::HasEnvironmentVariable(install_static::kHeadless);
+ }
+ 
++// Plain Browser: uploads follow the user's "Send crash reports" choice
++// (//plainbrowser/crash, off by default), mirrored into the registry by
++// CrashConsent, not metrics consent. The MetricsReportingEnabled policy still
++// wins.
+ bool ChromeCrashReporterClient::GetCollectStatsConsent() {
+-  return install_static::GetCollectStatsConsent();
++  bool enabled = false;
++  if (install_static::ReportingIsEnforcedByPolicy(&enabled)) {
++    return enabled;
++  }
++  DWORD value = 0;
++  return nt::QueryRegValueDWORD(nt::HKCU, nt::WOW6432,
++                                install_static::GetRegistryPath().c_str(),
++                                plainbrowser::crash::kConsentRegValue,
++                                &value) &&
++         value == 1;
++}
++
++std::string ChromeCrashReporterClient::GetUploadUrl() {
++  return plainbrowser::crash::kUploadUrl;
+ }
+ 
+ bool ChromeCrashReporterClient::GetCollectStatsInSample() {
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -95,6 +95,7 @@
+ #include "chrome/installer/util/google_update_settings.h"
+ #include "components/color/color_mixers.h"
+ #include "plainbrowser/adblock/browser/filter_list_updater.h"
++#include "plainbrowser/crash/browser/crash_consent.h"
+ #include "components/device_event_log/device_event_log.h"
+ #include "components/embedder_support/origin_trials/component_updater_utils.h"
+ #include "components/embedder_support/origin_trials/origin_trials_settings_storage.h"
+@@ -1735,6 +1736,8 @@
+   plainbrowser::adblock::FilterListUpdater::Start(
+       browser_process_->local_state(),
+       browser_process_->shared_url_loader_factory(), user_data_dir_);
++  // Plain Browser: keep Crashpad's upload consent equal to "Send crash reports".
++  plainbrowser::crash::StartCrashConsent(browser_process_->local_state());
+ 
+ #if BUILDFLAG(ENABLE_PROCESS_SINGLETON)
+   // Allow ProcessSingleton to process messages.
+--- a/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
++++ b/chrome/browser/metrics/chrome_metrics_services_manager_client.cc
+@@ -391,6 +391,8 @@
+   // consent, and as mentioned, on the crashpad side we check both. See
+   // SetUploadConsent() in components/crash/core/app/crashpad.cc for how this
+   // gets used.
+-  SetUploadConsent_ExportThunk(may_record && may_upload);
++  // Plain Browser: the upload consent is the "Send crash reports" pref, set by
++  // //plainbrowser/crash (CrashConsent); metrics state must not override it.
++  // patches/95-crash/0001.
+ }
+ #endif  // BUILDFLAG(IS_WIN)
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -17,6 +17,7 @@
+ #include "base/time/time.h"
+ #include "base/trace_event/trace_event.h"
+ #include "plainbrowser/adblock/browser/filter_list_updater.h"
++#include "plainbrowser/crash/browser/crash_consent.h"
+ #include "build/android_buildflags.h"
+ #include "build/branding_buildflags.h"
+ #include "build/build_config.h"
+@@ -1527,6 +1528,8 @@
+   // keep this list alphabetized.
+   // Plain Browser: filter list updates (on/off, last check).
+   plainbrowser::adblock::FilterListUpdater::RegisterLocalStatePrefs(registry);
++  // Plain Browser: "Send crash reports" (off by default).
++  plainbrowser::crash::CrashConsent::RegisterLocalStatePrefs(registry);
+ #if BUILDFLAG(IS_ANDROID)
+   accessibility::AccessibilityPrefsController::RegisterLocalStatePrefs(
+       registry);

@@ -48,4 +48,6 @@
 <translation id="6960448024325525076">Sprawdź teraz</translation>
 <translation id="2258591756126042219">Sprawdzanie…</translation>
 <translation id="8176333615161936429">Ustawienia</translation>
+<translation id="8970116698979253234">Wysyłaj raporty o awariach do Plain Browser</translation>
+<translation id="1311934553867029224">Gdy przeglądarka albo strona ulegnie awarii, raport trafia do crash.plain-browser.app, żeby można było naprawić problem. Raport może zawierać fragmenty pamięci procesu, który uległ awarii, na przykład otwartą stronę. Raporty są przechowywane 90 dni.</translation>
 </translationbundle>
