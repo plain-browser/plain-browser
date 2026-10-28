@@ -42,6 +42,7 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | Vendoring the adblock crates into Chromium's GN build (gnrt) | Done, scripted (`scripts/vendor-adblock-crates.ps1`) |
 | Manifest V2 | Kept enabled (ungoogled patch) plus our cleanup of the deprecation UI; real-extension test: see `docs/MV2.md` |
 | Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) | Done: navigation throttle + `$removeparam` list, verified headless (`scripts/test-privacy.ps1`) |
+| Skipping tracking redirectors (`l.facebook.com/l.php?u=`, `google.com/url?q=`, Outlook Safe Links, ...) | Done: own rule list in the same throttle, verified headless (`scripts/test-privacy.ps1`) |
 | Fingerprint protection (canvas, audio, WebGL strings, navigator) with a compatibility list of excepted sites (for example online banking) | Done as a first slice (page-world script, no Blink patches), verified headless; see `docs/FINGERPRINT.md` |
 | Safe Browsing through our proxy (`sb.plain-browser.app`, `X-Client: PlainBrowser/<version>`) | Compiled in (ungoogled's removal patches dropped via `patches/upstream-revert.list`), verified headless: the list update goes only to our proxy. Standard protection only; no reporting |
 | Branding (name, icons, install mode `%LOCALAPPDATA%\PlainBrowser`) | Done; portable zip, installer and MSIX built (`scripts/package-*.py`) |

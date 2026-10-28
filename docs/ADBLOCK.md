@@ -201,6 +201,24 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   only together with the URL switch.
 - Not done: a "last updated" line in Settings, delta updates.
 
+## Debouncing (tracking redirectors)
+A main-frame link through a known tracking redirector goes straight to its target: `l.facebook.com/l.php?u=<target>`,
+`google.<tld>/url?q=<target>`, `www.youtube.com/redirect?q=`, Outlook Safe Links, Bing `ck/a` (base64), LinkedIn,
+Reddit, VK, Steam, Slack and a few affiliate networks. The redirector is never contacted, so it does not learn about
+the click.
+- Rules: `browser/debounce_rules.cc`, our own list (MPL-2.0; not copied from Brave's). A rule is a host (subdomains
+  match), a path (prefix when it ends in `/`) and the query parameters holding the target, optionally base64url after
+  a fixed prefix. Only redirectors whose target is in the URL qualify; `t.co` or `bit.ly`, which decide server side,
+  cannot be skipped. The list ships with the browser (no list updates).
+- `TrackingParamsNavigationThrottle` applies it before the `$removeparam` check: at the start of a main-frame GET
+  navigation or at a redirect into a redirector, it cancels the navigation and re-issues it with the target, which
+  then goes through the throttle again (nested redirectors unwrap one step at a time; each step is shorter, so it
+  ends). Only valid `http(s)` targets are used.
+- Not applied when the redirector's site or the target's site has protections off (per-site toggle), in subframes,
+  or for POST. Kill switch `--disable-features=PlainBrowserDebounce`.
+- Tests: `debounce_rules_unittest.cc` (plainbrowser_unittests), `scripts/test-privacy.ps1` cases `debounce` and
+  `debounce-off` (headless: the local server never sees `/l.php` unless the kill switch is on). Verified 2026-10-28.
+
 ## Not done yet (alpha scope)
 - Scriptlets beyond our set (uBO's resources are GPLv3; we write our own), `$redirect` for request types the
   file extension does not reveal, procedural operators `:others()`, `:watch-attr()`, `:matches-prop()`.

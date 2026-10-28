@@ -10,6 +10,9 @@
      compat      GET /fp.html?id=7            hwc=<real>  (mbank.pl is on the compatibility list)
      params-off  GET /fp.html?utm_source=..   (kill switch PlainBrowserTrackingParams)
      fp-off      GET /fp.html?id=7            hwc=<real>  (kill switch PlainBrowserFingerprintProtection)
+     debounce    GET /fp.html?id=7            (a link through l.facebook.com/l.php?u=...: the redirector is never
+                                               requested, and the target's tracking parameters are stripped too)
+     debounce-off GET /l.php?u=...            (kill switch PlainBrowserDebounce: the redirector is requested, 404)
    Usage: powershell -File scripts\test-privacy.ps1 [-Exe <chrome.exe>] #>
 param([string]$Exe = "C:\dw-build\ucw\build\src\out\Default\chrome.exe")
 $ErrorActionPreference = "Continue"
@@ -31,11 +34,13 @@ $cases = @(
   @{ n = "params";     u = "http://site.test:8011/fp.html?utm_source=nl&fbclid=abc&id=7"; x = @() },
   @{ n = "compat";     u = "http://mbank.pl:8011/fp.html?utm_source=nl&id=7";            x = @() },
   @{ n = "params-off"; u = "http://site.test:8011/fp.html?utm_source=nl&id=7";           x = @("--disable-features=PlainBrowserTrackingParams") },
-  @{ n = "fp-off";     u = "http://site.test:8011/fp.html?id=7";                         x = @("--disable-features=PlainBrowserFingerprintProtection") }
+  @{ n = "fp-off";     u = "http://site.test:8011/fp.html?id=7";                         x = @("--disable-features=PlainBrowserFingerprintProtection") },
+  @{ n = "debounce";     u = "http://l.facebook.com:8011/l.php?u=http%3A%2F%2Fsite.test%3A8011%2Ffp.html%3Fid%3D7%26utm_source%3Dfb&h=AT0"; x = @() },
+  @{ n = "debounce-off"; u = "http://l.facebook.com:8011/l.php?u=http%3A%2F%2Fsite.test%3A8011%2Ffp.html%3Fid%3D7&h=AT0"; x = @("--disable-features=PlainBrowserDebounce") }
 )
 foreach ($c in $cases) {
   Remove-Item "$dir\prof" -Recurse -Force -ErrorAction SilentlyContinue
-  $cl = @("--headless=new","--disable-gpu","--no-first-run","--user-data-dir=$dir\prof",'"--host-resolver-rules=MAP site.test 127.0.0.1, MAP mbank.pl 127.0.0.1"') + $c.x + @("`"$($c.u)`"")
+  $cl = @("--headless=new","--disable-gpu","--no-first-run","--user-data-dir=$dir\prof",'"--host-resolver-rules=MAP site.test 127.0.0.1, MAP mbank.pl 127.0.0.1, MAP l.facebook.com 127.0.0.1"') + $c.x + @("`"$($c.u)`"")
   $p = Start-Process $Exe -ArgumentList $cl -PassThru -WindowStyle Hidden -RedirectStandardError "$dir\err-$($c.n).txt"
   Start-Sleep 8
   Get-Process chrome -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $Exe } | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -44,9 +49,9 @@ foreach ($c in $cases) {
 Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue
 Start-Sleep 1
 $i = 0
-Get-Content "$dir\srv.log" | Where-Object { $_ -match '"GET /(fp|loaded)' } | ForEach-Object {
+Get-Content "$dir\srv.log" | Where-Object { $_ -match '"GET /(fp|loaded|l\.php)' } | ForEach-Object {
   $line = $_ -replace '^127\.0\.0\.1 - - \[[^\]]+\] ', ''
-  if ($line -match 'GET /fp\.html') { $name = $cases[[math]::Min($i, $cases.Count - 1)].n; $i++; "== $name" }
+  if ($line -match 'GET /(fp\.html|l\.php)') { $name = $cases[[math]::Min($i, $cases.Count - 1)].n; $i++; "== $name" }
   "   " + [uri]::UnescapeDataString($line)
 }
 "DONE"

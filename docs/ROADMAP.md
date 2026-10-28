@@ -7,7 +7,7 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 | Feature | Plan | Effort | Status |
 |---|---|---|---|
 | Strip tracking parameters from links (`utm_*`, `fbclid`, ...) | `TrackingParamsNavigationThrottle`, `lists/plainbrowser-removeparam.txt`, `patches/30-adblock/0005` | done for navigations | **done**, verified headless on the build VM (`scripts/test-privacy.ps1`) |
-| Bypass tracking redirects ("debouncing") | See below | days | not started |
+| Bypass tracking redirects ("debouncing") | `browser/debounce_rules.cc`, in `TrackingParamsNavigationThrottle` | done | **done** 2026-10-28: own rule list (Google, Facebook, YouTube, Outlook Safe Links, Bing, ...), verified headless (`scripts/test-privacy.ps1`); [ADBLOCK.md](ADBLOCK.md), "Debouncing" |
 | Safe Browsing (local hash database) through our proxy, no Google contact from the client | `patches/70-safebrowsing`, `patches/upstream-revert.list`, `infra/safebrowsing-proxy` | done | **built and verified end to end** 2026-10-26: the list update goes to `sb.plain-browser.app` with `X-Client` and gets HTTP 200 (public lists only: malware, phishing, unwanted software, download allowlist) |
 | Fingerprint randomization with compatibility exceptions (for example online banking) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **done**, verified headless on the build VM; JS logic unit-tested in Node |
 
@@ -19,8 +19,7 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
   URL. This needs a browser-side `NavigationThrottle` that cancels and re-issues the navigation, the way Brave's query
   filter works.
 - Redirect bypass ("debouncing", e.g. `click.example/?url=https://target`) is a separate rule set: unwrap the target
-  URL from known tracking redirectors. Reusing Brave's debounce rule list would save work; **its license and data format
-  must be checked before copying anything.**
+  URL from known tracking redirectors. Done with our own rules (nothing copied from Brave's list).
 - Per-site toggle: **done** 2026-10-26, shares the exception list (`plainbrowser.shields.exceptions`) with the
   adblock and fingerprint toggles; one toolbar bubble for all three ([ADBLOCK.md](ADBLOCK.md), "UI and per-site
   exceptions").

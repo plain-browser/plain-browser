@@ -74,6 +74,8 @@ source_set("engine") {
   sources = [
     "browser/ad_block_service.cc",
     "browser/ad_block_service.h",
+    "browser/debounce_rules.cc",
+    "browser/debounce_rules.h",
     "browser/tracking_params_rules.cc",
     "browser/tracking_params_rules.h",
   ]
@@ -213,6 +215,7 @@ source_set("unit_tests") {
   sources = [
     "browser/ad_block_service_unittest.cc",
     "browser/adblock_ffi_unittest.cc",
+    "browser/debounce_rules_unittest.cc",
     "browser/filter_lists_unittest.cc",
     "browser/tracking_params_rules_unittest.cc",
     "renderer/adblock_url_loader_throttle_unittest.cc",

@@ -2,6 +2,7 @@
 #include "plainbrowser/adblock/browser/tracking_params_navigation_throttle.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "base/functional/bind.h"
@@ -11,6 +12,7 @@
 #include "content/public/browser/page_navigator.h"
 #include "content/public/browser/web_contents.h"
 #include "plainbrowser/adblock/browser/ad_block_service.h"
+#include "plainbrowser/adblock/browser/debounce_rules.h"
 #include "plainbrowser/adblock/browser/renderer_interfaces.h"
 #include "plainbrowser/adblock/browser/tracking_params_rules.h"
 #include "plainbrowser/shields/browser/shields_service.h"
@@ -34,7 +36,8 @@ void OpenCleanUrl(base::WeakPtr<content::WebContents> web_contents,
 void TrackingParamsNavigationThrottle::MaybeCreateAndAdd(
     content::NavigationThrottleRegistry& registry) {
   if (!base::FeatureList::IsEnabled(kPlainBrowserAdblock) ||
-      !base::FeatureList::IsEnabled(kPlainBrowserTrackingParams)) {
+      (!base::FeatureList::IsEnabled(kPlainBrowserTrackingParams) &&
+       !base::FeatureList::IsEnabled(kPlainBrowserDebounce))) {
     return;
   }
   content::NavigationHandle& handle = registry.GetNavigationHandle();
@@ -80,8 +83,24 @@ TrackingParamsNavigationThrottle::Check() {
   const GURL& exception_url = tracking_params::ExceptionUrlFor(
       handle->IsInMainFrame(), url,
       web_contents ? web_contents->GetLastCommittedURL() : url);
-  if (shields::ShieldsService::GetInstance()->IsExcepted(
-          shields::SiteFor(exception_url))) {
+  shields::ShieldsService* shields = shields::ShieldsService::GetInstance();
+  if (shields->IsExcepted(shields::SiteFor(exception_url))) {
+    return PROCEED;
+  }
+  // Debouncing: a main-frame navigation to a known tracking redirector goes
+  // straight to its target (which then comes back here for its parameters).
+  // Not when the target's site has protections off either: the user may rely
+  // on the redirector there (e.g. affiliate links they want to credit).
+  if (handle->IsInMainFrame() &&
+      base::FeatureList::IsEnabled(kPlainBrowserDebounce)) {
+    if (std::optional<GURL> target =
+            debounce::TargetFor(url, debounce::BuiltInRules());
+        target && !shields->IsExcepted(shields::SiteFor(*target))) {
+      Reissue(*target);
+      return CANCEL;
+    }
+  }
+  if (!base::FeatureList::IsEnabled(kPlainBrowserTrackingParams)) {
     return PROCEED;
   }
   const GURL source_url =
@@ -108,21 +127,27 @@ void TrackingParamsNavigationThrottle::OnRewritten(const GURL& original,
     Resume();
     return;
   }
-  content::WebContents* web_contents = handle->GetWebContents();
-  if (!web_contents) {
+  if (!handle->GetWebContents()) {
     Resume();
     return;
   }
+  // The clean URL has nothing left to strip, so the new navigation proceeds
+  // through this throttle.
+  Reissue(rewritten);
+  CancelDeferredNavigation(CANCEL);
+}
+
+void TrackingParamsNavigationThrottle::Reissue(const GURL& url) {
+  content::NavigationHandle* handle = navigation_handle();
   content::OpenURLParams params =
       content::OpenURLParams::FromNavigationHandle(handle);
-  params.url = rewritten;
-  // Cancel first (this deletes the NavigationRequest and this throttle), then
-  // start the clean navigation from a fresh task. The clean URL has nothing
-  // left to strip, so the new navigation proceeds through this throttle.
+  params.url = url;
+  // The caller cancels this navigation (which deletes the NavigationRequest
+  // and this throttle); the new one starts from a fresh task.
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE, base::BindOnce(&OpenCleanUrl, web_contents->GetWeakPtr(),
-                                std::move(params)));
-  CancelDeferredNavigation(CANCEL);
+      FROM_HERE,
+      base::BindOnce(&OpenCleanUrl, handle->GetWebContents()->GetWeakPtr(),
+                     std::move(params)));
 }
 
 }  // namespace plainbrowser::adblock

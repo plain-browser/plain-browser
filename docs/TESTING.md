@@ -30,6 +30,9 @@ all of `content/browser` and Blink into a second chrome-sized executable.
   `fbclid` and keeps the other parameters in order, is empty when nothing was stripped and for requests that are
   blocked outright; cosmetic CSS carries the generic rules everywhere and the site-specific ones (wykop.pl) only on their site; `GetInstance()` returns the
   test instance.
+- debouncing rules (`browser/debounce_rules_unittest.cc`): known redirectors unwrap to their target, subdomains of a
+  rule host match but look-alike hosts do not, base64 targets (Bing), only the rule path, only valid http(s)
+  targets, parameter order, nested redirectors unwrap step by step.
 - cxx bridge (`browser/adblock_ffi_unittest.cc`): block/exception/`$third-party` semantics with a tiny rule set,
   `rust::String`/`rust::Str` and `rust::Vec<rust::String>` crossing the bridge (generic class/id CSS), unparsable
   URLs are not blocked.

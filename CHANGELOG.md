@@ -34,6 +34,10 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   switch for the only Google service the browser still talks to (through our proxy).
 - Project website (`website/`, plain-browser.app) with the privacy and security policies in English and Polish.
 - Polish security policy (`docs/SECURITY.pl.md`).
+- Debouncing: links through known tracking redirectors (`l.facebook.com/l.php?u=`, `google.<tld>/url?q=`,
+  YouTube, Outlook Safe Links, Bing, LinkedIn, Reddit, VK, Steam, Slack, affiliate networks) go straight to the
+  target, so the redirector never sees the click. Own rule list; off with the per-site toggle or
+  `--disable-features=PlainBrowserDebounce`.
 
 ### Fixed
 - Microsoft Store package: the taskbar button showed a blank page instead of the logo. The window pointed at the

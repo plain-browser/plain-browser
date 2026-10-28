@@ -21,6 +21,9 @@ namespace plainbrowser::adblock {
 // navigation is deferred, the engine is asked on its own sequence, and when
 // the URL changes the navigation is cancelled and re-issued with the clean URL,
 // so the address bar and history only ever see the clean one.
+// Also skips known tracking redirectors in main-frame navigations
+// ("debouncing", debounce_rules.h): the navigation is cancelled and re-issued
+// with the target the redirector URL carries.
 // Not handled: POST navigations (the body could not be replayed), non-HTTP(S)
 // URLs, URLs without a query.
 class TrackingParamsNavigationThrottle : public content::NavigationThrottle {
@@ -46,6 +49,8 @@ class TrackingParamsNavigationThrottle : public content::NavigationThrottle {
  private:
   ThrottleCheckResult Check();
   void OnRewritten(const GURL& original, const GURL& rewritten);
+  // Starts a navigation like this one to `url`; the caller then cancels this.
+  void Reissue(const GURL& url);
 
   base::WeakPtrFactory<TrackingParamsNavigationThrottle> weak_factory_{this};
 };
