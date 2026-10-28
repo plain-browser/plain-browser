@@ -21,6 +21,7 @@ public static class Mouse {
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint x, uint y, uint d, UIntPtr e);
   public static void Click(int x, int y) { SetCursorPos(x, y); mouse_event(2, 0, 0, 0, UIntPtr.Zero); mouse_event(4, 0, 0, 0, UIntPtr.Zero); }
+  public static void Wheel(int x, int y, int delta) { SetCursorPos(x, y); mouse_event(0x0800, 0, 0, unchecked((uint)delta), UIntPtr.Zero); }
 }
 "@
 $log = "$Out\settings.log"; $fails = 0
@@ -38,7 +39,20 @@ $AE = [System.Windows.Automation.AutomationElement]; $TS = [System.Windows.Autom
 function ByPid($procId) { $AE::RootElement.FindAll($TS::Children, (New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $procId))) }
 function NamedLike($root, $pattern) { @($root.FindAll($TS::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) | Where-Object { $_.Current.Name -like $pattern } }
 function OfType($root, $type) { @($root.FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, $type)))) }
-function ClickCenter($el) { $r = $el.Current.BoundingRectangle; [Mouse]::Click([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)) }
+# Scrolls the page until the element is well inside the screen first: a click on an element below the visible part
+# lands on whatever is there (the taskbar, at the default window size). Chrome's UIA does not implement
+# ScrollItemPattern for page content, so this turns the mouse wheel over the page.
+function ClickCenter($el) {
+  $area = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+  for ($i = 0; $i -lt 8; $i++) {
+    $r = $el.Current.BoundingRectangle
+    if (-not $r.IsEmpty -and ($r.Y + $r.Height) -lt ($area.Bottom - 40)) { break }
+    [Mouse]::Wheel([int]($r.X + $r.Width / 2), [int]($area.Top + $area.Height / 2), -240); Start-Sleep -Milliseconds 400
+  }
+  $r = $el.Current.BoundingRectangle
+  if ($r.IsEmpty -or ($r.Y + $r.Height / 2) -gt $area.Bottom) { Log ("not clicked, outside the screen: " + $el.Current.Name); return }
+  [Mouse]::Click([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2))
+}
 function Texts($root) { (OfType $root ([System.Windows.Automation.ControlType]::Text) | ForEach-Object { $_.Current.Name }) -join " | " }
 function WaitFor($what, $seconds, $test) { for ($i = 0; $i -lt $seconds * 2; $i++) { $r = & $test; if ($r) { return $r }; Start-Sleep -Milliseconds 500 }; Log "timeout waiting for $what"; $null }
 # The bubble is a top-level window titled "Plain Browser", or (as in test-shields-ui.ps1) not listed as one: then
