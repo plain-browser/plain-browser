@@ -44,3 +44,5 @@ switch ($rc) {
   default { throw "build.py failed (exit $rc)" }
 }
 Write-DiskFree
+# the step runs this script without -File, so its exit code is the last native command's: clear build.py's 124
+$global:LASTEXITCODE = 0
