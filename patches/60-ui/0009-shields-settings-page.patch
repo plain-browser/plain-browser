@@ -8,7 +8,9 @@ page around it) and edits the pref through settingsPrivate, which needs the pref
 allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 sites. Strings come from
 //plainbrowser/shields (AddSettingsStrings, strings in 60-ui/0008). The same element holds the toggle for
 daily filter list updates (Local State pref plainbrowser.adblock.list_updates.enabled, 30-adblock/0006),
-also allowlisted; settingsPrivate finds Local State prefs by itself.
+also allowlisted; settingsPrivate finds Local State prefs by itself. Above the list, the global "Block ads and trackers"
+toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists were last checked
+(plainbrowser.adblock.list_updates.last_success) and a link to chrome://adblock (60-ui/0011).
 ---
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
@@ -21,16 +23,21 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
  
  #if BUILDFLAG(IS_CHROMEOS)
  #include "ash/constants/ash_login_pref_names.h"
-@@ -439,6 +441,13 @@
+@@ -439,6 +441,18 @@
        settings_api::PrefType::kString;
  #endif
  
 +  // Plain Browser: sites with protections off (Privacy and security page).
 +  (*s_allowlist)[plainbrowser::shields::prefs::kShieldsExceptions] =
 +      settings_api::PrefType::kList;
-+  // Plain Browser: daily filter list updates (Local State).
++  // Plain Browser: ad and tracker blocking, daily filter list updates and
++  // when they last succeeded (Local State).
++  (*s_allowlist)[plainbrowser::adblock::prefs::kBlockingEnabled] =
++      settings_api::PrefType::kBoolean;
 +  (*s_allowlist)[plainbrowser::adblock::prefs::kListUpdatesEnabled] =
 +      settings_api::PrefType::kBoolean;
++  (*s_allowlist)[plainbrowser::adblock::prefs::kListUpdatesLastSuccess] =
++      settings_api::PrefType::kNumber;
 +
    // Privacy Guide
    (*s_allowlist)[::prefs::kPrivacyGuideViewed] =
@@ -47,12 +54,17 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
      "privacy_page/security/fingerprint_progress_arc.ts",
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.html
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,70 @@
 +<style include="cr-shared-style cr-hidden-style settings-shared">
 +  :host {
 +    display: block;
 +  }
 +</style>
++<settings-toggle-button id="blocking"
++    pref="{{prefs.plainbrowser.adblock.enabled}}"
++    label="$i18n{plainBrowserBlocking}"
++    sub-label="$i18n{plainBrowserBlockingDesc}">
++</settings-toggle-button>
 +<div class="settings-box two-line">
 +  <div class="start settings-box-text">
 +    <div>$i18n{plainBrowserShieldsTitle}</div>
@@ -83,6 +95,14 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
 +    label="$i18n{plainBrowserListUpdates}"
 +    sub-label="$i18n{plainBrowserListUpdatesDesc}">
 +</settings-toggle-button>
++<div id="lastCheck" class="settings-box continuation secondary"
++    hidden="[[!prefs.plainbrowser.adblock.list_updates.enabled.value]]">
++  [[lastCheckText_]]
++</div>
++<cr-link-row id="status" label="$i18n{plainBrowserAdblockStatus}"
++    sub-label="$i18n{plainBrowserAdblockStatusDesc}" external
++    on-click="onStatusClick_">
++</cr-link-row>
 +<template is="dom-if" if="[[showDialog_]]" restamp>
 +  <cr-dialog id="dialog" close-text="$i18n{close}" show-on-attach
 +      on-close="onDialogClose_">
@@ -107,7 +127,7 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
 +</template>
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.ts
-@@ -0,0 +1,156 @@
+@@ -0,0 +1,184 @@
 +// Copyright Plain Browser contributors. MPL-2.0.
 +
 +/**
@@ -118,14 +138,18 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
 + * list the toolbar bubble edits (//plainbrowser/shields). Entries are stored as
 + * typed; the browser rewrites them as sites (eTLD+1), so
 + * "https://www.example.com/a" shows up as "example.com" a moment later.
-+ * Below the list, the toggle for daily filter list updates (Local State pref
-+ * plainbrowser.adblock.list_updates.enabled, FilterListUpdater).
++ * Above the list, the global ad and tracker blocking toggle (Local State pref
++ * plainbrowser.adblock.enabled); below it, the toggle for daily filter list
++ * updates (plainbrowser.adblock.list_updates.enabled, FilterListUpdater), when
++ * the lists were last checked (plainbrowser.adblock.list_updates.last_success,
++ * ms since the epoch) and a link to chrome://adblock.
 + */
 +import 'chrome://resources/cr_elements/cr_button/cr_button.js';
 +import 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
 +import 'chrome://resources/cr_elements/cr_hidden_style.css.js';
 +import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
 +import 'chrome://resources/cr_elements/cr_input/cr_input.js';
++import 'chrome://resources/cr_elements/cr_link_row/cr_link_row.js';
 +import 'chrome://resources/cr_elements/cr_shared_style.css.js';
 +import '../controls/settings_toggle_button.js';
 +import '../settings_shared.css.js';
@@ -135,12 +159,14 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
 +import type {CrDialogElement} from 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
 +import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js';
 +import {focusWithoutInk} from 'chrome://resources/js/focus_without_ink.js';
++import {OpenWindowProxyImpl} from 'chrome://resources/js/open_window_proxy.js';
 +import type {DomRepeatEvent} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 +import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 +
 +import {getTemplate} from './plainbrowser_shields_exceptions.html.js';
 +
 +const EXCEPTIONS_PREF = 'plainbrowser.shields.exceptions';
++const LAST_SUCCESS_PREF = 'plainbrowser.adblock.list_updates.last_success';
 +
 +/**
 + * The host named by what the user typed in the add dialog ("example.com",
@@ -190,6 +216,11 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
 +        computed:
 +            'computeSites_(prefs.plainbrowser.shields.exceptions.value.*)',
 +      },
++      lastCheckText_: {
++        type: String,
++        computed:
++            'computeLastCheck_(prefs.plainbrowser.adblock.list_updates.last_success.value)',
++      },
 +      showDialog_: {type: Boolean, value: false},
 +      input_: {type: String, value: ''},
 +      invalid_: {type: Boolean, value: false},
@@ -197,6 +228,7 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
 +  }
 +
 +  declare private sites_: string[];
++  declare private lastCheckText_: string;
 +  declare private showDialog_: boolean;
 +  declare private input_: string;
 +  declare private invalid_: boolean;
@@ -206,6 +238,22 @@ also allowlisted; settingsPrivate finds Local State prefs by itself.
 +    return Array.isArray(pref.value) ?
 +        pref.value.filter((s): s is string => typeof s === 'string') :
 +        [];
++  }
++
++  private computeLastCheck_(): string {
++    const ms = this.getPref<number>(LAST_SUCCESS_PREF).value;
++    if (!ms) {
++      return this.i18n('plainBrowserListNeverChecked');
++    }
++    const when = new Intl.DateTimeFormat(
++                     document.documentElement.lang || undefined,
++                     {dateStyle: 'medium', timeStyle: 'short'})
++                     .format(new Date(ms));
++    return this.i18n('plainBrowserListLastCheck', when);
++  }
++
++  private onStatusClick_() {
++    OpenWindowProxyImpl.getInstance().openUrl('chrome://adblock');
 +  }
 +
 +  private hasSites_(): boolean {

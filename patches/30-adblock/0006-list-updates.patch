@@ -2,7 +2,7 @@ From: Plain Browser
 Subject: [adblock] Filter list updates: register the Local State prefs and start the updater
 
 Category: 30-adblock. Code lives in //plainbrowser/adblock (FilterListUpdater, filter_lists); this patch only
-wires it in. RegisterLocalState registers plainbrowser.adblock.list_updates.{enabled,last_check};
+wires it in. RegisterLocalState registers the adblock Local State prefs (FilterListUpdater::RegisterLocalStatePrefs);
 ChromeBrowserMainParts::PostBrowserStart starts the updater with Local State, the browser process's shared URL
 loader factory and the user data directory. It loads the lists stored by an earlier update at once and checks
 lists.plain-browser.app for new ones once a day. //plainbrowser/adblock:updater is linked through

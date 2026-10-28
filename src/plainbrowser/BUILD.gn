@@ -8,6 +8,7 @@ group("browser") {
   public_deps = [
     "//plainbrowser/adblock:browser",
     "//plainbrowser/adblock:updater",
+    "//plainbrowser/adblock:webui",
     "//plainbrowser/fingerprint:browser",
     "//plainbrowser/shields:browser",
     "//plainbrowser/shields:ui",

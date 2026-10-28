@@ -38,6 +38,10 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   YouTube, Outlook Safe Links, Bing, LinkedIn, Reddit, VK, Steam, Slack, affiliate networks) go straight to the
   target, so the redirector never sees the click. Own rule list; off with the per-site toggle or
   `--disable-features=PlainBrowserDebounce`.
+- Settings > Privacy and security: a "Block ads and trackers" switch for all sites (link cleaning stays on), and
+  "Lists last checked: <date>" under the filter list update toggle.
+- `chrome://adblock`: the state of the ad blocker (blocked requests since start-up, the engine process, the lists
+  in use and where they come from, the last update check) with a "Check now" button; linked from Settings.
 
 ### Fixed
 - Microsoft Store package: the taskbar button showed a blank page instead of the logo. The window pointed at the

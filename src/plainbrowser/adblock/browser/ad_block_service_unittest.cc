@@ -164,6 +164,34 @@ TEST_F(AdBlockServiceTest, ListsGivenBeforeTheFirstStartReachTheEngine) {
   EXPECT_EQ(1, Starts());
 }
 
+TEST_F(AdBlockServiceTest, StatusReportsTheEngineAndTheListsInUse) {
+  base::test::TestFuture<AdBlockService::Status> before;
+  service_->GetStatus(before.GetSequenceBoundCallback());
+  EXPECT_FALSE(before.Get().engine_running);
+  EXPECT_EQ(0, before.Get().engine_starts);
+
+  UseLists({{"easylist", "[Adblock Plus 2.0]\n||fresh-ads.test^\n"}});
+  base::test::TestFuture<AdBlockService::Status> after;
+  service_->GetStatus(after.GetSequenceBoundCallback());
+  EXPECT_TRUE(after.Get().engine_running);
+  EXPECT_EQ(1, after.Get().engine_starts);
+  EXPECT_FALSE(after.Get().gave_up);
+  EXPECT_EQ(std::vector<std::string>({"easylist"}),
+            after.Get().downloaded_lists);
+}
+
+TEST_F(AdBlockServiceTest, BlockingSwitchAndCounterStartOnAndAtZero) {
+  // The switch is read by AdblockFilterImpl; FilterListUpdater mirrors the
+  // pref into it.
+  EXPECT_TRUE(service_->blocking_enabled());
+  service_->SetBlockingEnabled(false);
+  EXPECT_FALSE(service_->blocking_enabled());
+  EXPECT_EQ(0, service_->blocked_total());
+  service_->CountBlocked();
+  service_->CountBlocked();
+  EXPECT_EQ(2, service_->blocked_total());
+}
+
 TEST_F(AdBlockServiceTest, StopsStartingAnEngineThatKeepsGoingAway) {
   for (int i = 0; i < AdBlockService::kMaxEngineStarts; ++i) {
     EXPECT_TRUE(ShouldBlock(kAdScript));
@@ -171,6 +199,9 @@ TEST_F(AdBlockServiceTest, StopsStartingAnEngineThatKeepsGoingAway) {
   }
   EXPECT_FALSE(ShouldBlock(kAdScript));
   EXPECT_EQ(AdBlockService::kMaxEngineStarts, Starts());
+  base::test::TestFuture<AdBlockService::Status> status;
+  service_->GetStatus(status.GetSequenceBoundCallback());
+  EXPECT_TRUE(status.Get().gave_up);
 }
 
 }  // namespace

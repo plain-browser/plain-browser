@@ -78,4 +78,83 @@
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_UPDATES_DESC" desc="Description under the filter list update toggle: where the lists come from and what is sent.">
     Downloads new versions of EasyList, EasyPrivacy and EasyList Polish from lists.plain-browser.app. The request carries no cookies and nothing about the sites you visit. When off, the lists the browser was released with are used.
   </message>
+
+  <!-- Global switch, last check and the status page link (settings). -->
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_BLOCKING" desc="Label of the toggle on the Privacy and security settings page that turns Plain Browser's ad and tracker blocking on or off for all sites.">
+    Block ads and trackers
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_BLOCKING_DESC" desc="Description under the ad and tracker blocking toggle in settings: which lists are used and what the toggle does not cover.">
+    Uses EasyList, EasyPrivacy and EasyList Polish on every site except the ones listed below. Removing tracking parameters from links stays on.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_LAST_CHECK" desc="Shown under the filter list update toggle in settings and on chrome://adblock: when the browser last confirmed its ad and tracker filter lists are current.">
+    Lists last checked: <ph name="TIME">$1<ex>28 Oct 2026, 09:12</ex></ph>
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_NEVER_CHECKED" desc="Shown under the filter list update toggle in settings and on chrome://adblock when the browser has not yet checked for updated filter lists.">
+    Lists not checked yet
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ADBLOCK_STATUS" desc="Label of the settings row that opens the ad blocker status page (chrome://adblock).">
+    Ad blocker status
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ADBLOCK_STATUS_DESC" desc="Description of the settings row that opens the ad blocker status page.">
+    Filter lists in use, the filter engine and blocked requests
+  </message>
+
+  <!-- chrome://adblock -->
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_PAGE_TITLE" desc="Title of the chrome://adblock page, which shows the state of Plain Browser's ad blocker.">
+    Ad blocker
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_BLOCKING" desc="Row label on chrome://adblock: whether ad and tracker blocking is on.">
+    Ad and tracker blocking
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_ON" desc="Value on chrome://adblock when ad and tracker blocking is turned on.">
+    On
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_OFF" desc="Value on chrome://adblock when ad and tracker blocking is turned off.">
+    Off
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_BLOCKED" desc="Row label on chrome://adblock next to a number: requests the ad blocker blocked since the browser was started.">
+    Requests blocked since the browser started
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_ENGINE" desc="Row label on chrome://adblock: the state of the filter engine, which runs in a separate process.">
+    Filter engine
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_ENGINE_RUNNING" desc="State of the filter engine on chrome://adblock: its process is running.">
+    Running in its own sandboxed process
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_ENGINE_IDLE" desc="State of the filter engine on chrome://adblock: its process is not running yet and starts when a page needs it.">
+    Starts with the next page
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_ENGINE_STOPPED" desc="State of the filter engine on chrome://adblock after its process crashed several times and the browser stopped restarting it.">
+    Stopped after repeated crashes. Nothing is blocked until you restart the browser.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_ENGINE_STARTS" desc="Under the filter engine state on chrome://adblock: how many times its process was started in this browser session.">
+    Process starts this session: <ph name="COUNT">$1<ex>1</ex></ph>
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LISTS" desc="Section heading on chrome://adblock: the ad and tracker filter lists in use.">
+    Filter lists
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LIST_DOWNLOADED" desc="Under a filter list name on chrome://adblock: the list in use is a newer copy downloaded from the project's server.">
+    Updated copy from lists.plain-browser.app
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LIST_BUNDLED" desc="Under a filter list name on chrome://adblock: the list in use is the one shipped with this browser version.">
+    Built into this version
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_UPDATES" desc="Section heading on chrome://adblock: daily updates of the filter lists.">
+    Updates
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_UPDATES_OFF" desc="Shown on chrome://adblock when the user turned daily filter list updates off in settings.">
+    Daily updates are off
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LAST_FAILED" desc="Shown on chrome://adblock when the last attempt to check for updated filter lists failed.">
+    The last check failed. The browser tries again within an hour.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_CHECK_NOW" desc="Button on chrome://adblock that checks for updated filter lists right away.">
+    Check now
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_CHECKING" desc="Button text on chrome://adblock while a check for updated filter lists is running.">
+    Checking…
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_SETTINGS" desc="Link on chrome://adblock to the browser's privacy settings.">
+    Settings
+  </message>
 </grit-part>

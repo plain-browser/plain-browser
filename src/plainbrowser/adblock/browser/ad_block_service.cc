@@ -78,6 +78,34 @@ void AdBlockService::SetLauncherOnSequence(Launcher launcher) {
   }
 }
 
+AdBlockService::Status::Status() = default;
+AdBlockService::Status::Status(const Status&) = default;
+AdBlockService::Status& AdBlockService::Status::operator=(const Status&) =
+    default;
+AdBlockService::Status::~Status() = default;
+
+void AdBlockService::GetStatus(base::OnceCallback<void(Status)> callback) {
+  task_runner_->PostTask(FROM_HERE,
+                         base::BindOnce(&AdBlockService::GetStatusOnSequence,
+                                        base::Unretained(this),
+                                        std::move(callback)));
+}
+
+void AdBlockService::GetStatusOnSequence(
+    base::OnceCallback<void(Status)> callback) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  Status status;
+  status.engine_running = engine_.is_bound();
+  status.engine_starts = engine_starts_;
+  status.gave_up = !engine_.is_bound() && engine_starts_ >= kMaxEngineStarts;
+  if (lists_) {
+    for (const auto& [name, text] : *lists_) {
+      status.downloaded_lists.push_back(name);
+    }
+  }
+  std::move(callback).Run(std::move(status));
+}
+
 void AdBlockService::UseLists(ListTexts lists, base::OnceClosure done) {
   if (!done) {
     done = base::DoNothing();

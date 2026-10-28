@@ -116,8 +116,25 @@ button and the bubble, checks the pushed exception list in the running renderer 
   (`scripts/test-shields-ui.ps1`: badge pixels with 4 blocked requests, none on an excepted site); the Polish
   strings (including the "few" plural), add (a URL is stored as its site), remove and the pref on disk by
   `scripts/test-shields-settings.ps1` (scheduled task `PBShieldsSettings` on the build VM), also passing.
-- Not done: a global on/off switch in the UI (the kill switches are still command-line flags), languages other
-  than English and Polish.
+- **Global switch** (2026-10-28): "Block ads and trackers" at the top of the same settings section, Local State
+  `plainbrowser.adblock.enabled` (default on). FilterListUpdater mirrors it into `AdBlockService` (an atomic the
+  filter reads on its sequence); off, `AdblockFilterImpl` answers every page as if it were excepted (no blocking,
+  hiding, scriptlets or `$redirect`). Tracking-parameter stripping and debouncing stay on; the per-site toggle
+  still turns everything off for one site.
+- Not done: languages other than English and Polish.
+
+## chrome://adblock
+Status page (2026-10-28, `ui/adblock_ui.*`, registered by `patches/60-ui/0011`; linked from the settings section as
+"Ad blocker status"): the global switch, requests blocked since start-up (`AdBlockService::blocked_total()`, blocks
+and `$redirect` replacements), the engine process (running, starts this session, stopped after repeated crashes),
+each list with its source (updated copy with the first 12 hex digits of its SHA-256 and its size, or built in) and
+the update state (last successful check, a failed last check, updates off) with "Check now"
+(`FilterListUpdater::CheckNow()`). It refreshes every 2 s. Page and script (`ui/adblock_page.{html,js}`) are
+embedded by GN (`embed_text.py`) and served through a request filter, strings come from `strings.m.js` (shields
+grdp); the script builds the DOM with `textContent` only (Trusted Types).
+Verified with `scripts/test-adblock-webui.ps1` (scheduled task `PBAdblockWebUI` on the build VM, PASS): 4 requests
+blocked on the test page, the engine process, the four lists, the settings rows, and the global switch turned off
+in Settings shows Off on the page and `plainbrowser.adblock.enabled = false` in Local State.
 
 ## Generic element hiding
 Status 2026-10-27: done, verified headless (`scripts/test-cosmetic-lists.ps1`, part 1).
@@ -207,11 +224,13 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   profile, a failed download or a damaged store.
 - **Switch**: Local State `plainbrowser.adblock.list_updates.enabled` (default on), "Update filter lists daily"
   in the "Sites with protections off" section of `chrome://settings/privacy` (`patches/60-ui/0009`). Off: no
-  requests, the store is deleted, the engine goes back to the compiled-in lists.
+  requests, the store is deleted, the engine goes back to the compiled-in lists. Under it, "Lists last checked:
+  <date>" from `plainbrowser.adblock.list_updates.last_success` (ms since the epoch, set by every successful
+  check, a number so settingsPrivate can read it), or "Lists not checked yet".
 - **Testing**: `--plainbrowser-filter-lists-url=<base>` points the updater at another server (http allowed) and
   makes the first check run 3 s after start-up; `--plainbrowser-filter-lists-key=<base64>` adds one accepted key,
   only together with the URL switch.
-- Not done: a "last updated" line in Settings, delta updates.
+- Not done: delta updates.
 
 ## Debouncing (tracking redirectors)
 A main-frame link through a known tracking redirector goes straight to its target: `l.facebook.com/l.php?u=<target>`,
@@ -234,7 +253,6 @@ the click.
 ## Not done yet (alpha scope)
 - Scriptlets beyond our set (uBO's resources are GPLv3; we write our own), `$redirect` for request types the
   file extension does not reveal, procedural operators `:others()`, `:watch-attr()`, `:matches-prop()`.
-- `chrome://adblock` page.
 - Navigation (`$document`) blocking; requests started from the browser process.
 - `$removeparam` on subresources: the renderer throttle decides asynchronously and a deferred request's URL may
   only be edited synchronously (`URLLoaderThrottle::WillStartRequest`), so only navigations are cleaned today.

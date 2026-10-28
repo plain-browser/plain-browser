@@ -200,6 +200,54 @@ source_set("browser") {
   ]
 }
 
+# chrome://adblock (registered by patches/60-ui/0011). The page and its script
+# are embedded as C++ constants, like cosmetic_script.js.
+action("embed_adblock_page_html") {
+  script = "//plainbrowser/fingerprint/renderer/embed_text.py"
+  sources = [ "ui/adblock_page.html" ]
+  outputs = [ "$target_gen_dir/adblock_page_html.cc" ]
+  args = [
+    rebase_path(sources[0], root_build_dir),
+    rebase_path(outputs[0], root_build_dir),
+    "kAdblockPageHtml",
+    "plainbrowser::adblock",
+  ]
+}
+
+action("embed_adblock_page_js") {
+  script = "//plainbrowser/fingerprint/renderer/embed_text.py"
+  sources = [ "ui/adblock_page.js" ]
+  outputs = [ "$target_gen_dir/adblock_page_js.cc" ]
+  args = [
+    rebase_path(sources[0], root_build_dir),
+    rebase_path(outputs[0], root_build_dir),
+    "kAdblockPageJs",
+    "plainbrowser::adblock",
+  ]
+}
+
+source_set("webui") {
+  sources = [
+    "ui/adblock_ui.cc",
+    "ui/adblock_ui.h",
+  ]
+  sources += get_target_outputs(":embed_adblock_page_html")
+  sources += get_target_outputs(":embed_adblock_page_js")
+  deps = [
+    ":client",
+    ":embed_adblock_page_html",
+    ":embed_adblock_page_js",
+    ":lists",
+    ":updater",
+    "//base",
+    "//chrome/app:generated_resources",
+    "//components/prefs",
+    "//content/public/browser",
+    "//content/public/common",
+    "//ui/base",
+  ]
+}
+
 # The subresource throttle alone: needs only blink/public/common, so unit tests
 # link it without the rest of Blink.
 source_set("url_loader_throttle") {

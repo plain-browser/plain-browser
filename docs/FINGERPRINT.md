@@ -51,8 +51,8 @@ Kill switch: `--disable-features=PlainBrowserFingerprintProtection`.
   script can snapshot a pristine iframe early or compare timing. This slice buys protection against the common
   fingerprinting libraries at near-zero rebase cost; Blink patches for canvas and audio are the next step if needed.
 - Not covered: workers (no document), WebGL `readPixels`, fonts, screen size, `navigator.plugins`.
-- UI: the toolbar bubble toggles a site; there is no settings page listing all exceptions yet and the built-in list
-  cannot be edited from the UI.
+- UI: the toolbar bubble toggles a site, and "Sites with protections off" on `chrome://settings/privacy` lists,
+  adds and removes them (`patches/60-ui/0009`). The built-in compatibility list cannot be edited from the UI.
 
 ## Wiring
 - `patches/80-fingerprint/0001-renderer-agent.patch`: `FingerprintAgent::Create` in

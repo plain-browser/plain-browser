@@ -22,9 +22,12 @@ namespace {
 // GetGenericCosmeticCss call (the renderer sends at most 2000).
 constexpr size_t kMaxGenericTokensPerCall = 10000;
 
+// Blocking is off for the page: the global switch (prefs::kBlockingEnabled)
+// or the per-site exception list.
 bool IsExceptedPage(const GURL& top_level_url) {
-  return shields::ShieldsService::GetInstance()->IsExcepted(
-      shields::SiteFor(top_level_url));
+  return !AdBlockService::GetInstance()->blocking_enabled() ||
+         shields::ShieldsService::GetInstance()->IsExcepted(
+             shields::SiteFor(top_level_url));
 }
 
 // Receiver context: the renderer process id.
@@ -59,6 +62,9 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
         base::BindOnce(
             [](int process_id, std::optional<blink::LocalFrameToken> frame_token,
                ShouldBlockRequestCallback callback, bool block) {
+              if (block) {
+                AdBlockService::GetInstance()->CountBlocked();
+              }
               if (block && frame_token) {
                 shields::BlockedRequestsCounter::CountBlocked(process_id,
                                                               *frame_token);
@@ -98,6 +104,10 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
   }
 
   void GetRedirectHosts(GetRedirectHostsCallback callback) override {
+    if (!AdBlockService::GetInstance()->blocking_enabled()) {
+      std::move(callback).Run({});
+      return;
+    }
     AdBlockService::GetInstance()->RedirectHosts(std::move(callback));
   }
 
@@ -115,6 +125,9 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
         base::BindOnce(
             [](int process_id, std::optional<blink::LocalFrameToken> frame_token,
                GetRedirectCallback callback, const std::string& data_url) {
+              if (!data_url.empty()) {
+                AdBlockService::GetInstance()->CountBlocked();
+              }
               if (!data_url.empty() && frame_token) {
                 shields::BlockedRequestsCounter::CountBlocked(process_id,
                                                               *frame_token);

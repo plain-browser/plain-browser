@@ -23,4 +23,29 @@
 <translation id="7140235993367976388">Włącz ponownie ochronę dla <ph name="SITE" /></translation>
 <translation id="7814110254042078847">Aktualizuj listy filtrów codziennie</translation>
 <translation id="7372708730951011360">Pobiera nowe wersje EasyList, EasyPrivacy i EasyList Polish z lists.plain-browser.app. Żądanie nie zawiera plików cookie ani niczego o odwiedzanych stronach. Po wyłączeniu używane są listy z dnia wydania przeglądarki.</translation>
+<translation id="4447472862672033345">Blokuj reklamy i elementy śledzące</translation>
+<translation id="5627923160287742480">Korzysta z list EasyList, EasyPrivacy i EasyList Polish na wszystkich stronach poza wymienionymi niżej. Usuwanie parametrów śledzących z linków działa nadal.</translation>
+<translation id="7203308747385151463">Ostatnie sprawdzenie list: <ph name="TIME" /></translation>
+<translation id="9073694362117505155">Listy nie zostały jeszcze sprawdzone</translation>
+<translation id="4462987915989454691">Stan blokowania reklam</translation>
+<translation id="5726250559130241787">Używane listy filtrów, silnik filtrów i zablokowane żądania</translation>
+<translation id="3627800004937799608">Blokowanie reklam</translation>
+<translation id="5349364349602953602">Blokowanie reklam i elementów śledzących</translation>
+<translation id="3153235593584321242">Włączone</translation>
+<translation id="3039975352071748087">Wyłączone</translation>
+<translation id="2472345140417966096">Żądania zablokowane od uruchomienia przeglądarki</translation>
+<translation id="6443860390015525091">Silnik filtrów</translation>
+<translation id="2073884568846391675">Działa we własnym procesie w piaskownicy</translation>
+<translation id="113447641346053537">Uruchomi się przy następnej stronie</translation>
+<translation id="7611443129955377976">Zatrzymany po kolejnych awariach. Do ponownego uruchomienia przeglądarki nic nie jest blokowane.</translation>
+<translation id="5292405452235305291">Uruchomienia procesu w tej sesji: <ph name="COUNT" /></translation>
+<translation id="353716021151587304">Listy filtrów</translation>
+<translation id="4300206372225994814">Aktualna kopia z lists.plain-browser.app</translation>
+<translation id="3714293724629759655">Wbudowana w tę wersję</translation>
+<translation id="4400672829102797741">Aktualizacje</translation>
+<translation id="3764645718320810263">Codzienne aktualizacje są wyłączone</translation>
+<translation id="3053476032032536111">Ostatnie sprawdzenie się nie udało. Przeglądarka spróbuje ponownie w ciągu godziny.</translation>
+<translation id="6960448024325525076">Sprawdź teraz</translation>
+<translation id="2258591756126042219">Sprawdzanie…</translation>
+<translation id="8176333615161936429">Ustawienia</translation>
 </translationbundle>

@@ -1,0 +1,21 @@
+From: Plain Browser
+Subject: [ui] chrome://adblock: the state of the ad blocker
+
+Category: 60-ui. Registers AdblockUIConfig (//plainbrowser/adblock/ui) with Chrome's WebUI config map. The page
+shows whether ad and tracker blocking is on, requests blocked since start-up, the engine's utility process, the
+filter lists in use (downloaded or compiled in) and the last update check, with a "Check now" button; the
+settings page links to it (60-ui/0009). Page and script are embedded by GN, strings are in the shields grdp
+(60-ui/0008), so this patch only adds the registration.
+---
+--- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -9,3 +9,4 @@
+ #include "build/build_config.h"
++#include "plainbrowser/adblock/ui/adblock_ui.h"
+ #include "chrome/browser/browser_actuator/internals/browser_actuator_internals_ui.h"
+ #include "chrome/browser/contextual_tasks/contextual_tasks_ui.h"
+@@ -266,2 +267,4 @@
+   auto& map = content::WebUIConfigMap::GetInstance();
++  // Plain Browser: chrome://adblock (patches/60-ui/0011).
++  map.AddWebUIConfig(std::make_unique<plainbrowser::adblock::AdblockUIConfig>());
+   map.AddWebUIConfig(std::make_unique<AccessibilityUIConfig>());

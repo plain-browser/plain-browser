@@ -80,8 +80,29 @@ GURL ServerUrl() {
 
 // static
 void FilterListUpdater::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
+  registry->RegisterBooleanPref(prefs::kBlockingEnabled, true);
   registry->RegisterBooleanPref(prefs::kListUpdatesEnabled, true);
   registry->RegisterTimePref(prefs::kListUpdatesLastCheck, base::Time());
+  registry->RegisterDoublePref(prefs::kListUpdatesLastSuccess, 0.0);
+}
+
+// static
+FilterListUpdater* FilterListUpdater::GetInstance() {
+  return g_updater;
+}
+
+bool FilterListUpdater::CheckNow() {
+  if (!Enabled() || checking_) {
+    return false;
+  }
+  timer_.Stop();
+  Check();
+  return true;
+}
+
+void FilterListUpdater::OnBlockingEnabledChanged() {
+  AdBlockService::GetInstance()->SetBlockingEnabled(
+      local_state_->GetBoolean(prefs::kBlockingEnabled));
 }
 
 // static
@@ -112,6 +133,11 @@ FilterListUpdater::FilterListUpdater(
   registrar_.Add(prefs::kListUpdatesEnabled,
                  base::BindRepeating(&FilterListUpdater::OnEnabledChanged,
                                      base::Unretained(this)));
+  registrar_.Add(
+      prefs::kBlockingEnabled,
+      base::BindRepeating(&FilterListUpdater::OnBlockingEnabledChanged,
+                          base::Unretained(this)));
+  OnBlockingEnabledChanged();
   if (!Enabled()) {
     // Lists stored before the user turned updates off are not used; remove
     // them if a previous run could not.
@@ -144,6 +170,7 @@ void FilterListUpdater::OnEnabledChanged() {
   weak_factory_.InvalidateWeakPtrs();
   timer_.Stop();
   loader_.reset();
+  checking_ = false;
   pending_.clear();
   fetched_.clear();
   if (Enabled()) {
@@ -189,6 +216,7 @@ void FilterListUpdater::Check() {
   if (!Enabled()) {
     return;
   }
+  checking_ = true;
   Fetch(filter_lists::ManifestUrl(server_), filter_lists::kMaxManifestBytes,
         base::BindOnce(&FilterListUpdater::OnManifest,
                        weak_factory_.GetWeakPtr()));
@@ -335,7 +363,13 @@ void FilterListUpdater::OnList(std::string name,
 }
 
 void FilterListUpdater::FinishCheck(bool success) {
-  local_state_->SetTime(prefs::kListUpdatesLastCheck, base::Time::Now());
+  checking_ = false;
+  const base::Time now = base::Time::Now();
+  local_state_->SetTime(prefs::kListUpdatesLastCheck, now);
+  if (success) {
+    local_state_->SetDouble(prefs::kListUpdatesLastSuccess,
+                            now.InMillisecondsFSinceUnixEpoch());
+  }
   ScheduleCheck(success ? kCheckInterval : kRetryDelay);
 }
 

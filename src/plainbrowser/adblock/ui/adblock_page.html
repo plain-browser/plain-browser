@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- Copyright Plain Browser contributors. MPL-2.0.
+     chrome://adblock (adblock_ui.cc). Texts come from strings.m.js; adblock_page.js fills them in. -->
+<html dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<title></title>
+<style>
+  :root {
+    --bg: #fff; --fg: #202124; --muted: #5f6368; --line: #dadce0; --card: #fff;
+    --accent: #1a73e8; --ok: #188038; --warn: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #202124; --fg: #e8eaed; --muted: #9aa0a6; --line: #3c4043; --card: #292a2d;
+      --accent: #8ab4f8; --ok: #81c995; --warn: #f28b82;
+    }
+  }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; font-weight: 500; margin: 8px 0 20px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px; }
+  h2 { font-size: 14px; font-weight: 500; margin: 0; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .label { flex: 1; }
+  .value { color: var(--muted); text-align: end; overflow-wrap: anywhere; }
+  .sub { color: var(--muted); margin-top: 2px; }
+  .on { color: var(--ok); font-weight: 500; }
+  .off, .warn { color: var(--warn); font-weight: 500; }
+  .mono { font-family: ui-monospace, monospace; font-size: 12px; }
+  .actions { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  button, a.button {
+    font: inherit; border: 1px solid var(--line); border-radius: 16px; padding: 6px 14px; background: none;
+    color: var(--accent); cursor: pointer; text-decoration: none;
+  }
+  button:disabled { color: var(--muted); cursor: default; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title"></h1>
+  <section>
+    <div class="row">
+      <div class="label" id="blockingLabel"></div>
+      <div class="value" id="blocking"></div>
+    </div>
+    <div class="row">
+      <div class="label" id="blockedLabel"></div>
+      <div class="value" id="blocked"></div>
+    </div>
+    <div class="row">
+      <div class="label"><div id="engineLabel"></div><div class="sub" id="engineStarts"></div></div>
+      <div class="value" id="engine"></div>
+    </div>
+  </section>
+  <section>
+    <h2 id="listsLabel"></h2>
+    <div id="lists"></div>
+  </section>
+  <section>
+    <h2 id="updatesLabel"></h2>
+    <div class="row"><div class="label" id="updates"></div></div>
+    <div class="actions">
+      <button id="checkNow"></button>
+      <a class="button" id="settings" href="chrome://settings/privacy"></a>
+    </div>
+  </section>
+</main>
+<script type="module" src="adblock_page.js"></script>
+</body>
+</html>

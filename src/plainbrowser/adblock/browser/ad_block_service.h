@@ -2,6 +2,8 @@
 #ifndef PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 #define PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -102,6 +104,33 @@ class AdBlockService {
                     const std::string& request_type,
                     base::OnceCallback<void(const GURL&)> callback);
 
+  // Any thread. The global switch (prefs::kBlockingEnabled), mirrored here by
+  // FilterListUpdater so the filter can read it off the UI thread.
+  void SetBlockingEnabled(bool enabled) { blocking_enabled_ = enabled; }
+  bool blocking_enabled() const { return blocking_enabled_; }
+
+  // Any thread. Requests blocked or replaced ($redirect) since start-up, for
+  // chrome://adblock; AdblockFilterImpl counts them.
+  void CountBlocked() { ++blocked_total_; }
+  int64_t blocked_total() const { return blocked_total_; }
+
+  // For chrome://adblock.
+  struct Status {
+    Status();
+    Status(const Status&);
+    Status& operator=(const Status&);
+    ~Status();
+    bool engine_running = false;
+    int engine_starts = 0;
+    // No more starts this session (the process kept going away).
+    bool gave_up = false;
+    // Names of the downloaded lists the engine uses; the others are the
+    // compiled-in ones.
+    std::vector<std::string> downloaded_lists;
+  };
+  // `callback` runs on task_runner().
+  void GetStatus(base::OnceCallback<void(Status)> callback);
+
   // Tests: how many times an engine process was started.
   int engine_starts_for_testing() const { return engine_starts_; }
 
@@ -110,6 +139,7 @@ class AdBlockService {
   AdBlockService();
 
   void SetLauncherOnSequence(Launcher launcher);
+  void GetStatusOnSequence(base::OnceCallback<void(Status)> callback);
   void UseListsOnSequence(ListTexts lists, base::OnceClosure done);
   bool CanStartEngine() const;
   // Starts an engine process and gives it lists_; `lists_done` runs when it
@@ -126,6 +156,8 @@ class AdBlockService {
   // nullopt: the compiled-in lists.
   std::optional<ListTexts> lists_;
   int engine_starts_ = 0;
+  std::atomic<bool> blocking_enabled_{true};
+  std::atomic<int64_t> blocked_total_{0};
   SEQUENCE_CHECKER(sequence_checker_);
 };
 

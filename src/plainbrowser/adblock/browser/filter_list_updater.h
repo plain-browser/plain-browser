@@ -41,6 +41,9 @@ namespace plainbrowser::adblock {
 // chrome://settings/privacy) turns it off: no requests, the stored lists are
 // deleted and the engine goes back to the compiled-in lists.
 //
+// It also mirrors the global blocking switch (prefs::kBlockingEnabled) into
+// AdBlockService, being the owner of the adblock Local State prefs.
+//
 // UI thread. Started once from ChromeBrowserMainParts::PostBrowserStart
 // (patches/30-adblock/0006); lives until the process exits.
 class FilterListUpdater {
@@ -51,6 +54,17 @@ class FilterListUpdater {
   static void Start(PrefService* local_state,
                     scoped_refptr<network::SharedURLLoaderFactory> factory,
                     const base::FilePath& user_data_dir);
+
+  // The running updater, or null before Start() (and in tests).
+  static FilterListUpdater* GetInstance();
+
+  PrefService* local_state() const { return local_state_; }
+  // The verified manifest of the stored (downloaded) lists.
+  const filter_lists::Manifest& stored() const { return stored_; }
+  bool checking() const { return checking_; }
+  // Checks for new lists now (chrome://adblock); false when updates are off
+  // or a check is already running.
+  bool CheckNow();
 
   FilterListUpdater(const FilterListUpdater&) = delete;
   FilterListUpdater& operator=(const FilterListUpdater&) = delete;
@@ -63,6 +77,7 @@ class FilterListUpdater {
 
   bool Enabled() const;
   void OnEnabledChanged();
+  void OnBlockingEnabledChanged();
   void LoadStore();
   void OnStoreRead(filter_lists::Store store);
 
@@ -89,6 +104,8 @@ class FilterListUpdater {
   filter_lists::Manifest stored_;
   // The engine uses downloaded lists (so disabling has something to undo).
   bool using_downloaded_ = false;
+  // Between Check() and FinishCheck().
+  bool checking_ = false;
 
   // The check in progress.
   std::unique_ptr<network::SimpleURLLoader> loader_;
