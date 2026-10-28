@@ -3,7 +3,7 @@
 Ostatnia aktualizacja: 28 października 2026 · [English](PRIVACY.md)
 
 Plain Browser to przeglądarka zbudowana z Chromium z zestawem poprawek ungoogled-chromium. Ta polityka opisuje, co
-przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.1.2-alpha.1 i jest aktualizowana przy każdym wydaniu, które to
+przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.1.3-alpha.1 i jest aktualizowana przy każdym wydaniu, które to
 zmienia.
 
 ## W skrócie
@@ -55,7 +55,7 @@ DNS”.
 
 ## Aktualizacje list filtrów
 
-Od wersji następnej po 0.1.2-alpha.1 przeglądarka odświeża listy filtrów między wydaniami:
+Od wersji 0.1.3-alpha.1 przeglądarka odświeża listy filtrów między wydaniami:
 
 - Raz na dobę, kilka minut po uruchomieniu, pyta **nasz serwer lists.plain-browser.app** (Cloudflare Worker) o
   krótki manifest z sumą kontrolną każdej listy i pobiera listę tylko wtedy, gdy się zmieniła. Nigdy nie łączy się
@@ -73,7 +73,7 @@ Od wersji następnej po 0.1.2-alpha.1 przeglądarka odświeża listy filtrów mi
 Safe Browsing ostrzega przed otwarciem strony znanej ze złośliwego oprogramowania lub phishingu. Plain Browser
 oferuje to bez przekazywania Google czegokolwiek o Tobie:
 
-- **Aktywne w wersji 0.1.2-alpha.1**, wyłącznie w ochronie standardowej. Przeglądarka wysyła żądania Safe Browsing
+- **Aktywne od wersji 0.1.2-alpha.1**, wyłącznie w ochronie standardowej. Przeglądarka wysyła żądania Safe Browsing
   do naszego proxy i nigdzie indziej; nigdy nie łączy się bezpośrednio z Google.
 - Przeglądarka trzyma **lokalną bazę prefiksów hashy** (tzw. Update API, ochrona standardowa). Odwiedzane adresy są
   sprawdzane z nią na Twoim urządzeniu. Dopiero gdy prefiks pasuje, przeglądarka pyta o pełne hashe tego prefiksu,

@@ -5,6 +5,8 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.1.3-alpha.1] - 2026-10-28 [Chromium 156.0.8078.47, ungoogled-chromium-windows 156.0.8078.47-1.1]
+
 ### Added
 - Safe Browsing (local hash-prefix database, standard protection) compiled back in and routed through our proxy
   `sb.plain-browser.app`; only public lists are requested, with an `X-Client: PlainBrowser/<version>` header.

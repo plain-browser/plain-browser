@@ -3,7 +3,7 @@
 Last updated: 28 October 2026 · [Polski](PRIVACY.pl.md)
 
 Plain Browser is a web browser built from Chromium with the ungoogled-chromium patch set. This policy says what the
-browser does with your data. It describes version 0.1.2-alpha.1 and is updated whenever a release changes it.
+browser does with your data. It describes version 0.1.3-alpha.1 and is updated whenever a release changes it.
 
 ## Summary
 
@@ -51,7 +51,7 @@ off, or choose a provider, in Settings > Privacy and security > Security > "Use 
 
 ## Filter list updates
 
-From the version after 0.1.2-alpha.1, the browser keeps its filter lists current between releases:
+From version 0.1.3-alpha.1, the browser keeps its filter lists current between releases:
 
 - Once a day, a few minutes after start-up, it asks **our mirror at lists.plain-browser.app** (a Cloudflare
   Worker) for a short manifest with the hash of each list, and downloads a list only when it changed. It never
@@ -69,7 +69,7 @@ From the version after 0.1.2-alpha.1, the browser keeps its filter lists current
 Safe Browsing warns before a page known for malware or phishing opens. Plain Browser offers it
 without Google learning anything about you:
 
-- **Active in version 0.1.2-alpha.1**, in standard protection only. The browser sends Safe Browsing requests to our
+- **Active since version 0.1.2-alpha.1**, in standard protection only. The browser sends Safe Browsing requests to our
   proxy and to nothing else; it never contacts Google directly.
 - The browser keeps a **local database of hash prefixes** (the "Update API", standard protection). URLs you visit
   are checked against it on your device. Only when a prefix matches does the browser ask for the full hashes of

@@ -10,7 +10,7 @@ function readVersion(): string {
   } catch {
     /* built outside the repository: fall back below */
   }
-  return process.env.PLAINBROWSER_VERSION ?? "0.1.2-alpha.1";
+  return process.env.PLAINBROWSER_VERSION ?? "0.1.3-alpha.1";
 }
 
 export const site = {
