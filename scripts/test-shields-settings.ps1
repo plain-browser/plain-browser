@@ -53,6 +53,25 @@ function ClickCenter($el) {
   if ($r.IsEmpty -or ($r.Y + $r.Height / 2) -gt $area.Bottom) { Log ("not clicked, outside the screen: " + $el.Current.Name); return }
   [Mouse]::Click([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2))
 }
+# Presses a control through UI Automation (Invoke, Toggle or SelectionItem pattern), which does not depend on
+# what the screen shows (a stuck system overlay, an undrawn console); falls back to a mouse click when the control
+# has none of these patterns or the call fails (the shields button only declares ExpandCollapse, whose Expand
+# returns E_FAIL).
+function Activate($el) {
+  foreach ($p in [System.Windows.Automation.InvokePattern]::Pattern, [System.Windows.Automation.TogglePattern]::Pattern,
+                 [System.Windows.Automation.SelectionItemPattern]::Pattern) {
+    $o = $null
+    if ($el.TryGetCurrentPattern($p, [ref]$o)) {
+      try {
+        if ($o -is [System.Windows.Automation.InvokePattern]) { $o.Invoke() }
+        elseif ($o -is [System.Windows.Automation.TogglePattern]) { $o.Toggle() }
+        else { $o.Select() }
+        return
+      } catch { Log ("UIA call failed, clicking instead: " + $_.Exception.Message) }
+    }
+  }
+  ClickCenter $el
+}
 function Texts($root) { (OfType $root ([System.Windows.Automation.ControlType]::Text) | ForEach-Object { $_.Current.Name }) -join " | " }
 function WaitFor($what, $seconds, $test) { for ($i = 0; $i -lt $seconds * 2; $i++) { $r = & $test; if ($r) { return $r }; Start-Sleep -Milliseconds 500 }; Log "timeout waiting for $what"; $null }
 # The bubble is a top-level window titled "Plain Browser", or (as in test-shields-ui.ps1) not listed as one: then
@@ -103,7 +122,7 @@ Shot "00-page-badge"
 $btn = WaitFor "toolbar button" 15 { OfType $win ([System.Windows.Automation.ControlType]::Button) | Where-Object { $_.Current.Name -like "Ochrona Plain Browser*" } | Select-Object -First 1 }
 Check ($null -ne $btn) "toolbar button 'Ochrona Plain Browser' found"
 if ($btn) { Log ("button: name='" + $btn.Current.Name + "' help='" + $btn.Current.HelpText + "'") }
-ClickCenter $btn; Start-Sleep 1
+Activate $btn; Start-Sleep 1
 $bubble = WaitFor "bubble" 5 { Bubble $p.Id }
 Check ($null -ne $bubble) "bubble opened"
 Shot "01-bubble-pl"
@@ -114,7 +133,7 @@ if ($bubble) {
   $link = NamedLike $bubble "Zarz*dzaj witrynami" | Select-Object -First 1
   Check ($null -ne $link) "link 'Zarzadzaj witrynami'"
   # --- 2. the link opens the settings section ----------------------------------------------------------------------
-  if ($link) { ClickCenter $link }
+  if ($link) { Activate $link }
 }
 $settings = WaitFor "settings tab" 10 { (Invoke-RestMethod "http://127.0.0.1:$port/json/list" -TimeoutSec 3) | Where-Object { $_.url -like "chrome://settings/privacy*" } | Select-Object -First 1 }
 Check ($null -ne $settings) "the link opened chrome://settings/privacy"
@@ -129,7 +148,7 @@ function AddSite($text) {
   # The first click right after the page opened can land before the page settled: retry once.
   $dialog = $null
   for ($try = 0; $try -lt 2 -and -not $dialog; $try++) {
-    ClickCenter $add
+    Activate $add
     $dialog = WaitFor "add dialog" 4 { NamedLike $win "Wy*cz ochron* dla witryny" | Select-Object -First 1 }
   }
   Check ($null -ne $dialog) "dialog 'Wylacz ochrone dla witryny'"
@@ -145,7 +164,7 @@ $remove = WaitFor "remove button" 5 { NamedLike $win "W*cz ponownie ochron* dla 
 Check ($null -ne $remove) "remove button 'Wlacz ponownie ochrone dla example.com'"
 Shot "03-settings-added"
 # --- 4. remove, add bank.pl, Preferences ---------------------------------------------------------------------------
-if ($remove) { ClickCenter $remove }
+if ($remove) { Activate $remove }
 Check ($null -ne (WaitFor "empty list" 5 { NamedLike $win "Nie dodano *adnych witryn*" | Select-Object -First 1 })) "removed: the list is empty again"
 AddSite "bank.pl"
 Check ($null -ne (WaitFor "bank.pl" 10 { OfType $win ([System.Windows.Automation.ControlType]::Text) | Where-Object { $_.Current.Name.Trim() -eq "bank.pl" } | Select-Object -First 1 })) "the list shows 'bank.pl'"

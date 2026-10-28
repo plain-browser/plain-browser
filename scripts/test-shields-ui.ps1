@@ -56,6 +56,25 @@ $AE = [System.Windows.Automation.AutomationElement]; $TS = [System.Windows.Autom
 function ByPid($procId) { $AE::RootElement.FindAll($TS::Children, (New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $procId))) }
 function Named($root, $name) { $root.FindFirst($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::NameProperty, $name))) }
 function ClickCenter($el) { $r = $el.Current.BoundingRectangle; [Mouse]::Click([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)) }
+# Presses a control through UI Automation (Invoke, Toggle or SelectionItem pattern), which does not depend on
+# what the screen shows (a stuck system overlay, an undrawn console); falls back to a mouse click when the control
+# has none of these patterns or the call fails (the shields button only declares ExpandCollapse, whose Expand
+# returns E_FAIL).
+function Activate($el) {
+  foreach ($p in [System.Windows.Automation.InvokePattern]::Pattern, [System.Windows.Automation.TogglePattern]::Pattern,
+                 [System.Windows.Automation.SelectionItemPattern]::Pattern) {
+    $o = $null
+    if ($el.TryGetCurrentPattern($p, [ref]$o)) {
+      try {
+        if ($o -is [System.Windows.Automation.InvokePattern]) { $o.Invoke() }
+        elseif ($o -is [System.Windows.Automation.TogglePattern]) { $o.Toggle() }
+        else { $o.Select() }
+        return
+      } catch { Log ("UIA call failed, clicking instead: " + $_.Exception.Message) }
+    }
+  }
+  ClickCenter $el
+}
 function ToggleState($el) { try { $el.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState.ToString() } catch { "(no TogglePattern)" } }
 function Texts($root) { ($root.FindAll($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text))) | ForEach-Object { $_.Current.Name }) -join " | " }
 # The bubble is its own top-level window of the browser process, titled "Plain Browser".
@@ -154,7 +173,7 @@ $btn = WaitFor "toolbar button" 15 { Buttons $win | Where-Object { $_.Current.Na
 Check ($null -ne $btn) "toolbar button 'Plain Browser protections' found"
 Log ("  buttons in window: " + ((Buttons $win | ForEach-Object { "'" + $_.Current.Name + "'" }) -join " "))
 Log ("button: " + $btn.Current.ControlType.ProgrammaticName + " help='" + $btn.Current.HelpText + "'")
-ClickCenter $btn; Start-Sleep 1
+Activate $btn; Start-Sleep 1
 $bubble = WaitFor "bubble" 5 { Bubble $p.Id }
 Check ($null -ne $bubble) "bubble opened on click"
 ByPid $p.Id | ForEach-Object { Log ("  top-level now: " + $_.Current.ControlType.ProgrammaticName + " '" + $_.Current.Name + "'") }
@@ -169,7 +188,7 @@ if ($bubble) {
   $bp = BadgePixels $btn; Log "badge pixels with 4 blocked: $bp"
   Check ($bp -gt 20) "the button shows the count badge"
   # --- 2. turn off ---------------------------------------------------------------------------------------------
-  ClickCenter $toggle; Start-Sleep 1
+  Activate $toggle; Start-Sleep 1
   Log ("after toggle, texts: " + (Texts $bubble) + " state=" + (ToggleState $toggle))
   Check ((Texts $bubble) -like "*Protections off for this site. The page is reloading.*") "status says off + reloading"
   $t1 = WaitFor "reloaded page (off)" 30 { $t = Title $port; if ($t -like "RESULT*" -and $t -ne $t0) { $t } }
@@ -191,14 +210,14 @@ Check (-not $p.HasExited) "browser alive after toggle"
 # make sure one is open before checking that a click on the button closes it instead of reopening it.
 if ($null -eq (Bubble $p.Id)) {
   Log "no bubble open (deactivated): opening one for the close-by-click check"
-  ClickCenter $btn; Start-Sleep 1
+  Activate $btn; Start-Sleep 1
   Check ($null -ne (WaitFor "bubble (for the close check)" 5 { Bubble $p.Id })) "bubble opened for the close check"
 }
-ClickCenter $btn; Start-Sleep 1
+Activate $btn; Start-Sleep 1
 Check ($null -eq (Bubble $p.Id)) "a click on the button while the bubble is open closes it (and does not reopen it)"
 Shot "03-closed"
 Check (-not $p.HasExited) "browser alive after close"
-ClickCenter $btn; Start-Sleep 1
+Activate $btn; Start-Sleep 1
 $bubble = WaitFor "bubble (reopen)" 5 { Bubble $p.Id }
 Check ($null -ne $bubble) "bubble reopened"
 Shot "04-reopened"
@@ -211,7 +230,7 @@ if ($bubble) {
   Check ($bp -eq 0) "no badge while protections are off"
   # --- 4. turn back on, Esc ------------------------------------------------------------------------------------
   $tBefore = Title $port
-  ClickCenter $toggle; Start-Sleep 1
+  Activate $toggle; Start-Sleep 1
   Check ((Texts $bubble) -like "*Protections on. The page is reloading.*") "status says on + reloading"
   [System.Windows.Forms.SendKeys]::SendWait("{ESC}"); Start-Sleep 1
   Check ($null -eq (Bubble $p.Id)) "Esc closed the bubble"
@@ -226,12 +245,12 @@ if ($bubble) {
   Shot "05-on-again"
 }
 # --- 5. Manage sites -----------------------------------------------------------------------------------------------
-ClickCenter $btn; Start-Sleep 1
+Activate $btn; Start-Sleep 1
 $bubble = WaitFor "bubble (manage)" 5 { Bubble $p.Id }
 $link = if ($bubble) { Named $bubble "Manage sites" } else { $null }
 Check ($null -ne $link) "bubble has the 'Manage sites' link"
 if ($link) {
-  ClickCenter $link
+  Activate $link
   $settings = WaitFor "settings tab" 10 { (Invoke-RestMethod "http://127.0.0.1:$port/json/list" -TimeoutSec 3) | Where-Object { $_.url -like "chrome://settings/privacy*" } | Select-Object -First 1 }
   Check ($null -ne $settings) "'Manage sites' opened chrome://settings/privacy"
   Check ($null -eq (Bubble $p.Id)) "the bubble closed"

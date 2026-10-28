@@ -34,6 +34,25 @@ $AE = [System.Windows.Automation.AutomationElement]; $TS = [System.Windows.Autom
 function ByPid($procId) { $AE::RootElement.FindAll($TS::Children, (New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $procId))) }
 function NamedLike($root, $pattern) { @($root.FindAll($TS::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) | Where-Object { $_.Current.Name -like $pattern } }
 function ClickCenter($el) { $r = $el.Current.BoundingRectangle; [Mouse]::Click([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)) }
+# Presses a control through UI Automation (Invoke, Toggle or SelectionItem pattern), which does not depend on
+# what the screen shows (a stuck system overlay, an undrawn console); falls back to a mouse click when the control
+# has none of these patterns or the call fails (the shields button only declares ExpandCollapse, whose Expand
+# returns E_FAIL).
+function Activate($el) {
+  foreach ($p in [System.Windows.Automation.InvokePattern]::Pattern, [System.Windows.Automation.TogglePattern]::Pattern,
+                 [System.Windows.Automation.SelectionItemPattern]::Pattern) {
+    $o = $null
+    if ($el.TryGetCurrentPattern($p, [ref]$o)) {
+      try {
+        if ($o -is [System.Windows.Automation.InvokePattern]) { $o.Invoke() }
+        elseif ($o -is [System.Windows.Automation.TogglePattern]) { $o.Toggle() }
+        else { $o.Select() }
+        return
+      } catch { Log ("UIA call failed, clicking instead: " + $_.Exception.Message) }
+    }
+  }
+  ClickCenter $el
+}
 function ToggleState($el) { try { $el.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState.ToString() } catch { "(no TogglePattern)" } }
 function Selected($el) { try { $el.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected } catch { "(no SelectionItemPattern)" } }
 function WaitFor($what, $seconds, $test) { for ($i = 0; $i -lt $seconds * 2; $i++) { $r = & $test; if ($r) { return $r }; Start-Sleep -Milliseconds 500 }; Log "timeout waiting for $what"; $null }
@@ -57,7 +76,7 @@ if ($toggle) { Log ("toggle name: '" + $toggle.Current.Name + "' state=" + (Togg
 Shot "01-google-services"
 # --- 2. flip it off ------------------------------------------------------------------------------------------------
 if ($toggle) {
-  ClickCenter $toggle; Start-Sleep 1
+  Activate $toggle; Start-Sleep 1
   Check ((ToggleState $toggle) -eq "Off") "toggle is Off after the click"
   Shot "02-toggled-off"
 }
