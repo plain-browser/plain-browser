@@ -30,9 +30,6 @@ void AddSettingsStrings(content::WebUIDataSource* html_source) {
       {"plainBrowserAdblockStatus", IDS_SETTINGS_PLAINBROWSER_ADBLOCK_STATUS},
       {"plainBrowserAdblockStatusDesc",
        IDS_SETTINGS_PLAINBROWSER_ADBLOCK_STATUS_DESC},
-      {"plainBrowserCrashReports", IDS_SETTINGS_PLAINBROWSER_CRASH_REPORTS},
-      {"plainBrowserCrashReportsDesc",
-       IDS_SETTINGS_PLAINBROWSER_CRASH_REPORTS_DESC},
   };
   html_source->AddLocalizedStrings(kStrings);
 }

@@ -152,7 +152,7 @@ Pełnej, długoterminowej zgodności MV2 dla dowolnych rozszerzeń. Cel: **kurat
 
 ## 9. Pozostałe decyzje produktowe (do podjęcia)
 - Safe Browsing: ungoogled usuwa. Opcje: brak (jak ungoogled), własny proxy do Google Safe Browsing Update API v4 (dane idą przez nasz serwer, nie do Google z klienta), lub listy phishingowe w adblock-engine. Rekomendacja: faza 2, własny proxy.
-- Crash reporting: Crashpad jest w drzewie; ungoogled wyłącza upload. Włączyć **opt-in** upload minidumpów na własny serwer (Sentry obsługuje minidumpy; symbole z `symbol_level=1`). **2026-10-28:** zrobione bez Sentry: własny Worker + R2 (`infra/crash-reports`), zgoda niezależna od metryk; [CRASH_REPORTS.md](CRASH_REPORTS.md).
+- Crash reporting: Crashpad jest w drzewie; ungoogled wyłącza upload. Włączyć **opt-in** upload minidumpów na własny serwer (Sentry obsługuje minidumpy; symbole z `symbol_level=1`). **2026-10-28: decyzja — bez crash reportingu**, Crashpad zostaje wyłączony jak w ungoogled; gotowa implementacja (własny Worker + R2, zgoda niezależna od metryk) jest w commicie b72feb8, cofniętym.
 - Telemetria: zero domyślnie. Jeśli kiedyś – opt-in, własny endpoint, opisane w polityce.
 - Synchronizacja: brak (Chrome Sync wymaga Google). Ewentualnie import/eksport profilu.
 - Hasła, autofill lokalnie – działają bez Google.

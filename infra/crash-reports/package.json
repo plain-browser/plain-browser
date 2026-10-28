@@ -1,9 +1,0 @@
-{
-  "name": "plainbrowser-crash-reports",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "node --test test/*.test.ts",
-    "deploy": "wrangler deploy"
-  }
-}

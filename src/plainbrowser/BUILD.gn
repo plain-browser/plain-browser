@@ -9,7 +9,6 @@ group("browser") {
     "//plainbrowser/adblock:browser",
     "//plainbrowser/adblock:updater",
     "//plainbrowser/adblock:webui",
-    "//plainbrowser/crash:browser",
     "//plainbrowser/fingerprint:browser",
     "//plainbrowser/shields:browser",
     "//plainbrowser/shields:ui",
@@ -45,7 +44,6 @@ test("plainbrowser_unittests") {
   deps = [
     "//mojo/core/test:run_all_unittests",
     "//plainbrowser/adblock:unit_tests",
-    "//plainbrowser/crash:unit_tests",
     "//plainbrowser/fingerprint:unit_tests",
     "//plainbrowser/shields:unit_tests",
   ]

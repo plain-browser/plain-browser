@@ -6,11 +6,6 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 ## [Unreleased]
 
 ### Added
-- Opt-in crash reports: "Send crash reports to Plain Browser" in Settings > Privacy and security (off by
-  default). Crashpad is back on (ungoogled turns it off on Windows), so crashes are listed on `chrome://crashes`;
-  with the setting on, reports go to `crash.plain-browser.app` (Cloudflare Worker + R2, `infra/crash-reports`: no
-  logs, no IP, identifying fields dropped, kept 90 days). The consent is our own pref, not metrics consent;
-  `docs/CRASH_REPORTS.md`, privacy policy section "Crash reports".
 - Safe Browsing (local hash-prefix database, standard protection) compiled back in and routed through our proxy
   `sb.plain-browser.app`; only public lists are requested, with an `X-Client: PlainBrowser/<version>` header.
 - Tracking-parameter stripping on navigations (`utm_*`, `fbclid`, `gclid`, ...) via a `$removeparam` list.
