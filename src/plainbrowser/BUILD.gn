@@ -2,7 +2,7 @@
 # Copied to chromium/src/plainbrowser/ by scripts/prepare.py / apply-plainbrowser.ps1.
 import("//testing/test.gni")
 
-# Chromium targets depend on //plainbrowser:browser and //plainbrowser:renderer
+# Chromium targets depend on //plainbrowser:browser, :renderer and :utility
 # (patches/00-build/0001-gn-deps.patch); each feature adds itself here.
 group("browser") {
   public_deps = [
@@ -12,6 +12,11 @@ group("browser") {
     "//plainbrowser/shields:browser",
     "//plainbrowser/shields:ui",
   ]
+}
+
+# The adblock engine's sandboxed utility process (chrome/utility).
+group("utility") {
+  public_deps = [ "//plainbrowser/adblock:engine_service" ]
 }
 
 group("renderer") {
@@ -26,6 +31,7 @@ group("plainbrowser") {
   public_deps = [
     ":browser",
     ":renderer",
+    ":utility",
   ]
 }
 

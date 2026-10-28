@@ -1,0 +1,46 @@
+// Copyright Plain Browser contributors. MPL-2.0.
+module plainbrowser.adblock.mojom;
+
+import "mojo/public/mojom/base/big_string.mojom";
+import "sandbox/policy/mojom/sandbox.mojom";
+import "url/mojom/url.mojom";
+
+// A downloaded filter list replacing the compiled-in list of the same name
+// ("easylist", "easyprivacy", "easylistpolish").
+struct NamedList {
+  string name;
+  mojo_base.mojom.BigString text;
+};
+
+struct CosmeticResult {
+  string css;
+  bool generic_hide;
+  array<string> procedural_actions;
+  array<string> procedural_selectors;
+};
+
+// The adblock-rust engine in its own utility process (engine/), so filter
+// lists, which come from the network, are parsed outside the browser process
+// and in the most restrictive sandbox. Only AdBlockService (browser/) talks to
+// it; renderers keep talking to the browser (adblock.mojom). Every answer is
+// "nothing to do" until the engine is built; the browser treats a crashed
+// process the same way and starts a new one.
+[ServiceSandbox=sandbox.mojom.Sandbox.kService]
+interface AdblockEngine {
+  // Replaces the engine with one built from the compiled-in lists, the named
+  // ones replaced by `lists` (empty: compiled-in only). Queries are answered by
+  // the old engine until the reply.
+  UseLists(array<NamedList> lists) => ();
+
+  ShouldBlock(url.mojom.Url url, url.mojom.Url source_url, string request_type)
+      => (bool block);
+  CosmeticResources(url.mojom.Url url) => (CosmeticResult result);
+  Scriptlets(url.mojom.Url url) => (string script);
+  RedirectUrl(url.mojom.Url url, url.mojom.Url source_url) => (string data_url);
+  RedirectHosts() => (array<string> hosts);
+  GenericCosmeticCss(url.mojom.Url url, array<string> classes,
+                     array<string> ids) => (string css);
+  // An empty URL when nothing was removed.
+  RewrittenUrl(url.mojom.Url url, url.mojom.Url source_url,
+               string request_type) => (url.mojom.Url rewritten);
+};

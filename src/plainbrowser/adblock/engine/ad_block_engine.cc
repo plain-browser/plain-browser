@@ -1,0 +1,198 @@
+// Copyright Plain Browser contributors. MPL-2.0.
+#include "plainbrowser/adblock/engine/ad_block_engine.h"
+
+#include "base/functional/bind.h"
+#include "base/functional/callback_helpers.h"
+#include "base/logging.h"
+#include "base/metrics/histogram_functions.h"
+#include "base/task/thread_pool.h"
+#include "base/time/time.h"
+#include "url/gurl.h"
+
+namespace plainbrowser::adblock {
+
+AdBlockEngine::AdBlockEngine()
+    : task_runner_(base::ThreadPool::CreateSequencedTaskRunner(
+          {base::TaskPriority::USER_BLOCKING,
+           base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN})) {
+  DETACH_FROM_SEQUENCE(sequence_checker_);
+  // Unretained: the engine lives as long as its process (see the header).
+  task_runner_->PostTask(FROM_HERE,
+                         base::BindOnce(&AdBlockEngine::LoadDefaultEngine,
+                                        base::Unretained(this)));
+}
+
+AdBlockEngine::~AdBlockEngine() = default;
+
+void AdBlockEngine::LoadDefaultEngine() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  const base::TimeTicks start = base::TimeTicks::Now();
+  engine_.emplace(new_default_engine());
+  VLOG(1) << "Plain Browser adblock engine ready in "
+          << (base::TimeTicks::Now() - start).InMilliseconds() << " ms";
+}
+
+bool AdBlockEngine::ShouldBlock(const GURL& url,
+                                 const GURL& source_url,
+                                 const std::string& request_type) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    return false;
+  }
+  const std::string& spec = url.spec();
+  const std::string& source =
+      source_url.is_valid() ? source_url.spec() : spec;
+  BlockResult r = (*engine_)->check_network_request(
+      rust::Str(spec), rust::Str(source), rust::Str(request_type));
+  // `matched` is adblock-rust's should_block(): important, or a block rule
+  // without an exception. Redirect resources are not wired yet, so a
+  // $redirect match is treated as a plain block.
+  return r.matched;
+}
+
+GURL AdBlockEngine::RewrittenUrl(const GURL& url,
+                                  const GURL& source_url,
+                                  const std::string& request_type) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS() || !url.has_query()) {
+    return GURL();
+  }
+  const std::string& spec = url.spec();
+  const std::string& source =
+      source_url.is_valid() ? source_url.spec() : spec;
+  BlockResult r = (*engine_)->check_network_request(
+      rust::Str(spec), rust::Str(source), rust::Str(request_type));
+  if (r.matched || r.rewritten_url.empty()) {
+    return GURL();
+  }
+  GURL rewritten(std::string(r.rewritten_url));
+  // Only ever drop query parameters: anything else from the engine is ignored.
+  if (!rewritten.is_valid() || rewritten == url ||
+      rewritten.GetWithEmptyPath() != url.GetWithEmptyPath() ||
+      rewritten.path() != url.path()) {
+    return GURL();
+  }
+  return rewritten;
+}
+
+AdBlockEngine::Cosmetic::Cosmetic() = default;
+AdBlockEngine::Cosmetic::Cosmetic(Cosmetic&&) = default;
+AdBlockEngine::Cosmetic& AdBlockEngine::Cosmetic::operator=(Cosmetic&&) =
+    default;
+AdBlockEngine::Cosmetic::~Cosmetic() = default;
+
+AdBlockEngine::Cosmetic AdBlockEngine::CosmeticResources(const GURL& url) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  Cosmetic out;
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    // No engine yet: report generic hiding off too, so the renderer does not
+    // collect classes for nothing. Non-web documents never get rules.
+    out.generic_hide = true;
+    return out;
+  }
+  CosmeticResult r = (*engine_)->cosmetic_resources(rust::Str(url.spec()));
+  out.css = std::string(r.css);
+  out.generic_hide = r.generic_hide;
+  for (const rust::String& a : r.procedural_actions) {
+    out.procedural_actions.emplace_back(a);
+  }
+  for (const rust::String& s : r.procedural_selectors) {
+    out.procedural_selectors.emplace_back(s);
+  }
+  return out;
+}
+
+std::string AdBlockEngine::Scriptlets(const GURL& url) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    return std::string();
+  }
+  return std::string((*engine_)->scriptlets(rust::Str(url.spec())));
+}
+
+std::string AdBlockEngine::RedirectUrl(const GURL& url,
+                                        const GURL& source_url) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    return std::string();
+  }
+  const std::string& spec = url.spec();
+  const std::string& source = source_url.is_valid() ? source_url.spec() : spec;
+  return std::string(
+      (*engine_)->redirect_url(rust::Str(spec), rust::Str(source)));
+}
+
+std::vector<std::string> AdBlockEngine::RedirectHosts() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  std::vector<std::string> hosts;
+  if (!engine_) {
+    return hosts;
+  }
+  for (const rust::String& h : (*engine_)->redirect_hosts()) {
+    hosts.emplace_back(h);
+  }
+  return hosts;
+}
+
+std::string AdBlockEngine::GenericCosmeticCss(
+    const GURL& url,
+    const std::vector<std::string>& classes,
+    const std::vector<std::string>& ids) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+    return std::string();
+  }
+  rust::Vec<rust::String> rust_classes;
+  rust_classes.reserve(classes.size());
+  for (const std::string& c : classes) {
+    rust_classes.push_back(rust::String(c));
+  }
+  rust::Vec<rust::String> rust_ids;
+  rust_ids.reserve(ids.size());
+  for (const std::string& id : ids) {
+    rust_ids.push_back(rust::String(id));
+  }
+  return std::string((*engine_)->generic_cosmetic_css(
+      rust::Str(url.spec()), rust_classes, rust_ids));
+}
+
+void AdBlockEngine::UseLists(ListTexts lists, base::OnceClosure done) {
+  const int generation = ++generation_;
+  // Building parses every list (about a second for EasyList): off the engine
+  // sequence, so queries are answered by the old engine meanwhile. Unretained:
+  // see the header.
+  base::ThreadPool::PostTask(
+      FROM_HERE, {base::TaskPriority::BEST_EFFORT},
+      base::BindOnce(
+          [](AdBlockEngine* service, int generation, ListTexts lists,
+             base::OnceClosure done) {
+            rust::Vec<ListText> texts;
+            texts.reserve(lists.size());
+            for (auto& [name, text] : lists) {
+              texts.push_back(ListText{rust::String(name), rust::String(text)});
+            }
+            rust::Box<AdblockEngine> engine = new_engine_with_lists(texts);
+            service->task_runner_->PostTask(
+                FROM_HERE,
+                base::BindOnce(&AdBlockEngine::SwapEngine,
+                               base::Unretained(service), generation,
+                               std::move(engine), std::move(done)));
+          },
+          base::Unretained(this), generation, std::move(lists),
+          std::move(done)));
+}
+
+void AdBlockEngine::SwapEngine(int generation,
+                                rust::Box<AdblockEngine> engine,
+                                base::OnceClosure done) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (generation == generation_) {
+    engine_.emplace(std::move(engine));
+    VLOG(1) << "Plain Browser adblock engine replaced (lists updated)";
+  }
+  if (done) {
+    std::move(done).Run();
+  }
+}
+
+}  // namespace plainbrowser::adblock

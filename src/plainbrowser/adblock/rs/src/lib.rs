@@ -1,4 +1,4 @@
-//! Thin C++ bridge over adblock-rust. Owned by the browser-process AdBlockService.
+//! Thin C++ bridge over adblock-rust. Owned by AdBlockEngine in the adblock utility process.
 use adblock::lists::{FilterSet, ParseOptions};
 use adblock::request::Request;
 use adblock::Engine;

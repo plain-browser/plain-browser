@@ -8,8 +8,17 @@ disconnected filters and fails open after 3 s.
 - `src/plainbrowser/adblock/rs` – Rust bridge (cxx) over `adblock` 0.13.3. Default lists
   (EasyList, EasyPrivacy, EasyList Polish, and our `plainbrowser-removeparam.txt` with `$removeparam` rules)
   are compiled in via `include_str!`. `cargo test` runs standalone (CI: `rust.yml`); GN ignores Cargo.toml/build.rs.
-- `browser/` – `AdBlockService` (process-wide engine on its own sequence),
-  `AdblockFilterImpl` (mojo receivers on that sequence), `ExposeInterfacesToRenderer`
+- `engine/` – the engine in its own **utility process** (since 2026-10-28): `AdBlockEngine` owns the adblock-rust
+  engine on its own sequence, `AdBlockEngineService` serves `common/adblock_engine.mojom` (`AdblockEngine`,
+  `[ServiceSandbox=kService]`, the most restrictive utility sandbox, like Chromium's Storage Service; Task Manager:
+  "Plain Browser ad blocker"). Registered in `chrome/utility/services.cc` (`patches/30-adblock/0008`). Filter lists,
+  bundled or downloaded, are parsed only there.
+- `browser/` – `AdBlockService` (the browser's handle on that process: starts it with
+  `content::ServiceProcessHost` on first use, `engine_launcher.cc`; every query is async and fails open, i.e.
+  "nothing to block", until the engine is built or when the process goes away; a process that went away is started
+  again on the next query, with the downloaded lists dropped since they may have crashed it, at most
+  `kMaxEngineStarts` = 4 starts per browser session),
+  `AdblockFilterImpl` (mojo receivers for renderers on the service's sequence), `ExposeInterfacesToRenderer`
   (registry hook, kill switch `--disable-features=PlainBrowserAdblock`),
   `TrackingParamsNavigationThrottle` (strips `utm_*`, `fbclid`, `gclid`, ... from frame navigations:
   defers the navigation, asks the engine for `rewritten_url`, and when it differs cancels the navigation and
@@ -27,7 +36,7 @@ disconnected filters and fails open after 3 s.
   (`infra/filter-lists`); see "Filter list updates".
 - `//plainbrowser/shields` – per-site exception list, toolbar button and bubble; see "UI and per-site exceptions".
 
-Wiring patches: `patches/00-build/0001` (GN deps, shared with the other features), `patches/30-adblock/0002..0006`
+Wiring patches: `patches/00-build/0001` (GN deps, shared with the other features), `patches/30-adblock/0002..0008`
 and, for the UI and the exception list, `patches/60-ui/0005..0009`; about 60 added lines in Chromium files. `scripts/check-patches.py` dry-runs them against any upstream tag.
 
 ## Why GN and not a cargo staticlib
@@ -44,7 +53,9 @@ Failures met on the way (all handled in those scripts or the patch): killed `gnr
 deleted; `gnrt vendor` deletes ucw's extracted `windows-rs-0.52.0` and `gnrt gen` overwrites ucw's patch to the
 `windows_*_msvc` BUILD.gn files; nine crates need `allow_unsafe`; `thiserror` v1/v2 differ in build-script outputs;
 flatbuffers' build.rs turns on nightly-only features; cxx `Result` needs C++ exceptions, so the bridge uses `bool`.
-Security note: adblock parses untrusted filter lists in the browser process; moving it to a utility process is a later step.
+Security note: the filter lists (downloaded ones come from the network) are parsed in the adblock utility process
+(`engine/`, `kService` sandbox), not in the browser process; a crash there costs ad blocking until the next query
+restarts it, nothing else.
 
 ## UI and per-site exceptions (//plainbrowser/shields)
 Status 2026-10-27: first UI slice, built against Chromium 156.0.8078.47 and verified headless
@@ -188,7 +199,8 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   both are empty every manifest is refused), downloads the lists whose hash changed, verifies size, SHA-256 and
   the header, writes them atomically and loads the store again. Requests: no cookies, cache bypassed,
   `X-Client: PlainBrowser/<major.minor.patch>`, a network traffic annotation `plainbrowser_filter_lists`.
-- **Engine swap**: `AdBlockService::UseLists()` builds the new engine on the thread pool (about a second for
+- **Engine swap**: `AdBlockService::UseLists()` sends the lists to the engine process, where
+  `AdBlockEngine::UseLists()` builds the new engine on the thread pool (about a second for
   EasyList) while the old one keeps answering, then swaps it in on the engine sequence; a newer call wins over an
   older build still running. Lists that were not downloaded stay the compiled-in ones, and
   `plainbrowser-removeparam.txt` is never downloaded. The compiled-in lists remain the fallback for a fresh

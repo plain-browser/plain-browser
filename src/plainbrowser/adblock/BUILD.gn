@@ -3,8 +3,13 @@ import("//build/rust/rust_static_library.gni")
 import("//mojo/public/tools/bindings/mojom.gni")
 
 mojom("mojom") {
-  sources = [ "common/adblock.mojom" ]
+  sources = [
+    "common/adblock.mojom",
+    "common/adblock_engine.mojom",
+  ]
   public_deps = [
+    "//mojo/public/mojom/base",
+    "//sandbox/policy/mojom",
     "//third_party/blink/public/mojom/tokens:tokens",
     "//url/mojom:url_mojom_gurl",
   ]
@@ -68,18 +73,62 @@ rust_static_library("ffi") {
   visibility = [ ":*" ]
 }
 
-# Engine owner and the pure navigation-throttle rules: no //content, so unit
-# tests link them alone.
+# The engine owner (adblock-rust): runs in the adblock utility process only.
 source_set("engine") {
+  sources = [
+    "engine/ad_block_engine.cc",
+    "engine/ad_block_engine.h",
+  ]
+  public_deps = [ ":ffi" ]
+  deps = [
+    "//base",
+    "//url",
+  ]
+  visibility = [ ":*" ]
+}
+
+# mojom::AdblockEngine in the utility process; //plainbrowser:utility, which
+# chrome/utility depends on (patches/00-build/0001), registered in
+# chrome/utility/services.cc (patches/30-adblock/0008).
+source_set("engine_service") {
+  sources = [
+    "engine/ad_block_engine_service.cc",
+    "engine/ad_block_engine_service.h",
+  ]
+  public_deps = [
+    ":engine",
+    ":mojom",
+  ]
+  deps = [
+    "//base",
+    "//mojo/public/cpp/bindings",
+    "//url",
+  ]
+}
+
+# The browser's handle on the engine process: no //content and no Rust, so
+# unit tests link it with an in-process engine_service.
+source_set("client") {
   sources = [
     "browser/ad_block_service.cc",
     "browser/ad_block_service.h",
+  ]
+  public_deps = [ ":mojom" ]
+  deps = [
+    "//base",
+    "//mojo/public/cpp/bindings",
+    "//url",
+  ]
+}
+
+# The pure navigation-throttle rules (tracking parameters, debouncing).
+source_set("rules") {
+  sources = [
     "browser/debounce_rules.cc",
     "browser/debounce_rules.h",
     "browser/tracking_params_rules.cc",
     "browser/tracking_params_rules.h",
   ]
-  public_deps = [ ":ffi" ]
   deps = [
     "//base",
     "//url",
@@ -112,7 +161,7 @@ source_set("updater") {
   ]
   public_deps = [ ":lists" ]
   deps = [
-    ":engine",
+    ":client",
     "//base",
     "//components/prefs",
     "//net",
@@ -128,14 +177,17 @@ source_set("browser") {
   sources = [
     "browser/adblock_filter_impl.cc",
     "browser/adblock_filter_impl.h",
+    "browser/engine_launcher.cc",
+    "browser/engine_launcher.h",
     "browser/renderer_interfaces.cc",
     "browser/renderer_interfaces.h",
     "browser/tracking_params_navigation_throttle.cc",
     "browser/tracking_params_navigation_throttle.h",
   ]
   public_deps = [
-    ":engine",
+    ":client",
     ":mojom",
+    ":rules",
     "//services/service_manager/public/cpp",
   ]
   deps = [
@@ -218,13 +270,17 @@ source_set("unit_tests") {
     "browser/debounce_rules_unittest.cc",
     "browser/filter_lists_unittest.cc",
     "browser/tracking_params_rules_unittest.cc",
+    "engine/ad_block_engine_unittest.cc",
     "renderer/adblock_url_loader_throttle_unittest.cc",
   ]
   deps = [
+    ":client",
     ":engine",
+    ":engine_service",
     ":ffi",
     ":lists",
     ":mojom",
+    ":rules",
     ":url_loader_throttle",
     "//base",
     "//base/test:test_support",

@@ -2,7 +2,6 @@
 #ifndef PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 #define PLAINBROWSER_ADBLOCK_BROWSER_AD_BLOCK_SERVICE_H_
 
-#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
@@ -14,28 +13,44 @@
 #include "base/no_destructor.h"
 #include "base/sequence_checker.h"
 #include "base/task/sequenced_task_runner.h"
-#include "plainbrowser/adblock/rs/src/lib.rs.h"
-#include "third_party/rust/cxx/v1/cxx.h"
+#include "mojo/public/cpp/bindings/pending_receiver.h"
+#include "mojo/public/cpp/bindings/remote.h"
+#include "plainbrowser/adblock/common/adblock_engine.mojom.h"
 
 class GURL;
 
 namespace plainbrowser::adblock {
 
-// Process-wide owner of the adblock-rust engine. Created on first use; all
-// methods except GetInstance(), task_runner() and UseLists() must run on
-// task_runner(). The engine is built from the compiled-in lists asynchronously;
-// until it is ready, nothing is blocked. UseLists() swaps in an engine built
-// from downloaded lists (FilterListUpdater).
+// The browser's handle on the adblock engine, which runs in its own sandboxed
+// utility process (engine/, mojom::AdblockEngine): filter lists come from the
+// network and are parsed there, not in the browser process. Process-wide,
+// created on first use. Methods other than GetInstance(), task_runner(),
+// SetLauncher() and UseLists() must run on task_runner(); their callbacks run
+// there too.
+//
+// The process is started on first use and kept running. Every query fails
+// open: until the engine is built, without a launcher, or when the process
+// goes away, the answer is "nothing to block". A process that went away is
+// started again on the next query, with the lists it had, except downloaded
+// lists that were in use when it went away (they may be what made it crash):
+// those are dropped until the updater hands over new ones. After
+// kMaxEngineStarts starts the service stops starting it until the browser
+// restarts.
 class AdBlockService {
  public:
+  using Launcher = base::RepeatingCallback<void(
+      mojo::PendingReceiver<mojom::AdblockEngine>)>;
+  // Downloaded list texts by list name ("easylist", ...).
+  using ListTexts = std::vector<std::pair<std::string, std::string>>;
+
+  static constexpr int kMaxEngineStarts = 4;
+
   static AdBlockService* GetInstance();
 
-  // Tests only: a service whose engine loads on the current ThreadPool (the
-  // test's TaskEnvironment). While it is alive, GetInstance() returns it, so the
-  // mojo filter and the throttles under test use it instead of the process-wide
-  // instance (whose task runner would outlive the test's thread pool). Run the
-  // task environment until idle before using or destroying it.
-  static std::unique_ptr<AdBlockService> CreateForTesting();
+  // Tests only: a service that starts engines with `launcher` (for example an
+  // in-process AdBlockEngineService). While it is alive, GetInstance() returns
+  // it. Run the task environment until idle before destroying it.
+  static std::unique_ptr<AdBlockService> CreateForTesting(Launcher launcher);
   ~AdBlockService();
 
   AdBlockService(const AdBlockService&) = delete;
@@ -45,72 +60,72 @@ class AdBlockService {
     return task_runner_;
   }
 
-  // Downloaded list texts by list name (default_list_names()).
-  using ListTexts = std::vector<std::pair<std::string, std::string>>;
+  // Any thread. How to start the engine process (browser/engine_launcher.cc,
+  // content::ServiceProcessHost); the first call wins.
+  void SetLauncher(Launcher launcher);
 
-  // Any thread. Builds an engine from the default lists with the named ones
-  // replaced by `lists` (empty: the compiled-in lists only) on the thread pool,
-  // then swaps it in on task_runner(); queries keep using the old engine until
-  // then. A later call wins over an earlier one still building. `done` runs on
-  // task_runner() after the swap.
+  // Any thread. Builds an engine from the compiled-in lists with the named
+  // ones replaced by `lists` (empty: compiled-in only); queries are answered by
+  // the old engine until it is swapped in. `done` runs on task_runner() after
+  // the swap (or when there is no engine process to swap in).
   void UseLists(ListTexts lists, base::OnceClosure done = base::OnceClosure());
 
-  bool ShouldBlock(const GURL& url,
+  void ShouldBlock(const GURL& url,
                    const GURL& source_url,
-                   const std::string& request_type);
-
-  // Hide rules for a document: the per-site stylesheet and whether a
-  // $generichide exception turns generic (class/id) rules off for it.
-  struct Cosmetic {
-    Cosmetic();
-    Cosmetic(Cosmetic&&);
-    Cosmetic& operator=(Cosmetic&&);
-    ~Cosmetic();
-    std::string css;
-    bool generic_hide = false;
-    // For the renderer's procedural script: adblock-rust action JSON and
-    // selectors with non-CSS operators.
-    std::vector<std::string> procedural_actions;
-    std::vector<std::string> procedural_selectors;
-  };
-  Cosmetic CosmeticResources(const GURL& url);
-
-  // The scriptlets for a document, as one script for its main world; empty
-  // when none apply.
-  std::string Scriptlets(const GURL& url);
-
+                   const std::string& request_type,
+                   base::OnceCallback<void(bool)> callback);
+  // Hide rules for a document. generic_hide is true without an engine, so the
+  // renderer does not collect class names for nothing.
+  void CosmeticResources(
+      const GURL& url,
+      base::OnceCallback<void(mojom::CosmeticResultPtr)> callback);
+  // The scriptlets for a document's main world, or empty.
+  void Scriptlets(const GURL& url,
+                  base::OnceCallback<void(const std::string&)> callback);
   // A data: URL replacing `url` under a $redirect rule, or empty.
-  std::string RedirectUrl(const GURL& url, const GURL& source_url);
-
-  // Hosts named by $redirect rules (renderers ask RedirectUrl only for them).
-  std::vector<std::string> RedirectHosts();
-
+  void RedirectUrl(const GURL& url,
+                   const GURL& source_url,
+                   base::OnceCallback<void(const std::string&)> callback);
+  // Hosts named by $redirect rules.
+  void RedirectHosts(
+      base::OnceCallback<void(const std::vector<std::string>&)> callback);
   // Generic hide rules for classes and ids found in the document at `url`.
-  std::string GenericCosmeticCss(const GURL& url,
-                                 const std::vector<std::string>& classes,
-                                 const std::vector<std::string>& ids);
-
+  void GenericCosmeticCss(
+      const GURL& url,
+      const std::vector<std::string>& classes,
+      const std::vector<std::string>& ids,
+      base::OnceCallback<void(const std::string&)> callback);
   // `url` with tracking parameters removed ($removeparam rules), or an empty
-  // GURL when nothing was removed or the request would be blocked outright.
-  // `request_type` is "main_frame" or "sub_frame" for navigations.
-  GURL RewrittenUrl(const GURL& url,
+  // GURL. `request_type` is "main_frame" or "sub_frame" for navigations.
+  void RewrittenUrl(const GURL& url,
                     const GURL& source_url,
-                    const std::string& request_type);
+                    const std::string& request_type,
+                    base::OnceCallback<void(const GURL&)> callback);
+
+  // Tests: how many times an engine process was started.
+  int engine_starts_for_testing() const { return engine_starts_; }
 
  private:
   friend class base::NoDestructor<AdBlockService>;
   AdBlockService();
 
-  void LoadDefaultEngine();
-  void SwapEngine(int generation,
-                  rust::Box<AdblockEngine> engine,
-                  base::OnceClosure done);
+  void SetLauncherOnSequence(Launcher launcher);
+  void UseListsOnSequence(ListTexts lists, base::OnceClosure done);
+  bool CanStartEngine() const;
+  // Starts an engine process and gives it lists_; `lists_done` runs when it
+  // has swapped them in.
+  void StartEngine(base::OnceClosure lists_done);
+  // The engine, started if needed; null when it cannot be started.
+  mojom::AdblockEngine* Engine();
+  void OnEngineGone();
 
   const scoped_refptr<base::SequencedTaskRunner> task_runner_;
-  std::optional<rust::Box<AdblockEngine>> engine_;
-  // Incremented by every UseLists() call (any thread); an engine whose build
-  // started before the latest call is dropped instead of swapped in.
-  std::atomic<int> generation_{0};
+  Launcher launcher_;
+  mojo::Remote<mojom::AdblockEngine> engine_;
+  // The lists of the last UseLists(), given to every new engine process;
+  // nullopt: the compiled-in lists.
+  std::optional<ListTexts> lists_;
+  int engine_starts_ = 0;
   SEQUENCE_CHECKER(sequence_checker_);
 };
 

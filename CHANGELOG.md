@@ -48,6 +48,9 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   hide rules for that site, because they were one CSS rule; each selector now has its own.
 
 ### Changed
+- The ad blocker's engine runs in its own sandboxed utility process ("Plain Browser ad blocker" in Task Manager), so
+  filter lists, which now come from the network, are never parsed in the browser process. If that process crashes,
+  nothing is blocked until it is restarted on the next request, without the downloaded lists.
 - Distribution decision: Plain Browser ships as an MSIX through the Microsoft Store only. The Store signs the package
   and delivers updates, so there is no own updater and no Authenticode certificate.
 - Settings > Security: the Enhanced protection option is gone (its real-time lookups would send URLs; the proxy

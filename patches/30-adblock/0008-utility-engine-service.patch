@@ -1,0 +1,37 @@
+From: Plain Browser
+Subject: [adblock] Run the adblock engine in a sandboxed utility process
+
+Category: 30-adblock. Filter lists come from the network (lists.plain-browser.app, 30-adblock/0006), so the
+adblock-rust engine that parses them runs outside the browser process: mojom::AdblockEngine
+(//plainbrowser/adblock/common/adblock_engine.mojom, [ServiceSandbox=kService]) is served by
+AdBlockEngineService in a utility process, which AdBlockService in the browser starts with
+content::ServiceProcessHost. This patch only registers the service with the utility process's main-thread
+service factory; the GN dependency is in 00-build/0001.
+---
+--- a/chrome/utility/services.cc
++++ b/chrome/utility/services.cc
+@@ -32,4 +32,5 @@
+ #include "pdf/buildflags.h"
++#include "plainbrowser/adblock/engine/ad_block_engine_service.h"
+ #include "printing/buildflags/buildflags.h"
+ #include "services/passage_embeddings/passage_embeddings_service.h"
+ #include "ui/accessibility/accessibility_features.h"
+@@ -157,5 +158,12 @@
+ namespace {
+ 
++// Plain Browser: the adblock engine (patches/30-adblock/0008).
++auto RunAdblockEngine(
++    mojo::PendingReceiver<plainbrowser::adblock::mojom::AdblockEngine> receiver) {
++  return std::make_unique<plainbrowser::adblock::AdBlockEngineService>(
++      std::move(receiver));
++}
++
+ auto RunFilePatcher(mojo::PendingReceiver<patch::mojom::FilePatcher> receiver) {
+   return std::make_unique<patch::FilePatcherImpl>(std::move(receiver));
+ }
+@@ -493,4 +501,5 @@
+ void RegisterMainThreadServices(mojo::ServiceFactory& services) {
++  services.Add(RunAdblockEngine);
+   services.Add(RunFilePatcher);
+   services.Add(RunUnzipper);
+   services.Add(RunCSVPasswordParser);

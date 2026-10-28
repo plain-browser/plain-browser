@@ -6,6 +6,7 @@
 #include <string>
 
 #include "base/functional/bind.h"
+#include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/navigation_throttle_registry.h"
@@ -13,6 +14,7 @@
 #include "content/public/browser/web_contents.h"
 #include "plainbrowser/adblock/browser/ad_block_service.h"
 #include "plainbrowser/adblock/browser/debounce_rules.h"
+#include "plainbrowser/adblock/browser/engine_launcher.h"
 #include "plainbrowser/adblock/browser/renderer_interfaces.h"
 #include "plainbrowser/adblock/browser/tracking_params_rules.h"
 #include "plainbrowser/shields/browser/shields_service.h"
@@ -46,6 +48,7 @@ void TrackingParamsNavigationThrottle::MaybeCreateAndAdd(
       !handle.GetWebContents()) {
     return;
   }
+  EnsureEngineLauncher();
   registry.AddThrottle(
       std::make_unique<TrackingParamsNavigationThrottle>(registry));
 }
@@ -106,15 +109,16 @@ TrackingParamsNavigationThrottle::Check() {
   const GURL source_url =
       tracking_params::SourceUrlFor(handle->GetInitiatorOrigin(), url);
   AdBlockService* service = AdBlockService::GetInstance();
-  // Unretained: the service is never destroyed.
-  service->task_runner()->PostTaskAndReplyWithResult(
+  // Unretained: the service is never destroyed. The answer comes back here.
+  service->task_runner()->PostTask(
       FROM_HERE,
       base::BindOnce(&AdBlockService::RewrittenUrl, base::Unretained(service),
                      url, source_url,
                      handle->IsInMainFrame() ? std::string("main_frame")
-                                             : std::string("sub_frame")),
-      base::BindOnce(&TrackingParamsNavigationThrottle::OnRewritten,
-                     weak_factory_.GetWeakPtr(), url));
+                                             : std::string("sub_frame"),
+                     base::BindPostTaskToCurrentDefault(base::BindOnce(
+                         &TrackingParamsNavigationThrottle::OnRewritten,
+                         weak_factory_.GetWeakPtr(), url))));
   return DEFER;
 }
 

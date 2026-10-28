@@ -24,19 +24,23 @@ all of `content/browser` and Blink into a second chrome-sized executable.
 
 `adblock` (`src/plainbrowser/adblock/**/*_unittest.cc`):
 
-- `AdBlockService` (`browser/ad_block_service_unittest.cc`): engine built from the bundled lists on the ThreadPool,
-  like production; a known EasyList host is blocked and a control is not; an invalid source URL falls back to the
+- `AdBlockEngine` (`engine/ad_block_engine_unittest.cc`): engine built from the bundled lists on the ThreadPool,
+  like the utility process; a known EasyList host is blocked and a control is not; an invalid source URL falls back to the
   request URL; non-http(s) URLs are never blocked, rewritten or styled; `RewrittenUrl` strips `utm_*`, `gclid`,
   `fbclid` and keeps the other parameters in order, is empty when nothing was stripped and for requests that are
-  blocked outright; cosmetic CSS carries the generic rules everywhere and the site-specific ones (wykop.pl) only on their site; `GetInstance()` returns the
-  test instance.
+  blocked outright; cosmetic CSS carries the generic rules everywhere and the site-specific ones (wykop.pl) only on their site.
+- `AdBlockService` (`browser/ad_block_service_unittest.cc`), the browser side against an in-process
+  `AdBlockEngineService` ("crashing" it closes the pipe like a dead process): the engine starts on first use and
+  blocks through it; without a launcher everything fails open; an engine that went away is started again; a query in
+  flight when it goes away fails open; downloaded lists are dropped after a crash; lists given before the first
+  start reach the engine; after `kMaxEngineStarts` starts it is not started again.
 - debouncing rules (`browser/debounce_rules_unittest.cc`): known redirectors unwrap to their target, subdomains of a
   rule host match but look-alike hosts do not, base64 targets (Bing), only the rule path, only valid http(s)
   targets, parameter order, nested redirectors unwrap step by step.
 - cxx bridge (`browser/adblock_ffi_unittest.cc`): block/exception/`$third-party` semantics with a tiny rule set,
   `rust::String`/`rust::Str` and `rust::Vec<rust::String>` crossing the bridge (generic class/id CSS), unparsable
   URLs are not blocked.
-- `AdBlockService` generic hiding and list swaps (`browser/ad_block_service_unittest.cc`): EasyList's generic
+- `AdBlockEngine` generic hiding and list swaps (`engine/ad_block_engine_unittest.cc`): EasyList's generic
   `##.a-sponsor` and `###ad-top` match only names the page has, `#@#` exceptions apply; `UseLists` replaces only
   the named list (EasyList Polish and the parameter list stay bundled), `UseLists({})` goes back to the bundled
   engine, and of two calls the later one wins.
@@ -87,19 +91,21 @@ robocopy C:\dw-build\repo\src\plainbrowser plainbrowser /MIR      # after script
 out\Default\gn.exe gen out\Default --fail-on-unused-args         # only when a BUILD.gn changed
 third_party\ninja\ninja.exe -C out\Default -j 8 plainbrowser_unittests
 out\Default\plainbrowser_unittests.exe --gtest_brief=1
-out\Default\plainbrowser_unittests.exe --gtest_filter='AdBlockService*' --single-process-tests
+out\Default\plainbrowser_unittests.exe --gtest_filter='AdBlock*' --single-process-tests
 ```
 
 The first build compiles `//base/test`, gtest and the mojo test support (not part of the chrome build); after
-that an edit to a test rebuilds in well under a minute plus the link. The `AdBlockService*` tests build the
+that an edit to a test rebuilds in well under a minute plus the link. The `AdBlockEngine*` and `AdBlockService*` tests build the
 engine from the full lists in `SetUp` (about a second each in a release build). Follow the VM sharing rules in the team notes (check for running `ninja`/`clang-cl`/`lld-link`,
 `C:\dw-build\build.lock`).
 
 ### Layout: why the source_sets are split
 
-- `//plainbrowser/adblock:engine` = `AdBlockService` and `tracking_params_rules` (pure decision helpers and the
-  `PlainBrowserTrackingParams` feature), no `//content`; `:browser` adds the mojo filter impl, the renderer
-  interface exposure (both need `//plainbrowser/shields:browser`, which needs `//content`) and the
+- `//plainbrowser/adblock:engine` = `AdBlockEngine` (adblock-rust); `:engine_service` = its mojo service for the
+  utility process; `:client` = `AdBlockService`, the browser's handle (mojo only, no Rust); `:rules` =
+  `tracking_params_rules` and `debounce_rules` (pure decision helpers and their features). None needs `//content`;
+  `:browser` adds the mojo filter impl, the renderer interface exposure (both need `//plainbrowser/shields:browser`,
+  which needs `//content`), the engine launcher (`content::ServiceProcessHost`) and the
   `content::NavigationThrottle`.
 - `//plainbrowser/adblock:url_loader_throttle` = the renderer throttle alone (`blink/public/common` only);
   `:renderer` adds the factory and the cosmetic agent (full Blink).
@@ -107,8 +113,8 @@ engine from the full lists in `SetUp` (about a second each in a release build). 
 - `//plainbrowser/shields:prefs` = the exception-list pref helpers (prefs, `//net` for the site), no `//content`;
   `:browser` adds `ShieldsService` and the blocked-request counter.
 
-Chromium's `//plainbrowser:browser` and `//plainbrowser:renderer` groups are unchanged, so
-`patches/00-build/0001-gn-deps.patch` is untouched.
+Chromium depends on the `//plainbrowser:browser`, `:renderer` and `:utility` groups
+(`patches/00-build/0001-gn-deps.patch`); new source_sets go into those groups, not into the patch.
 
 ### Adding a test
 
@@ -117,9 +123,10 @@ Chromium's `//plainbrowser:browser` and `//plainbrowser:renderer` groups are unc
 2. Add it to the feature's `source_set("unit_tests")` in that directory's `BUILD.gn`. If the code under test
    lives in a source_set that depends on `//content` or `//third_party/blink/public:blink`, split the Blink-free
    part into its own source_set first (as above) instead of adding those deps to the test.
-3. Need the engine? Use `AdBlockService::CreateForTesting()` with a `base::test::TaskEnvironment`, call
-   `RunUntilIdle()` after creating it, and post queries to `service->task_runner()` (see
-   `ad_block_service_unittest.cc`). Need mojo? The test main already initialises it; bind a fake
+3. Need the engine? Create an `AdBlockEngine` with a `base::test::TaskEnvironment`, call `RunUntilIdle()` after
+   creating it, and post queries to `engine->task_runner()` (see `engine/ad_block_engine_unittest.cc`). Need the
+   browser side? `AdBlockService::CreateForTesting(launcher)` with a launcher that creates an
+   `AdBlockEngineService` in process (see `browser/ad_block_service_unittest.cc`). Need mojo? The test main already initialises it; bind a fake
    implementation with `mojo::Receiver`/`ReceiverSet`. Need a feature state? `base::test::ScopedFeatureList`.
    A process switch? `base::test::ScopedCommandLine`.
 4. `ninja -C out\Default plainbrowser_unittests && out\Default\plainbrowser_unittests.exe --gtest_brief=1`.

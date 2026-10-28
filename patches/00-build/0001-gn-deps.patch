@@ -1,9 +1,9 @@
 From: Plain Browser
-Subject: [build] Link //plainbrowser into chrome/browser:core and chrome/renderer
+Subject: [build] Link //plainbrowser into chrome/browser:core, chrome/renderer and chrome/utility
 
 Category: 00-build. All our code lives under //plainbrowser; this is the only GN wiring in the Chromium tree.
-//plainbrowser:browser and //plainbrowser:renderer are groups (src/plainbrowser/BUILD.gn), so a new feature
-adds itself there and this patch never changes.
+//plainbrowser:browser, //plainbrowser:renderer and //plainbrowser:utility are groups (src/plainbrowser/BUILD.gn), so
+a new feature adds itself there and this patch never changes.
 ---
 --- a/chrome/browser/BUILD.gn
 +++ b/chrome/browser/BUILD.gn
@@ -24,4 +24,12 @@ adds itself there and this patch never changes.
 +    "//plainbrowser:renderer",
      ":process_state",
      "//base/allocator:buildflags",
+     "//build:chromeos_buildflags",
+--- a/chrome/utility/BUILD.gn
++++ b/chrome/utility/BUILD.gn
+@@ -34,4 +34,5 @@
+   public_deps = []
+   deps = [
++    "//plainbrowser:utility",
+     "//base",
      "//build:chromeos_buildflags",

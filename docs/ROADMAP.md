@@ -64,6 +64,7 @@ requests go, in English and Polish. Verified with `scripts/test-safebrowsing-set
 | Org-level 2FA, second owner, separate CI account | GitHub org `plain-browser` | organization exists; 2FA requirement, second owner and bot account still to set up (`docs/GITHUB_SETUP.md`, section 3) |
 | Reproducible builds | build pipeline, `build-windows.yml` | long-term. Not realistic soon: our profile differs from upstream's and builds are not bit-identical. First goal is verifiable releases (above), then builds in GitHub Actions instead of the private VM (`build-windows.yml`, staged over several runners, written 2026-10-26, not yet run; `docs/CI.md`), then deterministic flags. |
 | Patches apply on the next upstream tag | `scripts/check-patches.py`, `patches-check.yml`, `upstream-watch.yml` | **done**: dry-run without a Chromium checkout on every change to `patches/` and on every new upstream tag |
+| Filter lists parsed outside the browser process | `src/plainbrowser/adblock/engine`, `patches/30-adblock/0008` | **done** 2026-10-28: the adblock engine runs in its own utility process (`kService` sandbox), fails open and restarts after a crash, dropping downloaded lists that may have caused it |
 | CVE regression check for our patches | CI | needs a list of security-relevant files our patches touch, compared against upstream commits |
 | Few, small patches on top of ungoogled-chromium | repo layout | already the design; keep each patch under one category (`patches/series`) |
 

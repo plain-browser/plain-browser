@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "base/functional/bind.h"
 #include "base/no_destructor.h"
 #include "mojo/public/cpp/bindings/receiver_set.h"
 #include "plainbrowser/adblock/browser/ad_block_service.h"
@@ -53,13 +54,18 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
       std::move(callback).Run(false);
       return;
     }
-    const bool block = AdBlockService::GetInstance()->ShouldBlock(
-        url, source_url, request_type);
-    if (block && frame_token) {
-      shields::BlockedRequestsCounter::CountBlocked(
-          receivers_.current_context(), *frame_token);
-    }
-    std::move(callback).Run(block);
+    AdBlockService::GetInstance()->ShouldBlock(
+        url, source_url, request_type,
+        base::BindOnce(
+            [](int process_id, std::optional<blink::LocalFrameToken> frame_token,
+               ShouldBlockRequestCallback callback, bool block) {
+              if (block && frame_token) {
+                shields::BlockedRequestsCounter::CountBlocked(process_id,
+                                                              *frame_token);
+              }
+              std::move(callback).Run(block);
+            },
+            receivers_.current_context(), frame_token, std::move(callback)));
   }
 
   void GetCosmeticCss(const GURL& url,
@@ -69,11 +75,16 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
       std::move(callback).Run(std::string(), /*generic_hide=*/true, {}, {});
       return;
     }
-    AdBlockService::Cosmetic cosmetic =
-        AdBlockService::GetInstance()->CosmeticResources(url);
-    std::move(callback).Run(std::move(cosmetic.css), cosmetic.generic_hide,
-                            std::move(cosmetic.procedural_actions),
-                            std::move(cosmetic.procedural_selectors));
+    AdBlockService::GetInstance()->CosmeticResources(
+        url, base::BindOnce(
+                 [](GetCosmeticCssCallback callback,
+                    mojom::CosmeticResultPtr cosmetic) {
+                   std::move(callback).Run(
+                       std::move(cosmetic->css), cosmetic->generic_hide,
+                       std::move(cosmetic->procedural_actions),
+                       std::move(cosmetic->procedural_selectors));
+                 },
+                 std::move(callback)));
   }
 
   void GetScriptlets(const GURL& url,
@@ -83,11 +94,11 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
       std::move(callback).Run(std::string());
       return;
     }
-    std::move(callback).Run(AdBlockService::GetInstance()->Scriptlets(url));
+    AdBlockService::GetInstance()->Scriptlets(url, std::move(callback));
   }
 
   void GetRedirectHosts(GetRedirectHostsCallback callback) override {
-    std::move(callback).Run(AdBlockService::GetInstance()->RedirectHosts());
+    AdBlockService::GetInstance()->RedirectHosts(std::move(callback));
   }
 
   void GetRedirect(const GURL& url,
@@ -99,13 +110,18 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
       std::move(callback).Run(std::string());
       return;
     }
-    std::string data_url =
-        AdBlockService::GetInstance()->RedirectUrl(url, source_url);
-    if (!data_url.empty() && frame_token) {
-      shields::BlockedRequestsCounter::CountBlocked(
-          receivers_.current_context(), *frame_token);
-    }
-    std::move(callback).Run(std::move(data_url));
+    AdBlockService::GetInstance()->RedirectUrl(
+        url, source_url,
+        base::BindOnce(
+            [](int process_id, std::optional<blink::LocalFrameToken> frame_token,
+               GetRedirectCallback callback, const std::string& data_url) {
+              if (!data_url.empty() && frame_token) {
+                shields::BlockedRequestsCounter::CountBlocked(process_id,
+                                                              *frame_token);
+              }
+              std::move(callback).Run(data_url);
+            },
+            receivers_.current_context(), frame_token, std::move(callback)));
   }
 
   void GetGenericCosmeticCss(const GURL& url,
@@ -120,8 +136,8 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
       std::move(callback).Run(std::string());
       return;
     }
-    std::move(callback).Run(
-        AdBlockService::GetInstance()->GenericCosmeticCss(url, classes, ids));
+    AdBlockService::GetInstance()->GenericCosmeticCss(url, classes, ids,
+                                                      std::move(callback));
   }
 
  private:

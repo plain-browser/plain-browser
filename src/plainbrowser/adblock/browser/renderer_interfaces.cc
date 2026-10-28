@@ -5,6 +5,7 @@
 #include "content/public/browser/render_process_host.h"
 #include "plainbrowser/adblock/browser/ad_block_service.h"
 #include "plainbrowser/adblock/browser/adblock_filter_impl.h"
+#include "plainbrowser/adblock/browser/engine_launcher.h"
 #include "plainbrowser/adblock/common/adblock.mojom.h"
 
 namespace plainbrowser::adblock {
@@ -18,8 +19,9 @@ void ExposeInterfacesToRenderer(
   if (!base::FeatureList::IsEnabled(kPlainBrowserAdblock)) {
     return;
   }
-  // The binder runs on the engine sequence, so filter calls never touch the
-  // UI or IO thread.
+  EnsureEngineLauncher();
+  // The binder runs on the service's sequence, so filter calls never touch
+  // the UI or IO thread.
   registry->AddInterface<mojom::AdblockFilter>(
       base::BindRepeating(&BindAdblockFilter,
                           render_process_host->GetDeprecatedID()),
