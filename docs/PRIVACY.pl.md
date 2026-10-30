@@ -3,7 +3,7 @@
 Ostatnia aktualizacja: 28 października 2026 · [English](PRIVACY.md)
 
 Plain Browser to przeglądarka zbudowana z Chromium z zestawem poprawek ungoogled-chromium. Ta polityka opisuje, co
-przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.1.3-alpha.1 i jest aktualizowana przy każdym wydaniu, które to
+przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.1.4-alpha.1 i jest aktualizowana przy każdym wydaniu, które to
 zmienia.
 
 ## W skrócie
