@@ -32,7 +32,7 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 
 ## Status
 
-**Alpha. Test builds exist (`0.1.4-alpha.1`, unsigned); the Microsoft Store listing is being prepared.**
+**Alpha. Test builds exist (`0.1.5-alpha.1`, unsigned); the Microsoft Store listing is being prepared.**
 
 | Part | State |
 |---|---|

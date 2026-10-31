@@ -5,6 +5,16 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.1.5-alpha.1] - 2026-10-31 [Chromium 156.0.8078.79, ungoogled-chromium-windows 156.0.8078.79-1.1]
+
+### Changed
+- Chromium base updated from 156.0.8078.73 to 156.0.8078.79 (upstream security update).
+- Package version 0.1.5.0.
+
+### Fixed
+- Build: `GetEnterpriseProfileId` stays defined (ungoogled's preference patch split its hunks in 156.0.8078.73 and
+  only the call was kept back).
+
 ## [0.1.4-alpha.1] - 2026-10-30 [Chromium 156.0.8078.73, ungoogled-chromium-windows 156.0.8078.73-1.1]
 
 ### Changed
