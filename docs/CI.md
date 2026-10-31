@@ -64,8 +64,9 @@ The hand-over zips use 7-Zip's `-mx=1` rather than upstream's `-mx=3`: a few per
 - `push` of a tag `v*`: alpha profile, and the `release` job creates a **draft** release. `sign-release.yml` then
   takes the assets from that release, recomputes `SHA256SUMS.txt` and adds the cosign bundles; it expects nothing
   but the files on the release, so a draft is enough. Review the draft and the Store submission before publishing.
-- `workflow_dispatch` with `resume_run` = a run id: skips `prepare` and stages 1-5, restores `tree-5` of that run (the
-  per-stage trees live 2 days), runs `scripts/ci/hotfix-tree.py` and continues from stage 6. For a stage that failed
+- `workflow_dispatch` with `resume_run` = a run id and `resume_stage` = 6 or 7: skips `prepare` and the stages before
+  it, restores `tree-5` (or `tree-6`) of that run (the per-stage trees live 2 days) and continues from that stage;
+  stage 6 first runs `scripts/ci/hotfix-tree.py`. For a stage that failed
   on a source problem fixed later in `patches/` (a ninja error, not a lost runner): fix, tag the commit with a tag
   that has `[skip ci]` in its commit message, and dispatch `--ref <tag>` with `resume_run`, so the `release` job
   (which needs a tag ref) runs. The hotfix script has to reproduce what the fixed patch would have done to the tree;
