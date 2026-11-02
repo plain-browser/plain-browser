@@ -31,6 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: store
+    # write only for this job: a release that is still a draft (build-windows.yml creates drafts) is invisible to a
+    # read-only token, and gh release download needs to see it.
+    permissions:
+      contents: write
     steps:
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - uses: microsoft/setup-msstore-cli@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
