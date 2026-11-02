@@ -76,14 +76,15 @@ jobs:
           CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
           PRODUCT_ID: ${{ vars.STORE_PRODUCT_ID }}
           ROLLOUT: ${{ inputs.rollout || vars.STORE_ROLLOUT_PERCENT || '10' }}
-          # A release event has no inputs: commit there, a manual run decides.
-          COMMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.commit || 'true' }}
+          # A release event has no inputs: commit there, a manual run decides. format() makes it the string
+          # 'false' (truthy); a plain `&& inputs.commit || 'true'` turns a false input into 'true'.
+          COMMIT: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.commit) || 'true' }}
         run: |
           set -euo pipefail
           [ -n "$PRODUCT_ID" ] || { echo "::error::repository variable STORE_PRODUCT_ID is not set"; exit 1; }
           [[ "$ROLLOUT" =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk "BEGIN{exit !($ROLLOUT >= 1 && $ROLLOUT <= 100)}" \
             || { echo "::error::rollout must be between 1 and 100: $ROLLOUT"; exit 1; }
-          msstore reconfigure --tenantId "$TENANT_ID" --sellerId "$SELLER_ID" --clientId "$CLIENT_ID" --clientSecret "$CLIENT_SECRET"
+          msstore reconfigure --tenantId "$TENANT_ID" --sellerId "$SELLER_ID" --clientId "$CLIENT_ID" --clientSecret "$CLIENT_SECRET" --verbose
           args=(publish dist -i dist -id "$PRODUCT_ID" --packageRolloutPercentage "$ROLLOUT")
           [ "$COMMIT" = true ] || args+=(--noCommit)
           msstore "${args[@]}"
