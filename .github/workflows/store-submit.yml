@@ -115,7 +115,9 @@ jobs:
             || { echo "::error::rollout must be between 1 and 100: $ROLLOUT"; exit 1; }
           [ -f "pkg/$MSIX_FILE" ] || { echo "::error::pkg/$MSIX_FILE missing"; exit 1; }
           msstore reconfigure --tenantId "$TENANT_ID" --sellerId "$SELLER_ID" --clientId "$CLIENT_ID" --clientSecret "$CLIENT_SECRET" --verbose
-          args=(publish pkg -i pkg -id "$PRODUCT_ID" --packageRolloutPercentage "$ROLLOUT")
+          # the first argument is the package file itself: msstore recognises a project by its type, and a .msix
+          # is one (a directory with only a package in it is not: "could not find a project publisher")
+          args=(publish "pkg/$MSIX_FILE" -id "$PRODUCT_ID" --packageRolloutPercentage "$ROLLOUT")
           [ "$COMMIT" = true ] || args+=(--noCommit)
           msstore "${args[@]}"
           {
