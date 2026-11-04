@@ -145,7 +145,7 @@ costs nothing but time; the storage of the `tree-*` artifacts (several tens of G
 
 ## Release pipeline (hourly, no human step)
 
-`.github/workflows/pipeline.yml` runs `scripts/ci/pipeline.py` every hour. All state is read from GitHub (tags, workflow
+`.github/workflows/pipeline.yml` runs `scripts/ci/pipeline.py` on a schedule (three times an hour; GitHub runs schedules on a best-effort basis and delayed them by hours here). All state is read from GitHub (tags, workflow
 runs, the draft release), so a pass that dies half way is finished by the next one. Stop it with the repository
 variable `PIPELINE_ENABLED=false`; `DRY_RUN=1 python3 scripts/ci/pipeline.py` prints what a pass would do.
 

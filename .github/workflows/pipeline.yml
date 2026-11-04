@@ -1,5 +1,5 @@
 name: pipeline
-# The release pipeline, one pass every hour (scripts/ci/pipeline.py, docs/CI.md "Release pipeline"): a new
+# The release pipeline, one pass every 20 minutes at best (GitHub treats the schedule as best effort) (scripts/ci/pipeline.py, docs/CI.md "Release pipeline"): a new
 # ungoogled-chromium-windows tag becomes a release (version bump on main, tag, build-windows), a failed build is rerun
 # or reported, a finished build is signed (sign-release.yml) and submitted to Microsoft Store certification
 # (store-submit.yml), and the release is then published. Everything is derived from GitHub state, so a pass that
@@ -8,7 +8,7 @@ name: pipeline
 # other workflows instead of relying on tag pushes and published releases.
 on:
   schedule:
-    - cron: "23 * * * *"
+    - cron: "7,27,47 * * * *"   # GitHub delays or drops scheduled runs (observed: hours); several a hour makes one likely
   workflow_dispatch:
     inputs:
       selftest:
