@@ -1,8 +1,7 @@
 "use client";
-import type { Release } from "@/lib/release";
-import { useRelease } from "./useRelease";
+import { useStoreVersion } from "./useStoreVersion";
 
-export function HeroNote({ initial, note, chromium }: { initial: Release; note: string; chromium: string }) {
-  const r = useRelease(initial);
-  return <p className="hero-note">{note} · v{r.version} · Chromium {chromium}</p>;
+export function HeroNote({ store, note, chromium }: { store: string | null; note: string; chromium: string }) {
+  const v = useStoreVersion(store);
+  return <p className="hero-note">{note}{v ? ` · v${v}` : ""} · Chromium {chromium}</p>;
 }

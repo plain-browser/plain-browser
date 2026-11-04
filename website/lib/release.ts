@@ -1,4 +1,5 @@
 import { site } from "./site";
+import { getText } from "./http";
 
 // Shape shared by the build-time fetch (lib/release.ts), the client refresh (components/useRelease.ts)
 // and the Cloudflare Worker (worker/src/index.ts). Keep them in sync.
@@ -12,6 +13,9 @@ export type Release = {
   zip: string | null;
   msix: string | null;
   sums: string | null;
+  // Set when GitHub could not be asked at build time: the version comes from versions.toml, which may be
+  // ahead of any published release, so no file links are made from it.
+  fallback?: boolean;
 };
 
 type GhAsset = { name: string; browser_download_url: string };
@@ -43,17 +47,17 @@ export function pickAssets(r: GhRelease): Release {
 // /releases/latest would skip them). Drafts are never returned by the API without auth.
 export function fallbackRelease(): Release {
   const v = site.version;
-  const base = `${site.repo}/releases/download/v${v}`;
   return {
     version: v,
     tag: `v${v}`,
-    url: `${site.repo}/releases/tag/v${v}`,
+    url: site.releases,
     publishedAt: null,
     prerelease: true,
-    installer: `${base}/PlainBrowser_${v}_x64_installer.exe`,
-    zip: `${base}/PlainBrowser_${v}_x64.zip`,
+    installer: null,
+    zip: null,
     msix: null,
-    sums: `${base}/SHA256SUMS.txt`,
+    sums: null,
+    fallback: true,
   };
 }
 
@@ -61,11 +65,7 @@ export async function getLatestRelease(): Promise<Release> {
   try {
     const headers: Record<string, string> = { Accept: "application/vnd.github+json", "User-Agent": "plain-browser.app build" };
     if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
-    const res = await fetch("https://api.github.com/repos/plain-browser/plain-browser/releases?per_page=10", {
-      headers,
-    });
-    if (!res.ok) throw new Error(`GitHub API ${res.status}`);
-    const list = (await res.json()) as GhRelease[];
+    const list = JSON.parse(await getText("https://api.github.com/repos/plain-browser/plain-browser/releases?per_page=10", headers)) as GhRelease[];
     const r = list.find((x) => !x.draft);
     if (!r) throw new Error("no published release");
     console.log(`release: ${r.tag_name} from GitHub`);

@@ -3,7 +3,7 @@ import { Shell } from "./Shell";
 import { BrowserMock } from "./BrowserMock";
 import { dict, prefix, type Lang } from "@/lib/i18n";
 import { site } from "@/lib/site";
-import { getLatestRelease } from "@/lib/release";
+import { getStoreVersion } from "@/lib/store";
 import { HeroNote } from "./HeroNote";
 
 const icons = [
@@ -18,7 +18,7 @@ const icons = [
 export async function Home({ lang }: { lang: Lang }) {
   const t = dict[lang];
   const p = prefix(lang);
-  const release = await getLatestRelease();
+  const store = await getStoreVersion();
   return (
     <Shell lang={lang}>
       <section className="wrap hero">
@@ -35,7 +35,7 @@ export async function Home({ lang }: { lang: Lang }) {
             <Link href={`${p}/download/`} className="btn">{t.hero.other}</Link>
             <a href={site.repo} className="btn" rel="noopener">{t.hero.source}</a>
           </div>
-          <HeroNote initial={release} note={t.hero.downloadNote} chromium={site.chromium} />
+          <HeroNote store={store} note={t.hero.downloadNote} chromium={site.chromium} />
         </div>
         <BrowserMock t={t.mock} />
       </section>

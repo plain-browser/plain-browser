@@ -27,6 +27,7 @@ export type Dict = {
     title: string;
     lead: string;
     version: string;
+    storeVersion: string;
     requires: string;
     installer: string;
     installerNote: string;
@@ -195,7 +196,8 @@ const en: Dict = {
   download: {
     title: "Download",
     lead: "Early alpha. The easiest way is the Microsoft Store; the files below are the same release for testing and offline installs.",
-    version: "Version",
+    version: "On GitHub",
+    storeVersion: "In the Microsoft Store",
     requires: "Requires",
     installer: "Installer",
     installerNote: "Standard per-user installer. Run it and follow the steps.",
@@ -374,7 +376,8 @@ const pl: Dict = {
   download: {
     title: "Pobierz",
     lead: "Wczesna alfa. Najprościej przez Microsoft Store; pliki poniżej to to samo wydanie do testów i instalacji offline.",
-    version: "Wersja",
+    version: "Na GitHubie",
+    storeVersion: "W Microsoft Store",
     requires: "Wymagania",
     installer: "Instalator",
     installerNote: "Standardowy instalator dla bieżącego użytkownika. Uruchom i przejdź przez kroki.",

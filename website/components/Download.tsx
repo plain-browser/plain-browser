@@ -4,17 +4,18 @@ import { DownloadFiles } from "./DownloadFiles";
 import { dict, prefix, type Lang } from "@/lib/i18n";
 import { site } from "@/lib/site";
 import { getLatestRelease } from "@/lib/release";
+import { getStoreVersion } from "@/lib/store";
 
 export async function Download({ lang }: { lang: Lang }) {
   const t = dict[lang].download;
   const p = prefix(lang);
-  const release = await getLatestRelease();
+  const [release, storeVersion] = await Promise.all([getLatestRelease(), getStoreVersion()]);
   return (
     <Shell lang={lang}>
       <div className="wrap page">
         <h1>{t.title}</h1>
         <p className="lead">{t.lead}</p>
-        <DownloadFiles initial={release} t={t} lang={lang} chromium={site.chromium} os={site.os} store={site.store} storeInstaller={site.storeInstaller} />
+        <DownloadFiles initial={release} initialStore={storeVersion} t={t} lang={lang} chromium={site.chromium} os={site.os} store={site.store} storeInstaller={site.storeInstaller} />
         <p><a href={site.releases} rel="noopener">{t.allReleases} →</a></p>
         <p className="muted" style={{ fontSize: "0.9rem" }}>{t.privacyNote} <Link href={`${p}/privacy/`}>{dict[lang].footer.privacy}</Link>.</p>
       </div>

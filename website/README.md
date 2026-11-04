@@ -6,6 +6,11 @@ The project website, a static Next.js export served from a Google Cloud Storage 
 - The privacy policy and security policy are rendered at build time from `../docs/PRIVACY*.md` and `../SECURITY.md`,
   and the version shown on the Download page comes from `../versions.toml`. Edit those files, not the site.
 - No analytics, no cookies, no third-party fonts or scripts, so the site keeps the promise the browser makes.
+- Versions shown: the newest GitHub release and the version the Microsoft Store serves (public product catalog,
+  `lib/store.ts`) are read at build time. In the visitor's browser the page refreshes both from our own origin
+  through the Worker in `worker/` (`/api/latest-release`, `/api/store-version`), so a new release appears without a
+  rebuild once the Worker is deployed (`cd worker && npm install && npx wrangler deploy`). The visitor never talks
+  to GitHub or Microsoft for this.
 
 ## Develop
 

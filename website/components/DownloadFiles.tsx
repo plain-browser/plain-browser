@@ -2,17 +2,20 @@
 import type { Dict, Lang } from "@/lib/i18n";
 import type { Release } from "@/lib/release";
 import { useRelease } from "./useRelease";
+import { useStoreVersion } from "./useStoreVersion";
 
 const fileName = (url: string | null) => (url ? decodeURIComponent(url.split("/").pop() ?? "") : "");
 
-export function DownloadFiles({ initial, t, lang, chromium, os, store, storeInstaller }: { initial: Release; t: Dict["download"]; lang: Lang; chromium: string; os: string; store: string; storeInstaller: string }) {
+export function DownloadFiles({ initial, initialStore, t, lang, chromium, os, store, storeInstaller }: { initial: Release; initialStore: string | null; t: Dict["download"]; lang: Lang; chromium: string; os: string; store: string; storeInstaller: string }) {
   const r = useRelease(initial);
+  const storeVersion = useStoreVersion(initialStore);
   const installer = fileName(r.installer);
   const date = r.publishedAt ? new Date(r.publishedAt).toLocaleDateString(lang === "pl" ? "pl-PL" : "en-GB", { year: "numeric", month: "long", day: "numeric" }) : null;
   return (
     <>
       <div className="meta">
-        <div><b>{t.version}</b>{r.version}</div>
+        {storeVersion && <div><b>{t.storeVersion}</b>{storeVersion}</div>}
+        {!r.fallback && <div><b>{t.version}</b>{r.version}</div>}
         <div><b>Chromium</b>{chromium}</div>
         <div><b>{t.requires}</b>{os}</div>
         {date && <div><b>{t.published}</b>{date}</div>}
@@ -69,7 +72,7 @@ cosign verify-blob --bundle ${installer || "<file>"}.bundle \\
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \\
   ${installer || "<file>"}`}</code></pre>
 
-      <p><a href={r.url} rel="noopener">{t.releaseNotes} {r.tag} →</a></p>
+      {!r.fallback && <p><a href={r.url} rel="noopener">{t.releaseNotes} {r.tag} →</a></p>}
     </>
   );
 }
