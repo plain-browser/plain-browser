@@ -112,6 +112,7 @@ jobs:
           # format() makes it the string 'false' (truthy); a plain `inputs.commit || 'true'` would turn false into 'true'.
           COMMIT: ${{ format('{0}', inputs.commit) }}
           DIAGNOSE: ${{ format('{0}', inputs.diagnose) }}
+          CERT_NOTES: "Plain Browser is a Chromium-based desktop web browser packaged as a full-trust Win32 application (MSIX). It declares the restricted capability runFullTrust because the browser, GPU, network and utility processes run as ordinary desktop processes outside an AppContainer; the browser sandboxes its renderer processes itself. No other restricted capability is declared. Source code: https://github.com/plain-browser/plain-browser"
         run: |
           set -euo pipefail
           [ -n "$PRODUCT_ID" ] || { echo "::error::repository variable STORE_PRODUCT_ID is not set"; exit 1; }
@@ -120,7 +121,8 @@ jobs:
           [ -f "pkg/$MSIX_FILE" ] || { echo "::error::pkg/$MSIX_FILE missing"; exit 1; }
           msstore reconfigure --tenantId "$TENANT_ID" --sellerId "$SELLER_ID" --clientId "$CLIENT_ID" --clientSecret "$CLIENT_SECRET"
           if [ "$DIAGNOSE" = true ]; then
-            msstore submission get "$PRODUCT_ID" | sed 's/\x1b\[[0-9;]*m//g'
+            # FileUploadUrl is a short-lived write token for the package upload: the log is public, so not that line
+            msstore submission get "$PRODUCT_ID" | sed -E 's/\x1b\[[0-9;]*m//g; s/^(FileUploadUrl = ).*/\1<redacted>/'
             exit 0
           fi
           # One pending submission at a time: leave an earlier one that is in review alone.
@@ -132,9 +134,24 @@ jobs:
           esac
           # the first argument is the package file itself: msstore recognises a project by its type, and a .msix
           # is one (a directory with only a package in it is not: "could not find a project publisher")
-          args=(publish "pkg/$MSIX_FILE" -id "$PRODUCT_ID" --packageRolloutPercentage "$ROLLOUT")
-          [ "$COMMIT" = true ] || args+=(--noCommit)
-          msstore "${args[@]}"
+          # Always without the commit: the submission is completed first (certification notes), then committed.
+          msstore publish "pkg/$MSIX_FILE" -id "$PRODUCT_ID" --packageRolloutPercentage "$ROLLOUT" --noCommit
+          if [ "$COMMIT" = true ]; then
+            # The package declares the restricted capability runFullTrust (every Win32 app in an MSIX does); Partner
+            # Center refuses the commit with an opaque "active validation errors" while the certification notes are
+            # empty, and a new submission starts with empty notes. msstore only offers get -> edit -> updateMetadata.
+            msstore submission get "$PRODUCT_ID" | sed 's/\x1b\[[0-9;]*m//g' | python -c '
+          import json, os, sys
+          text = sys.stdin.read()
+          sub = json.JSONDecoder().raw_decode(text[text.index("{"):])[0]
+          if not sub.get("NotesForCertification"):
+              sub["NotesForCertification"] = os.environ["CERT_NOTES"]
+          json.dump(sub, open("submission.json", "w"))
+          print("NotesForCertification:", sub["NotesForCertification"][:80])
+          '
+            msstore submission updateMetadata "$PRODUCT_ID" submission.json
+            msstore submission publish "$PRODUCT_ID"
+          fi
           {
             echo "Submitted $MSIX_FILE (package version $MSIX_VERSION) to product $PRODUCT_ID"
             echo "- rollout: $ROLLOUT%"
