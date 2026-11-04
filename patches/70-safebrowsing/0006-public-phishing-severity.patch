@@ -1,0 +1,31 @@
+From: Plain Browser
+Subject: [safebrowsing] Treat SOCIAL_ENGINEERING_PUBLIC as a phishing list in GetThreatSeverity
+
+Category: 70-safebrowsing. Applies after 0003 (same file). Since 0004 the phishing list is synced as
+SOCIAL_ENGINEERING_PUBLIC, so a local prefix hit reaches GetThreatSeverity() with that type, which upstream
+lists under NOTREACHED(). In the official build that is a fatal crash of the browser process (seen 2026-11-04 in
+0.1.5.0: "sb_local_database_manager.cc:171 NOTREACHED hit. Unexpected ThreatType encountered: 2"). It gets the
+same severity as SOCIAL_ENGINEERING.
+---
+diff --git a/components/safe_browsing/core/browser/db/sb_local_database_manager.cc b/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
+index 0f06720..fc2a62e 100644
+--- a/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
++++ b/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
+@@ -149,6 +149,9 @@ ThreatSeverity GetThreatSeverity(const ListIdentifier& list_id) {
+   switch (list_id.threat_type()) {
+     case MALWARE_THREAT:
+     case SOCIAL_ENGINEERING:
++    // Plain Browser: the phishing list is synced as SOCIAL_ENGINEERING_PUBLIC
++    // (patch 0004), so a prefix hit reports that type; same severity.
++    case SOCIAL_ENGINEERING_PUBLIC:
+     case MALICIOUS_BINARY:
+       return 0;
+     case UNWANTED_SOFTWARE:
+@@ -166,7 +169,6 @@ ThreatSeverity GetThreatSeverity(const ListIdentifier& list_id) {
+     case CLIENT_INCIDENT:
+     case CSD_DOWNLOAD_ALLOWLIST:
+     case POTENTIALLY_HARMFUL_APPLICATION:
+-    case SOCIAL_ENGINEERING_PUBLIC:
+     case THREAT_TYPE_UNSPECIFIED:
+       NOTREACHED() << "Unexpected ThreatType encountered: "
+                    << list_id.threat_type();

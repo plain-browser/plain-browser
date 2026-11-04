@@ -37,6 +37,7 @@
 70-safebrowsing/0003-public-lists-only.patch
 70-safebrowsing/0004-public-phishing-list.patch
 70-safebrowsing/0005-settings-ui.patch
+70-safebrowsing/0006-public-phishing-severity.patch
 80-fingerprint/0001-renderer-agent.patch
 80-fingerprint/0002-browser-renderer-switches.patch
 90-defaults/0001-https-first-balanced.patch

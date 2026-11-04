@@ -5,6 +5,15 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.1.6-alpha.1] - 2026-11-04 [Chromium 156.0.8078.79, ungoogled-chromium-windows 156.0.8078.79-1.1]
+
+### Changed
+- Package version 0.1.6.0 (the Store package version grows with every release).
+
+### Fixed
+- Crash of the browser process when a visited URL matched the local phishing list (`NOTREACHED` in
+  `GetThreatSeverity`: the list is synced as `SOCIAL_ENGINEERING_PUBLIC`, which upstream does not expect there).
+
 ## [0.1.5-alpha.1] - 2026-10-31 [Chromium 156.0.8078.79, ungoogled-chromium-windows 156.0.8078.79-1.1]
 
 ### Changed
