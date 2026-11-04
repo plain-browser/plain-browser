@@ -143,51 +143,74 @@ costs nothing but time; the storage of the `tree-*` artifacts (several tens of G
   is not called. The MSIX gets the Store identity from the repository variables `MSIX_IDENTITY_NAME`,
   `MSIX_PUBLISHER`, `MSIX_PUBLISHER_DISPLAY` (Partner Center, Product identity); without them it is the dev package.
 
+## Release pipeline (hourly, no human step)
+
+`.github/workflows/pipeline.yml` runs `scripts/ci/pipeline.py` every hour. All state is read from GitHub (tags, workflow
+runs, the draft release), so a pass that dies half way is finished by the next one. Stop it with the repository
+variable `PIPELINE_ENABLED=false`; `DRY_RUN=1 python3 scripts/ci/pipeline.py` prints what a pass would do.
+
+1. **Upstream.** A newer `ungoogled-chromium-windows` tag than the one in `versions.toml`: dry-run our patches on it
+   (`check-patches.py`). All apply: `scripts/ci/bump-release.py` pins the tag and raises the product version by one patch
+   level (`0.1.5-alpha.1` -> `0.1.6-alpha.1`; the Store package version is `major.minor.patch.0` and must grow with every
+   submission), the files go to `main` as one commit made through the GitHub API (that commit is signed by GitHub, which
+   the `protect-main` ruleset requires), the tag `vX.Y.Z-alpha.1` is created and `build-windows` is dispatched on it.
+   A patch that does not apply: issue `Upstream update: ...` with label `needs-human`; the build starts by itself in
+   the first pass after the patches are fixed.
+2. **Build.** The newest release tag has no build: dispatch one. A failed build: the logs of the failed jobs are
+   classified. Runner and network problems (curl, shutdown signal, artifact transfer) are rerun with `gh run rerun --failed`
+   (up to 4 times; finished stages are kept), unknown ones twice. Source problems (compile error, patch that does not
+   apply) are not rerun: issue `Build failed: <tag>` with the log excerpt, label `needs-human`. After the fix the run
+   is resumed from the last stage tree with `resume_run` / `resume_stage` (see Triggers and inputs).
+3. **Release.** Finished build: `sign-release` on the draft, then `store-submit` with `commit=true`, then the release is
+   published as a pre-release and the upstream issue is closed. `store-submit` leaves an earlier submission that is
+   still in certification alone (the Store keeps one pending submission) and fails with `DEFERRED`; the pipeline then
+   waits an hour without counting a failure. Other failures are retried up to 3 times, then issue
+   `Store submission failed: <tag>`.
+
+What the pipeline cannot do is repair a source problem by itself: that needs a person (or an agent that can edit
+`patches/`). It makes the problem visible within the hour and resumes the build afterwards.
+
+`pipeline.yml` has a manual `selftest` input: it commits to a scratch branch through the API and checks that GitHub
+signed the commit. Run it after changing the token permissions or the `protect-main` ruleset.
+
 ## Microsoft Store submission
 
 `.github/workflows/store-submit.yml` is separate from the build on purpose: the build runs code fetched from the
-network for a day and a half and must not see the Partner Center credentials. The chain is
+network for a day and a half and must not see the Partner Center credentials. It is dispatched by the pipeline (or by
+hand for any tag) and has two jobs:
 
-1. tag `v*` -> `build-windows.yml` -> draft release with the MSIX;
-2. `sign-release.yml` (manual) -> `SHA256SUMS.txt` and cosign bundles on the release;
-3. publish the release (by hand; a release created with `GITHUB_TOKEN` starts nothing) or run `store-submit` for a tag;
-4. the job waits for a reviewer of the `store` environment, downloads the MSIX, checks the cosign bundles and the
-   checksum, checks that `AppxManifest.xml` carries `MSIX_IDENTITY_NAME` (a dev package is refused), and runs
-   `msstore publish dist -i dist -id <STORE_PRODUCT_ID> --packageRolloutPercentage <n>` (Microsoft Store Developer CLI,
-   installed with `microsoft/setup-msstore-cli`, pinned to a commit).
+1. `verify` (Ubuntu, no secrets): downloads the draft release, checks the cosign bundles (signed by `sign-release.yml`)
+   and the checksum, checks that `AppxManifest.xml` carries `MSIX_IDENTITY_NAME` (a dev package is refused) and hands
+   only the verified `.msix` on as an artifact;
+2. `submit` (Windows, environment `store`): `msstore reconfigure`, then `msstore publish <file.msix> -id <STORE_PRODUCT_ID>
+   --packageRolloutPercentage <n>` (Microsoft Store Developer CLI, `microsoft/setup-msstore-cli` pinned to a commit).
+   It runs on Windows because `msstore` keeps its credentials in the system keyring (libsecret on Linux, which the
+   runner image lacks). `msstore` deletes the pending submission, creates a new one with the package and, with
+   `commit=true`, commits it to certification. The first argument must be the package file: a directory is not
+   recognised as a project.
 
-The manual run has `commit=false`, which passes `--noCommit`: the submission stays a draft in Partner Center and you
-send it from there. Rollout is the `rollout` input, else the variable `STORE_ROLLOUT_PERCENT`, else 10 %; raise it in
-Partner Center after the update has reached a clean machine. Certification takes hours to days and the job does not
-wait for it; the result is in Partner Center.
+The `store` environment has no required reviewer (the pipeline must run without a person); it only lets branch `main`
+read the Partner Center secrets. `commit=false` passes `--noCommit` and leaves a draft in Partner Center. Rollout is the
+`rollout` input, else the variable `STORE_ROLLOUT_PERCENT`, else 10 %. Certification takes hours to days and the job does
+not wait for it; the result is in Partner Center.
 
-Not verified (the workflow has not run): the exact behaviour of `msstore publish <dir> -i <dir>` for a bare `.msix`
-without a project, and whether a rollout percentage is accepted while the product has no earlier published package
-(if not, drop `STORE_ROLLOUT_PERCENT` to 100 for the first automated submission). Option names were read from the
-CLI source (`MSStore.CLI/Commands/PublishCommand.cs`).
+Observed on the first real runs: the Partner Center API answered `CommitFailed` ("active validation errors which cannot
+be exposed via API") for a submission that the portal showed as valid; the pipeline retries the submission.
 
-**Package version.** `scripts/ci/package.ps1` turns `0.1.0-alpha.1` into `0.1.0.0`, so `alpha.2` would give the same
-`0.1.0.0` and the Store refuses a version that is not higher than the last submitted one. Before the second Store
-submission the mapping needs the pre-release number (for example `0.1.<n>.0` or a bump of the patch part); that is a
-decision about the version scheme and is not made here.
 
 ## Still manual
 
-- Set the three `MSIX_*` repository variables (Settings, Secrets and variables, Actions, Variables) before a Store build.
-- Push the tag (`git tag -s v0.1.0-alpha.2 && git push origin v0.1.0-alpha.2`), wait about a day and a half.
-- Review the draft release, run `sign-release.yml` on the tag, publish the release.
-- Publish the release: `store-submit.yml` then waits for a reviewer of the `store` environment and sends the MSIX to
-  certification (next section). Without the Partner Center setup, upload the MSIX by hand instead.
-- Smoke test the build (`scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`) still runs on a
-  Windows machine by hand; the workflow builds and packages but does not run the browser.
-- Bumping the upstream tag: `versions.toml`, the patch dry-run (`patches-check.yml`) and, if the Windows SDK pin in
-  `build/vs_toolchain.py` changes, the SDK version and installer URL in `scripts/ci/install-tools.ps1` (take both from
-  upstream's `.github/actions/prepare/action.yml` at the new tag).
+- The three `MSIX_*` repository variables and the Partner Center secrets (docs/GITHUB_SETUP.md section 5) are set once.
+- Smoke test of a build: `scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1` still run on a
+  Windows machine by hand; the workflows build, package and submit but do not run the browser. The pipeline submits
+  what builds, so a regression that only a run shows reaches certification; keep `STORE_ROLLOUT_PERCENT` low.
+- Source problems in a build (compile error, patch that does not apply) need a person: the pipeline opens an issue
+  within the hour and resumes the build after the fix.
+- If the Windows SDK pin in `build/vs_toolchain.py` changes with a new upstream tag, the SDK version and installer URL
+  in `scripts/ci/install-tools.ps1` (take both from upstream's `.github/actions/prepare/action.yml` at that tag).
 
 ## Not verified yet
 
-The workflow has not been run. Points that only a run can confirm: that `clone.py` and the downloads fit the first
-job together with gnrt; that `build.py`'s console interrupt (Ctrl+Break to ninja after 3.5 h) works under the `pwsh`
-step as it does under upstream's node action; the real size of the tree zip and the upload and download times; and the
-number of stages an alpha build needs on these runners. If `complete` reports that 10 stages were not enough, add
-stages.
+The build, signing and Store submission have run end to end by hand. Not yet seen in a run: the pipeline's own
+version-bump commit (run the `selftest` input first), a rerun of a failed stage by the pipeline, and a second
+submission while the first one is in certification (`DEFERRED`).

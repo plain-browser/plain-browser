@@ -15,7 +15,7 @@ zgłoś go projektowi Chromium; ich poprawkę przejmiemy przez nasze śledzenie 
 
 Plain Browser to cienka warstwa nad ungoogled-chromium, więc większość poprawek bezpieczeństwa przychodzi z nowym
 wydaniem Chromium. Naszym celem jest wydanie nowej wersji w ciągu kilku dni od każdego stabilnego tagu upstreamu
-(`.github/workflows/upstream-watch.yml` zakłada zgłoszenie, gdy pojawi się nowszy tag). Wspierane jest tylko
+(`.github/workflows/pipeline.yml` co godzinę sprawdza nowszy tag i uruchamia wydanie). Wspierane jest tylko
 najnowsze wydanie.
 
 ## Weryfikacja wydania

@@ -54,7 +54,7 @@ są wymienione w komentarzu w `series`. Hunki nie mogą zawierać hostów Google
 substitution) po nałożeniu patchy, więc taki hunk wchodzi w jednym przepływie (`prepare.py`) i nie wchodzi w drugim
 (`apply-plainbrowser.ps1`). `scripts/check-patches.py` nakłada całą serię „na sucho” na dowolny tag
 ungoogled-chromium-windows bez checkoutu Chromium (pobiera tylko dotknięte pliki); CI robi to przy każdej zmianie
-w `patches/` (`patches-check.yml`) i przy nowym tagu upstream (`upstream-watch.yml` wkleja wynik do issue).
+w `patches/` (`patches-check.yml`) i przy nowym tagu upstream (`pipeline.yml` sprawdza łatki dla nowego tagu i sam buduje wydanie).
 
 Opcjonalnie (rekomendowane po kilku miesiącach, gdy patchy przybędzie): przejąć mechanizm Brave `chromium_src/` – podmiana pojedynczych plików przez kolejność include path i makra `#define`. Skaluje się lepiej niż `.patch`, ale wymaga własnego skryptu GN. Na start wystarczą zwykłe patche przez tooling ungoogled.
 

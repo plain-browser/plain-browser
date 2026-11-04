@@ -39,7 +39,7 @@ Adres: https://github.com/plain-browser/plain-browser/settings/security_analysis
 
 ## 4. Pierwsze uruchomienie workflow
 
-- `upstream-watch`: Actions → upstream-watch → „Run workflow”. Powinien zakończyć się bez issue (tag w
+- `pipeline`: Actions → pipeline → „Run workflow”. Powinien zakończyć się bez zmian, gdy nie ma nowego tagu (tag w
   `versions.toml` jest aktualny) albo otworzyć issue z wynikiem `check-patches.py` dla nowszego taga.
 - `website`: potrzebuje zmiennych repozytorium `GCP_WORKLOAD_IDENTITY_PROVIDER` i `GCP_SERVICE_ACCOUNT`
   (Settings → Secrets and variables → Actions → Variables) oraz opcjonalnie `CLOUDFLARE_ZONE_ID` (zmienna)
@@ -84,8 +84,9 @@ aktualizuje istniejący produkt. Dalej:
 1. Partner Center → Account settings → User management → Azure AD applications: dodaj aplikację (Entra ID) z rolą
    Manager lub Developer, utwórz dla niej sekret. Zapisz tenant ID, client ID, secret oraz seller ID (Account
    settings → Organization profile → Legal info).
-2. GitHub → Settings → Environments → nowe środowisko **`store`**: dodaj **Required reviewers** (siebie i drugą osobę),
-   ogranicz do gałęzi/tagów `v*` i `main`. Sekrety środowiska: `PARTNER_CENTER_TENANT_ID`, `PARTNER_CENTER_SELLER_ID`,
+2. GitHub → Settings → Environments → nowe środowisko **`store`**: **bez Required reviewers** (potok `pipeline.yml` wysyła
+   zgłoszenia bez udziału człowieka) i z regułą wdrożeń tylko dla gałęzi `main`: sekrety Partner Center czyta wyłącznie
+   workflow uruchomiony z `main`. Sekrety środowiska: `PARTNER_CENTER_TENANT_ID`, `PARTNER_CENTER_SELLER_ID`,
    `PARTNER_CENTER_CLIENT_ID`, `PARTNER_CENTER_CLIENT_SECRET`. Sekrety repozytorium nie, bo zobaczyłby je build.
 3. Zmienne repozytorium: `STORE_PRODUCT_ID` (Store ID produktu, 12 znaków, z Partner Center → Product identity),
    opcjonalnie `STORE_ROLLOUT_PERCENT`; `MSIX_*` z punktu 2 już muszą być ustawione.

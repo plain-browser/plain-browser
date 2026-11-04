@@ -14,8 +14,8 @@ report it to the Chromium project; we will pick up their fix through our upstrea
 ## What we keep up to date
 
 Plain Browser is a thin layer on top of ungoogled-chromium, so most security fixes arrive with a new Chromium release.
-Our aim is to ship a new version within a few days of every upstream stable tag (`.github/workflows/upstream-watch.yml`
-opens an issue when a newer tag appears). Only the latest release is supported.
+Our aim is to ship a new version within a few days of every upstream stable tag (`.github/workflows/pipeline.yml`
+builds and submits a release when a newer tag appears). Only the latest release is supported.
 
 ## Verifying a release
 

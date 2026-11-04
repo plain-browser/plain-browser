@@ -1,13 +1,13 @@
 name: store-submit
-# Sends the MSIX of a published GitHub release to Microsoft Store certification (docs/CI.md, "Microsoft Store").
-# Runs when a release is published by hand (the draft that build-windows.yml creates is not enough: events made with
-# GITHUB_TOKEN start nothing) or manually for any tag. The job waits for a reviewer of the `store` environment, which
-# is also the only place the Partner Center credentials live; build-windows.yml never sees them.
+run-name: store-submit ${{ inputs.tag }}
+# Sends the MSIX of a GitHub release to Microsoft Store certification (docs/CI.md, "Microsoft Store"). Started by
+# scripts/ci/pipeline.py (every hour, after sign-release.yml) or by hand for any tag. Nothing here waits for a person:
+# the `store` environment only limits which branch may read the Partner Center secrets (main).
 # Needs: a release already signed by sign-release.yml (SHA256SUMS.txt and cosign bundles), the Store product created
 # and submitted once by hand in Partner Center, and the variables and secrets of docs/GITHUB_SETUP.md section 5.
+# A submission of an earlier release that is still in certification is not touched (the Store keeps one pending
+# submission): the job then fails with DEFERRED in its error and the pipeline tries again in an hour.
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -46,7 +46,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+          TAG: ${{ inputs.tag }}
           IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
         run: |
           set -euo pipefail
@@ -105,9 +105,8 @@ jobs:
           ROLLOUT: ${{ inputs.rollout || vars.STORE_ROLLOUT_PERCENT || '10' }}
           MSIX_FILE: ${{ needs.verify.outputs.msix_file }}
           MSIX_VERSION: ${{ needs.verify.outputs.msix_version }}
-          # A release event has no inputs: commit there, a manual run decides. format() makes it the string
-          # 'false' (truthy); a plain `&& inputs.commit || 'true'` turns a false input into 'true'.
-          COMMIT: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.commit) || 'true' }}
+          # format() makes it the string 'false' (truthy); a plain `inputs.commit || 'true'` would turn false into 'true'.
+          COMMIT: ${{ format('{0}', inputs.commit) }}
         run: |
           set -euo pipefail
           [ -n "$PRODUCT_ID" ] || { echo "::error::repository variable STORE_PRODUCT_ID is not set"; exit 1; }
@@ -115,6 +114,13 @@ jobs:
             || { echo "::error::rollout must be between 1 and 100: $ROLLOUT"; exit 1; }
           [ -f "pkg/$MSIX_FILE" ] || { echo "::error::pkg/$MSIX_FILE missing"; exit 1; }
           msstore reconfigure --tenantId "$TENANT_ID" --sellerId "$SELLER_ID" --clientId "$CLIENT_ID" --clientSecret "$CLIENT_SECRET"
+          # One pending submission at a time: leave an earlier one that is in review alone.
+          status=$(msstore submission status "$PRODUCT_ID" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -o 'Submission Status = [A-Za-z]*' | head -1 | sed 's/.*= //' || true)
+          echo "current Store submission status: ${status:-unknown}"
+          case "$status" in
+            PreProcessing|Certification|PendingPublication|Publishing|Release|CommitStarted)
+              echo "::error::DEFERRED: the Store submission is still $status; the pipeline tries again in an hour"; exit 1 ;;
+          esac
           # the first argument is the package file itself: msstore recognises a project by its type, and a .msix
           # is one (a directory with only a package in it is not: "could not find a project publisher")
           args=(publish "pkg/$MSIX_FILE" -id "$PRODUCT_ID" --packageRolloutPercentage "$ROLLOUT")

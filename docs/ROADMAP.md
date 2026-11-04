@@ -55,7 +55,7 @@ requests go, in English and Polish. Verified with `scripts/test-safebrowsing-set
 |---|---|---|
 | Pin GitHub Actions by commit SHA, least-privilege tokens | `.github/workflows/*` | **done** (not yet pushed) |
 | Dependabot for Actions and the adblock Cargo crates | `.github/dependabot.yml` | **done** (not yet pushed) |
-| Upstream tracking: issue when a newer ungoogled-chromium-windows tag exists | `upstream-watch.yml` | **done**, logic dry-run on real data, not yet run on GitHub |
+| Upstream tracking: issue when a newer ungoogled-chromium-windows tag exists | `pipeline.yml` | **done**, logic dry-run on real data, not yet run on GitHub |
 | Signed releases: SHA256SUMS plus keyless cosign bundles | `sign-release.yml`, `SECURITY.md` | written; the workflow now verifies every bundle before uploading, so the first run on a release is the test |
 | Security policy | `SECURITY.md` | **done**; private vulnerability reporting enabled 2026-10-26 |
 | Branch protection (no force-push, no deletion, linear history, signed commits) | `scripts/github-protect-main.sh` | **done** 2026-10-26: ruleset `protect-main` active (`scripts/github-protect-main.sh`), pushes verified against it |
@@ -65,9 +65,9 @@ requests go, in English and Polish. Verified with `scripts/test-safebrowsing-set
 | Updates | Microsoft Store | **covered by the Store** (automatic app updates, usually within a day of certification). No own updater while the Store is the only channel; see `docs/GITHUB_SETUP.md`, section 6 |
 | Org-level 2FA, second owner, separate CI account | GitHub org `plain-browser` | organization exists; 2FA requirement, second owner and bot account still to set up (`docs/GITHUB_SETUP.md`, section 3) |
 | Reproducible builds | build pipeline, `build-windows.yml` | long-term. Not realistic soon: our profile differs from upstream's and builds are not bit-identical. First goal is verifiable releases (above), then builds in GitHub Actions instead of the private VM (`build-windows.yml`, staged over several runners, written 2026-10-26, not yet run; `docs/CI.md`), then deterministic flags. |
-| Patches apply on the next upstream tag | `scripts/check-patches.py`, `patches-check.yml`, `upstream-watch.yml` | **done**: dry-run without a Chromium checkout on every change to `patches/` and on every new upstream tag |
+| Patches apply on the next upstream tag | `scripts/check-patches.py`, `patches-check.yml`, `pipeline.yml` | **done**: dry-run without a Chromium checkout on every change to `patches/` and on every new upstream tag |
 | Filter lists parsed outside the browser process | `src/plainbrowser/adblock/engine`, `patches/30-adblock/0008` | **done** 2026-10-28: the adblock engine runs in its own utility process (`kService` sandbox), fails open and restarts after a crash, dropping downloaded lists that may have caused it |
-| CVE regression check for our patches | `scripts/upstream-security-check.py`, `upstream-watch.yml` | **done** 2026-10-28: for a version bump, every upstream commit (GitHub mirror `chromium/chromium`) in a file our patches edit, with security-looking ones marked; part of the upstream-watch issue. 156.0.8078.47 → .73: 2 of 43 files changed, both a headless fix |
+| CVE regression check for our patches | `scripts/upstream-security-check.py`, `pipeline.yml` | **done** 2026-10-28: for a version bump, every upstream commit (GitHub mirror `chromium/chromium`) in a file our patches edit, with security-looking ones marked; part of the upstream-watch issue. 156.0.8078.47 → .73: 2 of 43 files changed, both a headless fix |
 | Few, small patches on top of ungoogled-chromium | repo layout | already the design; keep each patch under one category (`patches/series`) |
 
 ## Limits of what the signing items give
