@@ -34,6 +34,7 @@ export type Dict = {
     sums: string;
     store: string;
     storeNote: string;
+    storeButton: string;
     msixNote: string;
     published: string;
     releaseNotes: string;
@@ -60,7 +61,7 @@ const en: Dict = {
     lead:
       "Plain Browser is Chromium with the Google parts removed, an ad and tracker blocker built into the network stack, and Manifest V2 extensions left switched on. No account, no sync, no telemetry, no server of ours that could receive your data.",
     download: "Download for Windows",
-    downloadNote: "Unsigned alpha build. Expect rough edges.",
+    downloadNote: "Alpha. In the Microsoft Store, test builds on GitHub. Expect rough edges.",
     source: "Source on GitHub",
   },
   mock: { tab: "New tab", url: "plain-browser.app", blocked: "14 requests blocked", placeholder: "Search or type a URL" },
@@ -90,7 +91,7 @@ const en: Dict = {
       {
         title: "Tracking cleanup and a per-site switch",
         body:
-          "Tracking parameters (utm_, fbclid, gclid and others) are stripped from links, and canvas, audio and WebGL fingerprinting is blunted, with a built-in exception list for banks. One toolbar button turns all of it, and the blocker, off for a site that breaks.",
+          "Tracking parameters (utm_, fbclid, gclid and others) are stripped from links, tracking redirectors such as l.facebook.com or Outlook Safe Links are skipped, and canvas, audio and WebGL fingerprinting is blunted, with a built-in exception list for banks. One toolbar button turns all of it, and the blocker, off for a site that breaks.",
       },
       {
         title: "Open source, small patch set",
@@ -106,7 +107,7 @@ const en: Dict = {
       "No telemetry, usage statistics or crash reports",
       "No account, sign-in or sync",
       "No analytics or advertising identifier in the browser",
-      "No filter list downloads: the lists ship inside the binary",
+      "Filter list updates only from our no-log mirror, with the option to turn them off",
       "No contact with Google services",
       "Safe Browsing only through our no-log proxy, with the option to turn it off",
     ],
@@ -137,14 +138,16 @@ const en: Dict = {
       "Toolbar button and bubble with a per-site toggle for all protections",
       "Safe Browsing through our proxy, with a settings switch; the list update goes only to our proxy",
       "Manifest V2: uBlock Origin 1.75.0 installed, blocking webRequest works",
-      "MSIX package built for the Microsoft Store",
+      "Blocked-request counter on the toolbar and a settings page for sites with protections off",
+      "Generic element hiding, scriptlets and redirect stand-ins from our own resources",
+      "Daily filter list updates from our mirror, with an Ed25519-signed manifest",
+      "Tracking redirectors skipped; HTTPS-First and automatic secure DNS on by default",
+      "Published in the Microsoft Store, updated from the Chromium security releases",
     ],
     todo: [
-      "Microsoft Store listing and first public release through it",
-      "Blocked counter and a settings page for the exception list",
-      "Generic cosmetic filtering and filter-list updates between releases",
       "Curated Manifest V2 extension repository",
-      "Installation tested on a clean machine",
+      "Fingerprint noise inside the engine (Blink), not only in page scripts",
+      "Store installation tested on a clean machine",
     ],
   },
   faq: {
@@ -164,7 +167,7 @@ const en: Dict = {
       },
       {
         q: "Does it update itself?",
-        a: "The browser has no updater of its own. Plain Browser is distributed through the Microsoft Store as an MSIX package, and the Store signs it and delivers updates, so we need no updater and no code-signing certificate. The Store listing is being prepared; until it is live, test builds are published on GitHub.",
+        a: "The browser has no updater of its own. Plain Browser is distributed through the Microsoft Store as an MSIX package, and the Store signs it and delivers updates, so we need no updater and no code-signing certificate. Install it from the Microsoft Store and updates arrive on their own, usually within a day of a new Chromium security release. The same builds are also on GitHub as test files, which do not update themselves.",
       },
       {
         q: "Is it safe to run an unsigned build?",
@@ -188,7 +191,7 @@ const en: Dict = {
   },
   download: {
     title: "Download",
-    lead: "Early alpha for testers. The browser works, the blocker works, the rest is in progress.",
+    lead: "Early alpha. The easiest way is the Microsoft Store; the files below are the same release for testing and offline installs.",
     version: "Version",
     requires: "Requires",
     installer: "Installer",
@@ -197,13 +200,14 @@ const en: Dict = {
     zipNote: "Unpack anywhere and start chrome.exe. Nothing is written to the registry.",
     sums: "SHA-256 checksums",
     store: "Microsoft Store",
-    storeNote: "Listing in preparation, submitted for Store certification. The Store version is signed by Microsoft, updates itself and keeps its profile in app storage.",
+    storeNote: "Recommended. The Store version is signed by Microsoft, updates itself and keeps its profile in app storage.",
+    storeButton: "Get it from Microsoft Store",
     msixNote: "Package for the Microsoft Store or for sideloading with Add-AppxPackage.",
     published: "Published",
     releaseNotes: "Release notes for",
-    unsignedTitle: "This build is not code-signed",
+    unsignedTitle: "The GitHub files are not code-signed",
     unsignedBody:
-      "Windows SmartScreen will show a warning. Windows 11 with Smart App Control turned on will refuse to run the files. Test in a virtual machine or on a computer where that is acceptable. We will sign releases once a certificate is in place.",
+      "Windows SmartScreen will show a warning. Windows 11 with Smart App Control turned on will refuse to run the files. Test in a virtual machine or on a computer where that is acceptable, or use the Microsoft Store version, which is signed by Microsoft.",
     verifyTitle: "Verify what you downloaded",
     verifyBody:
       "Compare the SHA-256 of each file against SHA256SUMS.txt. Releases published through our workflow also carry a cosign bundle per file; the signature proves the file came from this repository's release workflow and was not altered afterwards.",
@@ -234,7 +238,7 @@ const pl: Dict = {
     lead:
       "Plain Browser to Chromium z usuniętymi elementami Google, blokerem reklam i trackerów wbudowanym w warstwę sieciową oraz włączonymi rozszerzeniami Manifest V2. Bez konta, synchronizacji i telemetrii. Nie mamy serwera, który mógłby odebrać Twoje dane.",
     download: "Pobierz dla Windows",
-    downloadNote: "Niepodpisana wersja alfa. Mogą zdarzać się niedociągnięcia.",
+    downloadNote: "Alfa. W Microsoft Store, wersje testowe na GitHubie. Mogą zdarzać się niedociągnięcia.",
     source: "Kod na GitHubie",
   },
   mock: { tab: "Nowa karta", url: "plain-browser.app", blocked: "Zablokowano 14 żądań", placeholder: "Szukaj lub wpisz adres" },
@@ -264,7 +268,7 @@ const pl: Dict = {
       {
         title: "Czyszczenie śledzenia i przełącznik per strona",
         body:
-          "Parametry śledzące (utm_, fbclid, gclid i inne) są usuwane z linków, a fingerprinting przez canvas, audio i WebGL jest osłabiany, z wbudowaną listą wyjątków dla banków. Jeden przycisk na pasku wyłącza to wszystko, razem z blokerem, na stronie, która przestała działać.",
+          "Parametry śledzące (utm_, fbclid, gclid i inne) są usuwane z linków, przekierowania śledzące, takie jak l.facebook.com czy Outlook Safe Links, są pomijane, a fingerprinting przez canvas, audio i WebGL jest osłabiany, z wbudowaną listą wyjątków dla banków. Jeden przycisk na pasku wyłącza to wszystko, razem z blokerem, na stronie, która przestała działać.",
       },
       {
         title: "Otwarty kod, mały zestaw łatek",
@@ -280,7 +284,7 @@ const pl: Dict = {
       "Brak telemetrii, statystyk użycia i raportów o awariach",
       "Brak konta, logowania i synchronizacji",
       "Brak analityki i identyfikatora reklamowego w przeglądarce",
-      "Brak pobierania list filtrów: listy są w pliku binarnym",
+      "Aktualizacje list filtrów wyłącznie z naszego serwera lustrzanego bez logów, z możliwością wyłączenia",
       "Brak kontaktu z usługami Google",
       "Safe Browsing wyłącznie przez nasze proxy bez logów, z możliwością wyłączenia",
     ],
@@ -311,14 +315,16 @@ const pl: Dict = {
       "Przycisk i dymek na pasku z przełącznikiem per strona dla wszystkich zabezpieczeń",
       "Safe Browsing przez nasze proxy, z przełącznikiem w ustawieniach; aktualizacja listy idzie wyłącznie do naszego proxy",
       "Manifest V2: uBlock Origin 1.75.0 zainstalowany, blokujące webRequest działa",
-      "Pakiet MSIX dla Microsoft Store zbudowany",
+      "Licznik zablokowanych żądań na pasku i strona ustawień z witrynami bez ochrony",
+      "Ogólne ukrywanie elementów, skryptlety i zamienniki przekierowań z własnych zasobów",
+      "Codzienne aktualizacje list filtrów z naszego serwera, z manifestem podpisanym Ed25519",
+      "Pomijanie przekierowań śledzących; HTTPS-First i automatyczny bezpieczny DNS domyślnie włączone",
+      "Opublikowana w Microsoft Store, aktualizowana za wydaniami bezpieczeństwa Chromium",
     ],
     todo: [
-      "Wpis w Microsoft Store i pierwsze publiczne wydanie przez Store",
-      "Licznik zablokowanych i strona ustawień z listą wyjątków",
-      "Ogólne ukrywanie elementów (cosmetic) i aktualizacje list filtrów między wydaniami",
       "Wyselekcjonowane repozytorium rozszerzeń Manifest V2",
-      "Instalacja sprawdzona na czystym komputerze",
+      "Szum fingerprintu w silniku (Blink), nie tylko w skryptach strony",
+      "Instalacja ze Store sprawdzona na czystym komputerze",
     ],
   },
   faq: {
@@ -338,7 +344,7 @@ const pl: Dict = {
       },
       {
         q: "Czy aktualizuje się sama?",
-        a: "Przeglądarka nie ma własnego mechanizmu aktualizacji. Plain Browser jest dystrybuowany przez Microsoft Store jako pakiet MSIX, a Store go podpisuje i dostarcza aktualizacje, więc nie potrzebujemy ani updatera, ani certyfikatu do podpisu kodu. Wpis w Store jest w przygotowaniu; do czasu jego publikacji wersje testowe publikujemy na GitHubie.",
+        a: "Przeglądarka nie ma własnego mechanizmu aktualizacji. Plain Browser jest dystrybuowany przez Microsoft Store jako pakiet MSIX, a Store go podpisuje i dostarcza aktualizacje, więc nie potrzebujemy ani updatera, ani certyfikatu do podpisu kodu. Zainstaluj ją z Microsoft Store, a aktualizacje przyjdą same, zwykle w ciągu doby od nowego wydania bezpieczeństwa Chromium. Te same wersje są też na GitHubie jako pliki testowe, które same się nie aktualizują.",
       },
       {
         q: "Czy bezpiecznie uruchamiać niepodpisaną wersję?",
@@ -362,7 +368,7 @@ const pl: Dict = {
   },
   download: {
     title: "Pobierz",
-    lead: "Wczesna alfa dla testerów. Przeglądarka działa, bloker działa, reszta jest w toku.",
+    lead: "Wczesna alfa. Najprościej przez Microsoft Store; pliki poniżej to to samo wydanie do testów i instalacji offline.",
     version: "Wersja",
     requires: "Wymagania",
     installer: "Instalator",
@@ -371,13 +377,14 @@ const pl: Dict = {
     zipNote: "Rozpakuj gdziekolwiek i uruchom chrome.exe. Nic nie zapisuje się w rejestrze.",
     sums: "Sumy kontrolne SHA-256",
     store: "Microsoft Store",
-    storeNote: "Wpis w przygotowaniu, wysłany do certyfikacji w Store. Wersja ze Store jest podpisana przez Microsoft, aktualizuje się sama i trzyma profil w pamięci aplikacji.",
+    storeNote: "Zalecane. Wersja ze Store jest podpisana przez Microsoft, aktualizuje się sama i trzyma profil w pamięci aplikacji.",
+    storeButton: "Pobierz z Microsoft Store",
     msixNote: "Pakiet dla Microsoft Store albo do ręcznej instalacji przez Add-AppxPackage.",
     published: "Opublikowano",
     releaseNotes: "Informacje o wydaniu",
-    unsignedTitle: "Ta wersja nie jest podpisana",
+    unsignedTitle: "Pliki z GitHuba nie są podpisane",
     unsignedBody:
-      "Windows SmartScreen pokaże ostrzeżenie. Windows 11 z włączonym Smart App Control odmówi uruchomienia plików. Testuj w maszynie wirtualnej albo na komputerze, gdzie to akceptowalne. Podpiszemy wydania, gdy tylko będziemy mieli certyfikat.",
+      "Windows SmartScreen pokaże ostrzeżenie. Windows 11 z włączonym Smart App Control odmówi uruchomienia plików. Testuj w maszynie wirtualnej albo na komputerze, gdzie to akceptowalne, albo użyj wersji z Microsoft Store, podpisanej przez Microsoft.",
     verifyTitle: "Sprawdź, co pobrałeś",
     verifyBody:
       "Porównaj SHA-256 każdego pliku z SHA256SUMS.txt. Wydania opublikowane przez nasz workflow mają też pakiet cosign dla każdego pliku; podpis dowodzi, że plik pochodzi z procesu wydawania w tym repozytorium i nie został później zmieniony.",

@@ -19,6 +19,7 @@ export const site = {
   repo: "https://github.com/plain-browser/plain-browser",
   issues: "https://github.com/plain-browser/plain-browser/issues",
   releases: "https://github.com/plain-browser/plain-browser/releases",
+  store: "https://apps.microsoft.com/detail/9PKZGSKC9FWP",
   version: readVersion(),
   chromium: "156",
   os: "Windows 11, x64",

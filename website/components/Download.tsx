@@ -14,7 +14,7 @@ export async function Download({ lang }: { lang: Lang }) {
       <div className="wrap page">
         <h1>{t.title}</h1>
         <p className="lead">{t.lead}</p>
-        <DownloadFiles initial={release} t={t} lang={lang} chromium={site.chromium} os={site.os} />
+        <DownloadFiles initial={release} t={t} lang={lang} chromium={site.chromium} os={site.os} store={site.store} />
         <p><a href={site.releases} rel="noopener">{t.allReleases} →</a></p>
         <p className="muted" style={{ fontSize: "0.9rem" }}>{t.privacyNote} <Link href={`${p}/privacy/`}>{dict[lang].footer.privacy}</Link>.</p>
       </div>
