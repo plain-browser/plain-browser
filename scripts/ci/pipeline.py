@@ -160,8 +160,8 @@ def close_issue(title, comment):
 def runs_of(workflow, branch=None, title_prefix=None):
     q = f"repos/{REPO}/actions/workflows/{workflow}/runs?per_page=50" + (f"&branch={branch}" if branch else "")
     runs = api(q)["workflow_runs"]
-    if title_prefix:
-        runs = [r for r in runs if (r.get("display_title") or "").startswith(title_prefix)]
+    if title_prefix:  # the exact run-name: "store-submit <tag> (draft)" runs (diagnose, commit=false) must not count
+        runs = [r for r in runs if (r.get("display_title") or "") == title_prefix]
     return runs  # newest first
 
 

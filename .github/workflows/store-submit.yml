@@ -1,5 +1,6 @@
 name: store-submit
-run-name: store-submit ${{ inputs.tag }}
+# the exact title is how scripts/ci/pipeline.py finds the real submissions; diagnose and draft runs get a suffix
+run-name: store-submit ${{ inputs.tag }}${{ (inputs.diagnose || !inputs.commit) && ' (draft)' || '' }}
 # Sends the MSIX of a GitHub release to Microsoft Store certification (docs/CI.md, "Microsoft Store"). Started by
 # scripts/ci/pipeline.py (every hour, after sign-release.yml) or by hand for any tag. Nothing here waits for a person:
 # the `store` environment only limits which branch may read the Partner Center secrets (main).
@@ -153,6 +154,20 @@ jobs:
             msstore submission updateMetadata "$PRODUCT_ID" submission.json > update.log 2>&1 || { sed -E 's/"FileUploadUrl".*/"FileUploadUrl": <redacted>/' update.log | tail -20; exit 1; }
             echo "submission metadata updated"
             msstore submission publish "$PRODUCT_ID" 2>&1 | sed -E 's/"FileUploadUrl".*/"FileUploadUrl": <redacted>/' | tail -8
+            # `publish` returns at CommitStarted and Partner Center decides a few minutes later: wait for the verdict,
+            # because a CommitFailed submission is not in certification and the pipeline must not treat it as done.
+            for i in $(seq 1 40); do
+              sleep 15
+              status=$(msstore submission status "$PRODUCT_ID" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -o 'Submission Status = [A-Za-z]*' | head -1 | sed 's/.*= //' || true)
+              echo "Store submission status: ${status:-unknown}"
+              case "$status" in
+                CommitStarted|PendingCommit|"") ;;
+                CommitFailed|PreProcessingFailed|CertificationFailed|PublishFailed|ReleaseFailed)
+                  echo "::error::Store submission ended as $status"; exit 1 ;;
+                *) break ;;
+              esac
+            done
+            [ "$status" != CommitStarted ] && [ -n "$status" ] || { echo "::error::Store submission still CommitStarted after 10 minutes"; exit 1; }
           fi
           {
             echo "Submitted $MSIX_FILE (package version $MSIX_VERSION) to product $PRODUCT_ID"
