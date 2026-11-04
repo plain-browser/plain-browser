@@ -5,7 +5,7 @@ import { useRelease } from "./useRelease";
 
 const fileName = (url: string | null) => (url ? decodeURIComponent(url.split("/").pop() ?? "") : "");
 
-export function DownloadFiles({ initial, t, lang, chromium, os, store }: { initial: Release; t: Dict["download"]; lang: Lang; chromium: string; os: string; store: string }) {
+export function DownloadFiles({ initial, t, lang, chromium, os, store, storeInstaller }: { initial: Release; t: Dict["download"]; lang: Lang; chromium: string; os: string; store: string; storeInstaller: string }) {
   const r = useRelease(initial);
   const installer = fileName(r.installer);
   const date = r.publishedAt ? new Date(r.publishedAt).toLocaleDateString(lang === "pl" ? "pl-PL" : "en-GB", { year: "numeric", month: "long", day: "numeric" }) : null;
@@ -22,7 +22,8 @@ export function DownloadFiles({ initial, t, lang, chromium, os, store }: { initi
         <div className="file">
           <div className="name">{t.store}</div>
           <p>{t.storeNote}</p>
-          <a className="btn btn-primary" href={store} rel="noopener">{t.storeButton}</a>
+          <a className="btn btn-primary" href={storeInstaller} rel="noopener">{t.storeButton}</a>{" "}
+          <a className="btn" href={store} rel="noopener">{t.storePage}</a>
         </div>
         <div className={`file${r.installer ? "" : " soon"}`}>
           <div className="name">{t.installer}</div>

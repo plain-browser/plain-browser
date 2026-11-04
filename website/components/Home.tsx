@@ -31,7 +31,8 @@ export async function Home({ lang }: { lang: Lang }) {
           </h1>
           <p className="lead">{t.hero.lead}</p>
           <div className="hero-actions">
-            <Link href={`${p}/download/`} className="btn btn-primary">{t.hero.download}</Link>
+            <a href={site.storeInstaller} className="btn btn-primary" rel="noopener">{t.hero.download}</a>
+            <Link href={`${p}/download/`} className="btn">{t.hero.other}</Link>
             <a href={site.repo} className="btn" rel="noopener">{t.hero.source}</a>
           </div>
           <HeroNote initial={release} note={t.hero.downloadNote} chromium={site.chromium} />
@@ -120,7 +121,7 @@ export async function Home({ lang }: { lang: Lang }) {
           <h2>{t.cta.title}</h2>
           <p>{t.cta.body}</p>
           <div className="actions">
-            <Link href={`${p}/download/`} className="btn btn-primary">{t.cta.download}</Link>
+            <a href={site.storeInstaller} className="btn btn-primary" rel="noopener">{t.cta.download}</a>
             <a href={site.issues} className="btn" rel="noopener">{t.cta.issues}</a>
           </div>
         </div>

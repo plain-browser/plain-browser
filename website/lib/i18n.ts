@@ -13,6 +13,7 @@ export type Dict = {
     lead: string;
     download: string;
     downloadNote: string;
+    other: string;
     source: string;
   };
   mock: { tab: string; url: string; blocked: string; placeholder: string };
@@ -35,6 +36,7 @@ export type Dict = {
     store: string;
     storeNote: string;
     storeButton: string;
+    storePage: string;
     msixNote: string;
     published: string;
     releaseNotes: string;
@@ -61,7 +63,8 @@ const en: Dict = {
     lead:
       "Plain Browser is Chromium with the Google parts removed, an ad and tracker blocker built into the network stack, and Manifest V2 extensions left switched on. No account, no sync, no telemetry, no server of ours that could receive your data.",
     download: "Download for Windows",
-    downloadNote: "Alpha. In the Microsoft Store, test builds on GitHub. Expect rough edges.",
+    downloadNote: "Microsoft Store installer, always the latest version. Alpha, expect rough edges.",
+    other: "Other downloads",
     source: "Source on GitHub",
   },
   mock: { tab: "New tab", url: "plain-browser.app", blocked: "14 requests blocked", placeholder: "Search or type a URL" },
@@ -200,8 +203,9 @@ const en: Dict = {
     zipNote: "Unpack anywhere and start chrome.exe. Nothing is written to the registry.",
     sums: "SHA-256 checksums",
     store: "Microsoft Store",
-    storeNote: "Recommended. The Store version is signed by Microsoft, updates itself and keeps its profile in app storage.",
-    storeButton: "Get it from Microsoft Store",
+    storeNote: "Recommended. The small installer from Microsoft always fetches the latest version from the Store. The Store version is signed by Microsoft, updates itself and keeps its profile in app storage.",
+    storeButton: "Download installer",
+    storePage: "Open in Microsoft Store",
     msixNote: "Package for the Microsoft Store or for sideloading with Add-AppxPackage.",
     published: "Published",
     releaseNotes: "Release notes for",
@@ -238,7 +242,8 @@ const pl: Dict = {
     lead:
       "Plain Browser to Chromium z usuniętymi elementami Google, blokerem reklam i trackerów wbudowanym w warstwę sieciową oraz włączonymi rozszerzeniami Manifest V2. Bez konta, synchronizacji i telemetrii. Nie mamy serwera, który mógłby odebrać Twoje dane.",
     download: "Pobierz dla Windows",
-    downloadNote: "Alfa. W Microsoft Store, wersje testowe na GitHubie. Mogą zdarzać się niedociągnięcia.",
+    downloadNote: "Instalator z Microsoft Store, zawsze najnowsza wersja. Alfa, mogą zdarzać się niedociągnięcia.",
+    other: "Inne pliki",
     source: "Kod na GitHubie",
   },
   mock: { tab: "Nowa karta", url: "plain-browser.app", blocked: "Zablokowano 14 żądań", placeholder: "Szukaj lub wpisz adres" },
@@ -377,8 +382,9 @@ const pl: Dict = {
     zipNote: "Rozpakuj gdziekolwiek i uruchom chrome.exe. Nic nie zapisuje się w rejestrze.",
     sums: "Sumy kontrolne SHA-256",
     store: "Microsoft Store",
-    storeNote: "Zalecane. Wersja ze Store jest podpisana przez Microsoft, aktualizuje się sama i trzyma profil w pamięci aplikacji.",
-    storeButton: "Pobierz z Microsoft Store",
+    storeNote: "Zalecane. Mały instalator od Microsoftu zawsze pobiera najnowszą wersję ze Store. Wersja ze Store jest podpisana przez Microsoft, aktualizuje się sama i trzyma profil w pamięci aplikacji.",
+    storeButton: "Pobierz instalator",
+    storePage: "Otwórz w Microsoft Store",
     msixNote: "Pakiet dla Microsoft Store albo do ręcznej instalacji przez Add-AppxPackage.",
     published: "Opublikowano",
     releaseNotes: "Informacje o wydaniu",

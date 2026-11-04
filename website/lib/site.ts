@@ -20,6 +20,8 @@ export const site = {
   issues: "https://github.com/plain-browser/plain-browser/issues",
   releases: "https://github.com/plain-browser/plain-browser/releases",
   store: "https://apps.microsoft.com/detail/9PKZGSKC9FWP",
+  // Microsoft's Store web installer: a small signed .exe that installs the current Store version.
+  storeInstaller: "https://get.microsoft.com/installer/download/9PKZGSKC9FWP",
   version: readVersion(),
   chromium: "156",
   os: "Windows 11, x64",
