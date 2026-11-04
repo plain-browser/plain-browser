@@ -122,7 +122,7 @@ jobs:
           msstore reconfigure --tenantId "$TENANT_ID" --sellerId "$SELLER_ID" --clientId "$CLIENT_ID" --clientSecret "$CLIENT_SECRET"
           if [ "$DIAGNOSE" = true ]; then
             # FileUploadUrl is a short-lived write token for the package upload: the log is public, so not that line
-            msstore submission get "$PRODUCT_ID" | sed -E 's/\x1b\[[0-9;]*m//g; s/^(FileUploadUrl = ).*/\1<redacted>/'
+            msstore submission get "$PRODUCT_ID" | sed -E 's/\x1b\[[0-9;]*m//g; s/("?FileUploadUrl"?( =|:) ).*/\1<redacted>/'
             exit 0
           fi
           # One pending submission at a time: leave an earlier one that is in review alone.
@@ -149,8 +149,10 @@ jobs:
           json.dump(sub, open("submission.json", "w"))
           print("NotesForCertification:", sub["NotesForCertification"][:80])
           '
-            msstore submission updateMetadata "$PRODUCT_ID" submission.json
-            msstore submission publish "$PRODUCT_ID"
+            # their output is the whole submission, including the upload URL (a write token): keep it out of the log
+            msstore submission updateMetadata "$PRODUCT_ID" submission.json > update.log 2>&1 || { sed -E 's/"FileUploadUrl".*/"FileUploadUrl": <redacted>/' update.log | tail -20; exit 1; }
+            echo "submission metadata updated"
+            msstore submission publish "$PRODUCT_ID" 2>&1 | sed -E 's/"FileUploadUrl".*/"FileUploadUrl": <redacted>/' | tail -8
           fi
           {
             echo "Submitted $MSIX_FILE (package version $MSIX_VERSION) to product $PRODUCT_ID"
