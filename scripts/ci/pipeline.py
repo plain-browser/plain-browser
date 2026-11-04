@@ -25,6 +25,9 @@ REPO = os.environ.get("GITHUB_REPOSITORY", "plain-browser/plain-browser")
 UPSTREAM = "ungoogled-software/ungoogled-chromium-windows"
 DRY = os.environ.get("DRY_RUN") == "1"
 BUILD, SIGN, STORE = "build-windows.yml", "sign-release.yml", "store-submit.yml"
+# store-submit runs before this moment ended at CommitStarted and counted as done although Partner Center then
+# answered CommitFailed; from here on the job waits for the verdict, so only later runs say anything.
+STORE_VERDICT_SINCE = "2026-11-04T06:41:00Z"
 MAX_BUILD_RERUNS_TRANSIENT, MAX_BUILD_RERUNS_UNKNOWN, MAX_STORE_FAILURES = 4, 2, 3
 
 # What a failed build log says about the failure. Source problems first: a rerun cannot fix them.
@@ -310,7 +313,7 @@ def handle_release(tag):
             return
         dispatch(SIGN, "main", tag=tag)
         return
-    subs = runs_of(STORE, title_prefix=f"store-submit {tag}")
+    subs = [r for r in runs_of(STORE, title_prefix=f"store-submit {tag}") if r["created_at"] >= STORE_VERDICT_SINCE]
     if any(r["status"] != "completed" for r in subs):
         log("store-submit is running")
         return
