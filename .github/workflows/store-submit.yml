@@ -15,7 +15,7 @@ on:
         description: "Release tag whose MSIX to submit"
         required: true
       rollout:
-        description: "Package rollout percentage, 1 to 100 (empty: repository variable STORE_ROLLOUT_PERCENT, else 10)"
+        description: "Package rollout percentage, 1 to 99 for a gradual rollout, 100 for none (empty: repository variable STORE_ROLLOUT_PERCENT, else 100)"
         required: false
       diagnose:
         description: "Only print the current Partner Center submission (msstore submission get) and stop"
@@ -107,7 +107,7 @@ jobs:
           CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
           PRODUCT_ID: ${{ vars.STORE_PRODUCT_ID }}
-          ROLLOUT: ${{ inputs.rollout || vars.STORE_ROLLOUT_PERCENT || '10' }}
+          ROLLOUT: ${{ inputs.rollout || vars.STORE_ROLLOUT_PERCENT || '100' }}
           MSIX_FILE: ${{ needs.verify.outputs.msix_file }}
           MSIX_VERSION: ${{ needs.verify.outputs.msix_version }}
           # format() makes it the string 'false' (truthy); a plain `inputs.commit || 'true'` would turn false into 'true'.
@@ -136,7 +136,12 @@ jobs:
           # the first argument is the package file itself: msstore recognises a project by its type, and a .msix
           # is one (a directory with only a package in it is not: "could not find a project publisher")
           # Always without the commit: the submission is completed first (certification notes), then committed.
-          msstore publish "pkg/$MSIX_FILE" -id "$PRODUCT_ID" --packageRolloutPercentage "$ROLLOUT" --noCommit
+          # No gradual rollout by default (100): Partner Center accepts no new submission while one is in progress, and
+          # nobody is there to judge a 10 % rollout and finalize it. msstore turns every percentage, 100 included,
+          # into a rollout, so for 100 the flag is left out and the rollout is switched off in the metadata below.
+          rollout_args=()
+          [ "$ROLLOUT" = 100 ] || rollout_args=(--packageRolloutPercentage "$ROLLOUT")
+          msstore publish "pkg/$MSIX_FILE" -id "$PRODUCT_ID" "${rollout_args[@]}" --noCommit
           if [ "$COMMIT" = true ]; then
             # The package declares the restricted capability runFullTrust (every Win32 app in an MSIX does); Partner
             # Center refuses the commit with an opaque "active validation errors" while the certification notes are
@@ -147,6 +152,10 @@ jobs:
           sub = json.JSONDecoder().raw_decode(text[text.index("{"):])[0]
           if not sub.get("NotesForCertification"):
               sub["NotesForCertification"] = os.environ["CERT_NOTES"]
+          if float(os.environ["ROLLOUT"]) >= 100:
+              sub["PackageDeliveryOptions"] = dict(sub.get("PackageDeliveryOptions") or {}, PackageRollout={
+                  "IsPackageRollout": False, "PackageRolloutPercentage": 0,
+                  "PackageRolloutStatus": "PackageRolloutNotStarted", "FallbackSubmissionId": "0"})
           json.dump(sub, open("submission.json", "w"))
           print("NotesForCertification:", sub["NotesForCertification"][:80])
           '

@@ -191,11 +191,18 @@ hand for any tag) and has two jobs:
 
 The `store` environment has no required reviewer (the pipeline must run without a person); it only lets branch `main`
 read the Partner Center secrets. `commit=false` passes `--noCommit` and leaves a draft in Partner Center. Rollout is the
-`rollout` input, else the variable `STORE_ROLLOUT_PERCENT`, else 10 %. Certification takes hours to days and the job does
-not wait for it; the result is in Partner Center.
+`rollout` input, else the variable `STORE_ROLLOUT_PERCENT`, else **100**, which means no gradual rollout (the rollout is
+switched off in the submission metadata). Partner Center accepts no new submission while a gradual rollout of the
+previous one is in progress (`CommitFailed` / `InvalidState`, and the portal says "halt or finalize the rollout"), and
+with no person in the loop nobody finalizes a 10 % rollout; a value below 100 therefore needs
+`msstore submission rollout finalize` by hand before the next release. After the commit the job waits for the verdict
+(`CommitStarted` becomes `PreProcessing`/`Certification`, or `CommitFailed`, which fails the job); certification itself
+takes hours to days and is not waited for. The submission also gets certification notes for the restricted capability
+`runFullTrust` (a new submission starts with empty notes).
 
-Observed on the first real runs: the Partner Center API answered `CommitFailed` ("active validation errors which cannot
-be exposed via API") for a submission that the portal showed as valid; the pipeline retries the submission.
+Observed on the first real runs: `CommitFailed` ("active validation errors which cannot be exposed via API") for a
+submission that the portal showed as valid. The cause was the gradual rollout of the previous submission still in
+progress, not the content.
 
 
 ## Still manual
