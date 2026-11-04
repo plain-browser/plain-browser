@@ -16,6 +16,10 @@ on:
       rollout:
         description: "Package rollout percentage, 1 to 100 (empty: repository variable STORE_ROLLOUT_PERCENT, else 10)"
         required: false
+      diagnose:
+        description: "Only print the current Partner Center submission (msstore submission get) and stop"
+        type: boolean
+        default: false
       commit:
         description: "Commit the submission to certification (false leaves a draft in Partner Center to review and send by hand)"
         type: boolean
@@ -107,6 +111,7 @@ jobs:
           MSIX_VERSION: ${{ needs.verify.outputs.msix_version }}
           # format() makes it the string 'false' (truthy); a plain `inputs.commit || 'true'` would turn false into 'true'.
           COMMIT: ${{ format('{0}', inputs.commit) }}
+          DIAGNOSE: ${{ format('{0}', inputs.diagnose) }}
         run: |
           set -euo pipefail
           [ -n "$PRODUCT_ID" ] || { echo "::error::repository variable STORE_PRODUCT_ID is not set"; exit 1; }
@@ -114,6 +119,10 @@ jobs:
             || { echo "::error::rollout must be between 1 and 100: $ROLLOUT"; exit 1; }
           [ -f "pkg/$MSIX_FILE" ] || { echo "::error::pkg/$MSIX_FILE missing"; exit 1; }
           msstore reconfigure --tenantId "$TENANT_ID" --sellerId "$SELLER_ID" --clientId "$CLIENT_ID" --clientSecret "$CLIENT_SECRET"
+          if [ "$DIAGNOSE" = true ]; then
+            msstore submission get "$PRODUCT_ID" | sed 's/\x1b\[[0-9;]*m//g'
+            exit 0
+          fi
           # One pending submission at a time: leave an earlier one that is in review alone.
           status=$(msstore submission status "$PRODUCT_ID" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -o 'Submission Status = [A-Za-z]*' | head -1 | sed 's/.*= //' || true)
           echo "current Store submission status: ${status:-unknown}"
