@@ -32,7 +32,7 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 
 ## Status
 
-**Beta. Builds are in the Microsoft Store; the installer and zip from the releases are unsigned test builds (`0.2.0-beta.2`).**
+**Beta. Builds are in the Microsoft Store; the installer and zip from the releases are unsigned test builds (`0.2.0-beta.3`).**
 
 | Part | State |
 |---|---|

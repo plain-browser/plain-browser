@@ -92,6 +92,11 @@ try {
       if (Test-Path "$($comp.FullName)\lib") { RunRobocopy "$($comp.FullName)\lib" "$rt\lib" /E }
     }
   }
+  # rustc-dev (the rustc_private crates for the x64 host) is needed by Crubit's cc_bindings_from_rs; build.py copies it
+  # the same way since Chromium 157 (RUST_DIR_SRC64_DEV) but skips that step once INSTALLED_VERSION exists.
+  foreach ($comp in Get-ChildItem "$src\third_party\rust-toolchain-x64-dev" -Directory -ErrorAction SilentlyContinue) {
+    if (Test-Path "$($comp.FullName)\lib") { RunRobocopy "$($comp.FullName)\lib" "$rt\lib" /E }
+  }
   & "$src\third_party\rust-toolchain-x64\rustc\bin\rustc.exe" --version | Set-Content "$rt\INSTALLED_VERSION"
   Write-Host "rustc: $(Get-Content "$rt\INSTALLED_VERSION")"
 

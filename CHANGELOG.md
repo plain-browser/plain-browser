@@ -5,6 +5,14 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.0-beta.3] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
+
+### Fixed
+- Build: the Rust toolchain step of `scripts/ci/prepare-tree.ps1` did not copy the `rustc-dev` package
+  (`third_party/rust-toolchain-x64-dev`) into `rust-toolchain/lib` as upstream's `build.py` does since 157. Crubit's
+  `cc_bindings_from_rs` needs the `rustc_*` crates and failed with E0463. 0.2.0-beta.2 was tagged but its build stopped
+  there and was never released.
+
 ## [0.2.0-beta.2] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
 
 First beta. The product moves from alpha to beta; the build profile names (`alpha`, `official`) are about compiler flags and stay.
