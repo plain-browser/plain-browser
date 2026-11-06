@@ -5,6 +5,13 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.0-beta.4] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
+
+### Fixed
+- Build: `scripts/ci/prepare-tree.ps1` did not generate `build/util/MINIBRANCH` (the `minibranch` DEPS hook, which
+  upstream's `build.py` runs right after `clone.py` since 157), so ninja stopped before compiling anything.
+  0.2.0-beta.3 was tagged but its build stopped there and was never released.
+
 ## [0.2.0-beta.3] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
 
 ### Fixed

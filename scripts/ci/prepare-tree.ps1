@@ -44,6 +44,9 @@ try {
   Write-Step "Chromium sources (ungoogled-chromium clone.py)"
   Run python "ungoogled-chromium\utils\clone.py" -o "build\src" -p win64
   Write-Probe $src "after clone"
+  # Chromium 157: the 'minibranch' DEPS hook writes build\util\MINIBRANCH, which ninja needs; clone.py does not run it,
+  # upstream's build.py does it right after clone.py.
+  Run python "$src\build\util\lastchange.py" --minibranch-out "$src\build\util\MINIBRANCH"
 
   Write-Step "Plain Browser layer: prepare.py"
   Run python -I "$repo\scripts\prepare.py" $ucw $src
