@@ -84,6 +84,19 @@ computed the way grit does (first 64 bits of the MD5 of the English text, sign b
              name="${SafeBrowsingSetting.STANDARD}"
              pref-key="generated.safe_browsing"
              label="$i18n{safeBrowsingStandard}"
+@@ -208,12 +208,6 @@
+         @click="${this.onManageCertificatesClick_}" external>
+     </cr-link-row>
+ 
+-    <cr-link-row id="advancedProtectionProgramLink" class="hr"
+-        label="$i18n{advancedProtectionProgramTitle}"
+-        sub-label="$i18n{advancedProtectionProgramDesc}"
+-        @click="${this.onAdvancedProtectionProgramLinkClick_}"
+-        external>
+-    </cr-link-row>
+     ${this.showDisableSafebrowsingDialog_ ? html`
+       <settings-simple-confirmation-dialog
+           title-text="$i18n{safeBrowsingDisableDialog}"
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 @@ -2277,6 +2277,10 @@

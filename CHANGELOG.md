@@ -5,6 +5,19 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.0-beta.5] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
+
+### Fixed
+- Build: the Safe Browsing hunks of ungoogled's `remove-unused-preferences-fields.patch` that we drop were matched case
+  sensitively, so five hunks of `security_page.html`/`.ts` written `safeBrowsing...` still applied. They removed the
+  `safeBrowsingEnhanced`, `safeBrowsingStandard` and `safeBrowsingRadioGroup` entries from the page's `$` type
+  while the code (kept) still used them, and `tsc` failed in the settings build (TS2339). Chromium 157 made the
+  difference visible. The same hunks also removed the "Turn off Safe Browsing?" confirmation dialog from the page
+  (in 0.1.x too, see below), so choosing "No protection" had no confirmation. 0.2.0-beta.4 was tagged but its build
+  stopped there and was never released.
+- The Advanced Protection Program link is still removed from the Security page, now by
+  `patches/70-safebrowsing/0005` (its removal in `remove-uneeded-ui.patch` no longer fits the restored dialog code).
+
 ## [0.2.0-beta.4] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
 
 ### Fixed

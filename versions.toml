@@ -4,4 +4,4 @@ ungoogled_chromium_windows = "157.0.8103.38-1.1"   # Chromium 157.0.8103.38; che
 [product]
 product_name = "Plain Browser"
 identifier = "plainbrowser"   # GN //plainbrowser, C++ namespace, mojom module, crate names
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
