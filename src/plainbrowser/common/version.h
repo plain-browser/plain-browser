@@ -4,7 +4,7 @@
 #define PLAINBROWSER_COMMON_VERSION_H_
 
 // Full product version, for chrome://version and logs.
-#define PLAINBROWSER_VERSION_FULL "0.2.0-beta.1"
+#define PLAINBROWSER_VERSION_FULL "0.2.0-beta.2"
 // major.minor.patch only: the part allowed in network requests.
 #define PLAINBROWSER_VERSION "0.2.0"
 

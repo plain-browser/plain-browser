@@ -77,9 +77,10 @@ source_set("renderer") {
 # the exceptions. Linked into chrome through //plainbrowser:browser
 # (chrome/browser:browser depends on it); ToolbarView includes
 # ui/shields_button.h and the settings strings provider
-# ui/shields_settings_strings.h (patches/60-ui). Depends on //chrome/browser/ui
-# for the toolbar and bubble base classes; that target does not depend on us,
-# so there is no cycle. Strings: resources/plainbrowser_shields_strings.grdp,
+# ui/shields_settings_strings.h (patches/60-ui). Depends on the pieces of
+# //chrome/browser/ui it includes (toolbar button, browser window interface,
+# chrome_pages): Chromium 157 dissolved the //chrome/browser/ui:ui target into
+# many small ones. None of them depends on us, so there is no cycle. Strings: resources/plainbrowser_shields_strings.grdp,
 # a part of chrome/app/generated_resources.grd (patches/60-ui/0008).
 source_set("ui") {
   sources = [
@@ -96,7 +97,9 @@ source_set("ui") {
     "//base",
     "//cc/paint",
     "//chrome/app:generated_resources",
-    "//chrome/browser/ui",
+    "//chrome/browser/ui:chrome_pages",
+    "//chrome/browser/ui/browser_window",
+    "//chrome/browser/ui/views/toolbar:toolbar_button",
     "//chrome/common",
     "//components/tabs:public",
     "//components/user_prefs",
