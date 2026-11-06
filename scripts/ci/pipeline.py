@@ -226,13 +226,23 @@ def step_upstream():
     title = f"Upstream update: ungoogled-chromium-windows {latest}"
     # Dry-run of our patches on the new tag (a few seconds, files fetched from googlesource).
     report = Path(tempfile.mkdtemp()) / "report.md"
-    rc = subprocess.run([sys.executable, "-I", str(ROOT / "scripts/check-patches.py"), "--tag", latest, "--report", str(report)],
-                        env=dict(os.environ, GITHUB_TOKEN=os.environ.get("GH_TOKEN", ""))).returncode
+    try:
+        rc = subprocess.run([sys.executable, "-I", str(ROOT / "scripts/check-patches.py"), "--tag", latest, "--report", str(report)],
+                            env=dict(os.environ, GITHUB_TOKEN=os.environ.get("GH_TOKEN", "")), timeout=600).returncode
+    except subprocess.TimeoutExpired:
+        log("check-patches took more than 10 minutes, next pass")
+        return
     body = f"Pinned: `{pinned}`. Latest upstream tag: `{latest}`.\n\n" + (report.read_text() if report.exists() else "")
-    sec = subprocess.run([sys.executable, "-I", str(ROOT / "scripts/upstream-security-check.py"), "--from", pinned.split("-")[0],
-                          "--to", latest.split("-")[0], "--report", str(report.with_name("security.md"))], capture_output=True)
-    if sec.returncode == 0 and report.with_name("security.md").exists():
-        body += "\n" + report.with_name("security.md").read_text()
+    # Every upstream commit between the two versions (a major bump is thousands): an extra for the issue, so it gets
+    # a few minutes and is left out when slower (it once ran the whole 20-minute job into its timeout).
+    try:
+        sec = subprocess.run([sys.executable, "-I", str(ROOT / "scripts/upstream-security-check.py"), "--from", pinned.split("-")[0],
+                              "--to", latest.split("-")[0], "--report", str(report.with_name("security.md"))], capture_output=True, timeout=240)
+        if sec.returncode == 0 and report.with_name("security.md").exists():
+            body += "\n" + report.with_name("security.md").read_text()
+    except subprocess.TimeoutExpired:
+        body += (f"\n(The upstream commit check was too slow for the pipeline: run `python3 scripts/upstream-security-check.py "
+                 f"--from {pinned.split('-')[0]} --to {latest.split('-')[0]}` by hand.)")
     if rc == 2:
         log("check-patches: setup error (network?), next pass")
         return
@@ -366,7 +376,8 @@ def main():
         log("PIPELINE_ENABLED=false: nothing to do")
         return
     errors = []
-    for name, fn in (("upstream", step_upstream), ("release", release_pass)):
+    # The release of a build in flight first: a slow or failing upstream step must not hold it up.
+    for name, fn in (("release", release_pass), ("upstream", step_upstream)):
         try:
             fn()
         except Exception as e:  # one failing step must not hide the others; the next pass tries again
