@@ -40,7 +40,7 @@ lists.plain-browser.app for new ones once a day. //plainbrowser/adblock:updater 
  #include "build/android_buildflags.h"
  #include "build/branding_buildflags.h"
  #include "build/build_config.h"
-@@ -1523,6 +1524,8 @@
+@@ -1658,6 +1659,8 @@
    // Call outs to individual subsystems that register Local State (browser-wide)
    // prefs en masse. See RegisterProfilePrefs for per-profile prefs. Please
    // keep this list alphabetized.

@@ -7,7 +7,7 @@ and //plainbrowser/shields binds its ShieldsConfig remote (per-site exception li
 ---
 --- a/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
 +++ b/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
-@@ -52,6 +52,8 @@
+@@ -55,6 +55,8 @@
  #include "content/public/browser/security_principal.h"
  #include "content/public/browser/service_worker_version_base_info.h"
  #include "content/public/common/buildflags.h"
@@ -16,7 +16,7 @@ and //plainbrowser/shields binds its ShieldsConfig remote (per-site exception li
  #include "extensions/buildflags/buildflags.h"
  #include "extensions/common/extension_id.h"
  #include "media/mojo/buildflags.h"
-@@ -231,6 +233,12 @@
+@@ -238,6 +240,12 @@
        content::GetUIThreadTaskRunner({});
    registry->AddInterface<metrics::mojom::CallStackProfileCollector>(
        base::BindRepeating(&metrics::CallStackProfileCollector::Create));

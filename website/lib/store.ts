@@ -8,7 +8,7 @@ export const STORE_ID = "9PKZGSKC9FWP";
 export const storeCatalogUrl = `https://displaycatalog.mp.microsoft.com/v7.0/products?bigIds=${STORE_ID}&market=US&languages=en-us,neutral`;
 
 // Package names look like "PlainBrowser.PlainBrowser_0.1.5.0_x64__7m7psx7yqqmx8"; take the highest x64 one.
-// "0.1.5.0" is shown as "0.1.5", matching the product version without its "-alpha.N" suffix.
+// "0.1.5.0" is shown as "0.1.5", matching the product version without its "-alpha.N" / "-beta.N" suffix.
 export function parseStoreVersion(text: string): string | null {
   const found = [...text.matchAll(/_(\d+)\.(\d+)\.(\d+)\.(\d+)_x64__/g)].map((m) => m.slice(1, 5).map(Number));
   if (!found.length) return null;

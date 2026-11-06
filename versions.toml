@@ -1,7 +1,7 @@
 # Pinned upstreams. Update together; verify tags exist before bumping.
 [upstream]
-ungoogled_chromium_windows = "156.0.8078.79-1.1"   # Chromium 156.0.8078.79; checked 2026-10-31
+ungoogled_chromium_windows = "157.0.8103.38-1.1"   # Chromium 157.0.8103.38; checked 2026-11-06
 [product]
 product_name = "Plain Browser"
 identifier = "plainbrowser"   # GN //plainbrowser, C++ namespace, mojom module, crate names
-version = "0.1.6-alpha.1"
+version = "0.2.0-beta.1"

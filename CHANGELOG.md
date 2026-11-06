@@ -5,6 +5,22 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.0-beta.1] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
+
+First beta. The product moves from alpha to beta; the build profile names (`alpha`, `official`) are about compiler flags and stay.
+
+### Changed
+- Chromium base updated from 156.0.8078.79 to 157.0.8103.38 (a new major version).
+- Patches ported to Chromium 157: the settings pages are Lit templates and read prefs through `PrefService` now, so the
+  "sites with protections off" section (`60-ui/0009`) observes its prefs by key instead of receiving a `prefs` object;
+  the Safe Browsing settings hunks (`70-safebrowsing/0005`) follow the `pref-key` markup; context of the New Tab
+  shortcut (`60-ui/0004`) and the Safe Browsing request patch (`70-safebrowsing/0001`) updated.
+- Package version 0.2.0.0.
+
+### Removed
+- `90-defaults/0001-https-first-balanced`: Chromium 157 turns the auto-enable of HTTPS-First Mode's balanced setting
+  on by default itself.
+
 ## [0.1.6-alpha.1] - 2026-11-04 [Chromium 156.0.8078.79, ungoogled-chromium-windows 156.0.8078.79-1.1]
 
 ### Changed

@@ -26,10 +26,10 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
  #include "net/base/registry_controlled_domains/registry_controlled_domain.h"
  #include "net/http/http_request_headers.h"
 +#include "plainbrowser/common/version.h"
+ #include "url/url_canon_stdstring.h"
  #include "url/url_util.h"
  
- using base::Time;
-@@ -165,6 +166,19 @@
+@@ -166,6 +167,19 @@
    hosts->push_back(host);
  }
  
@@ -49,7 +49,7 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
  }  // namespace
  
  void SetSbV4UrlPrefixForTesting(const char* url_prefix) {
-@@ -177,7 +191,7 @@
+@@ -178,7 +192,7 @@
  
  const char* GetSbV5UrlPrefix() {
    return g_sbv5_url_prefix_for_testing ? g_sbv5_url_prefix_for_testing
@@ -58,7 +58,7 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
  }
  
  std::string GetReportUrl(const SBProtocolConfig& config,
-@@ -582,10 +596,11 @@
+@@ -588,10 +602,11 @@
      net::HttpRequestHeaders* headers) {
    const char* url_prefix = g_sbv4_url_prefix_for_testing
                                 ? g_sbv4_url_prefix_for_testing

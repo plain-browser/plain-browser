@@ -10,13 +10,16 @@ service factory; the GN dependency is in 00-build/0001.
 ---
 --- a/chrome/utility/services.cc
 +++ b/chrome/utility/services.cc
-@@ -32,4 +32,5 @@
+@@ -30,6 +30,7 @@
+ #include "mojo/public/cpp/bindings/pending_receiver.h"
+ #include "mojo/public/cpp/bindings/service_factory.h"
  #include "pdf/buildflags.h"
 +#include "plainbrowser/adblock/engine/ad_block_engine_service.h"
  #include "printing/buildflags/buildflags.h"
  #include "services/passage_embeddings/passage_embeddings_service.h"
  #include "ui/accessibility/accessibility_features.h"
-@@ -157,5 +158,12 @@
+@@ -156,6 +157,13 @@
+ 
  namespace {
  
 +// Plain Browser: the adblock engine (patches/30-adblock/0008).
@@ -29,7 +32,9 @@ service factory; the GN dependency is in 00-build/0001.
  auto RunFilePatcher(mojo::PendingReceiver<patch::mojom::FilePatcher> receiver) {
    return std::make_unique<patch::FilePatcherImpl>(std::move(receiver));
  }
-@@ -493,4 +501,5 @@
+@@ -491,6 +499,7 @@
+ }
+ 
  void RegisterMainThreadServices(mojo::ServiceFactory& services) {
 +  services.Add(RunAdblockEngine);
    services.Add(RunFilePatcher);

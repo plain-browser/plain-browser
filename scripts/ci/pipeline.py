@@ -77,7 +77,7 @@ def ucw_key(tag):
 
 
 def release_key(tag):
-    m = re.match(r"^v(\d+)\.(\d+)\.(\d+)-alpha\.(\d+)$", tag)
+    m = re.match(r"^v(\d+)\.(\d+)\.(\d+)-(?:alpha|beta)\.(\d+)$", tag)
     return tuple(int(x) for x in m.groups()) if m else None
 
 

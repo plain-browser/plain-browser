@@ -32,7 +32,7 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 
 ## Status
 
-**Alpha. Test builds exist (`0.1.6-alpha.1`, unsigned); the Microsoft Store listing is being prepared.**
+**Beta. Builds are in the Microsoft Store; the installer and zip from the releases are unsigned test builds (`0.2.0-beta.1`).**
 
 | Part | State |
 |---|---|
@@ -62,7 +62,7 @@ Not yet tested: the UI on real pages beyond the test pages, Store installation o
 
 Privacy features and the project-security plan are in [docs/ROADMAP.md](docs/ROADMAP.md); vulnerability reporting in [SECURITY.md](SECURITY.md).
 
-1. Microsoft Store submission of the MSIX; first public alpha through the Store.
+1. Microsoft Store submission of the MSIX; first public beta through the Store.
 2. Curated MV2 extension repository (uBlock Origin and similar); tracking-redirect bypass; Blink-level fingerprint noise.
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Changes: [CHANGELOG.md](CHANGELOG.md). Manual GitHub and Store setup

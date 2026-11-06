@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prepare the next automated release for a new ungoogled-chromium-windows tag (scripts/ci/pipeline.py runs this).
 
-Pins the tag in versions.toml, raises the product version by one patch level (0.1.5-alpha.1 -> 0.1.6-alpha.1: the
+Pins the tag in versions.toml, raises the product version by one patch level (0.1.5-alpha.1 -> 0.1.6-alpha.1, 0.2.0-beta.1 -> 0.2.1-beta.1: the
 Store package version is major.minor.patch.0 and must grow with every submission), regenerates version.h and updates
 the places that name the version (README, website, PRIVACY, CHANGELOG). Prints the new product version on stdout and
 leaves the edited files in the working tree; the caller commits them.
@@ -32,10 +32,10 @@ def sub_once(pattern, repl, text, flags=0, what=""):
 
 
 def next_version(full):
-    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(-alpha\.\d+)?$", full)
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)-(alpha|beta)\.\d+$", full)
     if not m:
         raise SystemExit("unexpected product version: " + full)
-    return f"{m.group(1)}.{m.group(2)}.{int(m.group(3)) + 1}-alpha.1"
+    return f"{m.group(1)}.{m.group(2)}.{int(m.group(3)) + 1}-{m.group(4)}.1"
 
 
 def main():

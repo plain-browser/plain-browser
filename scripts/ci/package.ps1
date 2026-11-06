@@ -24,7 +24,7 @@ $installer = "$ucw\build\PlainBrowser_${version}_x64_installer.exe"
 foreach ($f in $zip, $installer) { if (-not (Test-Path $f)) { throw "expected output missing: $f" }; Copy-Item $f $Dist }
 
 Write-Step "MSIX (package-msix.py)"
-# The package version has four numeric parts and ends in 0 for the Store: 0.1.0-alpha.1 -> 0.1.0.0
+# The package version has four numeric parts and ends in 0 for the Store: 0.1.0-alpha.1 -> 0.1.0.0, 0.2.0-beta.1 -> 0.2.0.0
 $msixVersion = [regex]::Match($version, '^\d+\.\d+\.\d+').Value + ".0"
 $msixArgs = @("--zip", $zip, "--out", $Dist, "--version", $msixVersion)
 $identity = @(@($env:MSIX_IDENTITY_NAME, $env:MSIX_PUBLISHER, $env:MSIX_PUBLISHER_DISPLAY) | Where-Object { $_ })

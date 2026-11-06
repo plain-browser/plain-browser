@@ -6,7 +6,7 @@ Subject: [ui] Never show the Chrome Web Store shortcut on the New Tab page
 @@ -65,9 +65,8 @@
      history::PrepopulatedPageList* prepopulated_pages) {
  #if !BUILDFLAG(IS_ANDROID)
-   DCHECK(prepopulated_pages);
+   CHECK(prepopulated_pages, base::NotFatalUntil::M161);
 -  PrefService* pref_service = profile->GetPrefs();
 -  bool hide_web_store_icon =
 -      pref_service->GetBoolean(policy::policy_prefs::kHideWebStoreIcon);

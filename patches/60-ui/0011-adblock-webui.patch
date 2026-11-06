@@ -9,13 +9,20 @@ settings page links to it (60-ui/0009). Page and script are embedded by GN, stri
 ---
 --- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
-@@ -9,3 +9,4 @@
+@@ -7,6 +7,7 @@
+ #include "build/android_buildflags.h"
+ #include "build/branding_buildflags.h"
  #include "build/build_config.h"
 +#include "plainbrowser/adblock/ui/adblock_ui.h"
  #include "chrome/browser/browser_actuator/internals/browser_actuator_internals_ui.h"
  #include "chrome/browser/contextual_tasks/contextual_tasks_ui.h"
-@@ -266,2 +267,4 @@
+ #include "chrome/browser/glic/experimental_opt_in/glic_experimental_opt_in_ui.h"
+@@ -270,6 +271,8 @@
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ 
    auto& map = content::WebUIConfigMap::GetInstance();
 +  // Plain Browser: chrome://adblock (patches/60-ui/0011).
 +  map.AddWebUIConfig(std::make_unique<plainbrowser::adblock::AdblockUIConfig>());
    map.AddWebUIConfig(std::make_unique<AccessibilityUIConfig>());
+   map.AddWebUIConfig(std::make_unique<AutofillInternalsUIConfig>());
+   map.AddWebUIConfig(std::make_unique<BluetoothInternalsUIConfig>());

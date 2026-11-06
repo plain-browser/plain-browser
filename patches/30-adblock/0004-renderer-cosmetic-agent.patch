@@ -5,7 +5,7 @@ Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wire
 ---
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
-@@ -135,6 +135,7 @@
+@@ -134,6 +134,7 @@
  #include "components/web_cache/renderer/web_cache_impl.h"
  #include "components/webapps/renderer/web_page_metadata_agent.h"
  #include "content/public/common/content_constants.h"

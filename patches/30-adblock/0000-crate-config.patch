@@ -13,9 +13,9 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
 ---
 --- a/third_party/rust/chromium_crates_io/Cargo.toml
 +++ b/third_party/rust/chromium_crates_io/Cargo.toml
-@@ -216,3 +216,9 @@
+@@ -218,3 +218,9 @@
  [dependencies.zune-jpeg]
- version = "=0.5.16-rc1"
+ version = "=0.5.16-rc2"
  features = ["arith"]
 +
 +# Plain Browser: Brave's adblock-rust engine (see //plainbrowser/adblock).
@@ -25,7 +25,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
 +features = ["full-regex-handling", "embedded-domain-resolver"]
 --- a/third_party/rust/chromium_crates_io/gnrt_config.toml
 +++ b/third_party/rust/chromium_crates_io/gnrt_config.toml
-@@ -113,6 +113,12 @@
+@@ -114,6 +114,12 @@
  remove_crates = []
  root = "chromium"
  
@@ -38,7 +38,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  [crate.addr2line]
  allow_first_party_usage = false
  extra_kv = { allow_unsafe = true }
-@@ -128,7 +134,7 @@
+@@ -129,7 +135,7 @@
  [crate.aho-corasick]
  group = 'safe'
  allow_first_party_usage = false
@@ -47,38 +47,38 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  
  [crate.android_system_properties]
  extra_kv = { allow_unsafe = true }
-@@ -157,6 +163,9 @@
- [crate.array-init]
- extra_kv = { allow_unsafe = true }
+@@ -151,6 +157,9 @@
+ allow_unsafe = true
  
-+[crate.arrayvec]
+ [crate.array-init]
 +extra_kv = { allow_unsafe = true }
 +
++[crate.arrayvec]
+ extra_kv = { allow_unsafe = true }
+ 
  [crate.autocfg.extra_kv]
- allow_unsafe = false
+@@ -363,6 +372,10 @@
  
-@@ -361,6 +370,10 @@
- 
- [crate.fixed_decimal.extra_kv]
+ [crate.fend-core.extra_kv]
  allow_unsafe = false
 +
 +[crate.flatbuffers]
 +remove_build_rs = true
 +extra_kv = { allow_unsafe = true }
  
- [crate.flate2]
- ban_features = [
-@@ -384,6 +397,9 @@
+ [crate.fixed_decimal.extra_kv]
+ allow_unsafe = true
+@@ -388,6 +401,9 @@
+ 
  [crate.font-types.extra_kv]
  allow_unsafe = true
- 
++
 +[crate.form_urlencoded]
 +extra_kv = { allow_unsafe = true }
-+
+ 
  [crate.fs2]
  group = 'test'
- allow_first_party_usage = false
-@@ -552,6 +568,12 @@
+@@ -554,6 +570,12 @@
  allow_first_party_usage = true
  extra_kv = { allow_unsafe = false }
  
@@ -91,7 +91,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  [crate.image]
  extra_input_roots = ['../README.md']
  extra_kv = { allow_unsafe = true }
-@@ -739,6 +761,9 @@
+@@ -777,6 +799,9 @@
  [crate.parking_lot_core]
  extra_kv = { allow_unsafe = true }
  
@@ -101,7 +101,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  [crate.png.extra_kv]
  allow_unsafe = false
  # Web tests (aka WPT tests, also formerly known as Layout Tests) require fast
-@@ -756,6 +781,9 @@
+@@ -798,6 +823,9 @@
  [crate.potential_utf.extra_kv]
  allow_unsafe = true
  
@@ -111,7 +111,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  [crate.primal-check]
  extra_kv = { allow_unsafe = false }
  
-@@ -771,6 +799,12 @@
+@@ -813,6 +841,12 @@
  extra_kv = { allow_unsafe = false }
  group = 'test'
  
@@ -124,7 +124,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  [crate.pxfm]
  extra_kv = { allow_unsafe = true }
  
-@@ -796,7 +830,7 @@
+@@ -838,7 +872,7 @@
  extra_kv = { allow_unsafe = false }
  
  [crate.regex]
@@ -133,7 +133,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  allow_first_party_usage = false
  extra_kv = { allow_unsafe = true }
  
-@@ -818,6 +852,12 @@
+@@ -860,6 +894,12 @@
  [crate.rustc-demangle-capi]
  extra_kv = { allow_unsafe = true }
  shipped = false
@@ -146,7 +146,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  
  [crate.rustfft]
  extra_kv = { allow_unsafe = true }
-@@ -836,6 +876,12 @@
+@@ -878,6 +918,12 @@
  extra_kv = { allow_unsafe = true }
  
  [crate.scopeguard]
@@ -159,7 +159,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  extra_kv = { allow_unsafe = true }
  
  [crate.serde]
-@@ -975,7 +1021,10 @@
+@@ -1032,7 +1078,10 @@
  [crate.termcolor.extra_kv]
  allow_unsafe = false
  
@@ -171,7 +171,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  build_script_outputs = [ "private.rs" ]
  extra_kv = { allow_unsafe = false }
  
-@@ -1039,6 +1088,9 @@
+@@ -1100,6 +1149,9 @@
  allow_first_party_usage = false
  extra_kv = { allow_unsafe = true }
  

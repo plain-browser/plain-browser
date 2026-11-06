@@ -59,12 +59,12 @@ const en: Dict = {
     "A plain Chromium browser for Windows: no Google services, built-in ad and tracker blocking, Manifest V2 extensions kept alive. Free and open source.",
   nav: { download: "Download", privacy: "Privacy", security: "Security", source: "Source", switchLabel: "Polski", switchHref: "/pl/" },
   hero: {
-    badge: "Early alpha · Windows 11",
+    badge: "Beta · Windows 11",
     title: "A browser. Nothing else.",
     lead:
       "Plain Browser is Chromium with the Google parts removed, an ad and tracker blocker built into the network stack, and Manifest V2 extensions left switched on. No account, no sync, no telemetry, no server of ours that could receive your data.",
     download: "Download for Windows",
-    downloadNote: "Microsoft Store installer, always the latest version. Alpha, expect rough edges.",
+    downloadNote: "Microsoft Store installer, always the latest version. Beta, expect rough edges.",
     other: "Other downloads",
     source: "Source on GitHub",
   },
@@ -188,14 +188,14 @@ const en: Dict = {
     ],
   },
   cta: {
-    title: "Try the alpha",
+    title: "Try the beta",
     body: "If you are comfortable testing early software, download it, break it, and tell us what happened.",
     download: "Download",
     issues: "Report a bug",
   },
   download: {
     title: "Download",
-    lead: "Early alpha. The easiest way is the Microsoft Store; the files below are the same release for testing and offline installs.",
+    lead: "Beta. The easiest way is the Microsoft Store; the files below are the same release for testing and offline installs.",
     version: "On GitHub",
     storeVersion: "In the Microsoft Store",
     requires: "Requires",
@@ -239,12 +239,12 @@ const pl: Dict = {
     "Zwykła przeglądarka na Chromium dla Windows: bez usług Google, z wbudowanym blokowaniem reklam i trackerów, z zachowanymi rozszerzeniami Manifest V2. Darmowa i otwartoźródłowa.",
   nav: { download: "Pobierz", privacy: "Prywatność", security: "Bezpieczeństwo", source: "Kod", switchLabel: "English", switchHref: "/" },
   hero: {
-    badge: "Wczesna alfa · Windows 11",
+    badge: "Beta · Windows 11",
     title: "Przeglądarka. Nic więcej.",
     lead:
       "Plain Browser to Chromium z usuniętymi elementami Google, blokerem reklam i trackerów wbudowanym w warstwę sieciową oraz włączonymi rozszerzeniami Manifest V2. Bez konta, synchronizacji i telemetrii. Nie mamy serwera, który mógłby odebrać Twoje dane.",
     download: "Pobierz dla Windows",
-    downloadNote: "Instalator z Microsoft Store, zawsze najnowsza wersja. Alfa, mogą zdarzać się niedociągnięcia.",
+    downloadNote: "Instalator z Microsoft Store, zawsze najnowsza wersja. Wersja beta, mogą zdarzać się niedociągnięcia.",
     other: "Inne pliki",
     source: "Kod na GitHubie",
   },
@@ -375,7 +375,7 @@ const pl: Dict = {
   },
   download: {
     title: "Pobierz",
-    lead: "Wczesna alfa. Najprościej przez Microsoft Store; pliki poniżej to to samo wydanie do testów i instalacji offline.",
+    lead: "Wersja beta. Najprościej przez Microsoft Store; pliki poniżej to to samo wydanie do testów i instalacji offline.",
     version: "Na GitHubie",
     storeVersion: "W Microsoft Store",
     requires: "Wymagania",

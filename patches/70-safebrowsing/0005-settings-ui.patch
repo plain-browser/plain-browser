@@ -12,7 +12,8 @@ computed the way grit does (first 64 bits of the MD5 of the English text, sign b
 ---
 --- a/chrome/app/settings_strings.grdp
 +++ b/chrome/app/settings_strings.grdp
-@@ -1720,8 +1720,14 @@
+@@ -1722,11 +1722,17 @@
+     <message name="IDS_SETTINGS_SAFEBROWSING_ENHANCED_THINGS_TO_CONSIDER_BULLET_THREE" desc="Bullet point under the Safe Browsing enhanced protection mode section titled 'Things to consider'">
        Doesn't noticeably slow down your browser or device.
      </message>
 +    <message name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY" desc="Label of the Safe Browsing toggle on the Google services page">
@@ -28,36 +29,21 @@ computed the way grit does (first 64 bits of the MD5 of the English text, sign b
 -      Protects against sites, downloads, and extensions that are known to be dangerous. If a page does something suspicious, URLs and bits of page content are sent to Google Safe Browsing.
 +      Protects against sites, downloads, and extensions that are known to be dangerous. The check runs against a list stored on your device; the list updates go through the Plain Browser proxy, so Google does not see your IP address or the sites you visit.
      </message>
-@@ -1746,5 +1752,5 @@
+     <if expr="_google_chrome">
+       <message name="IDS_SETTINGS_SAFEBROWSING_STANDARD_DESC_PROXY" desc="Description for safe browsing standard protection mode">
+@@ -1749,7 +1755,7 @@
        No protection (not recommended)
      </message>
      <message name="IDS_SETTINGS_SAFEBROWSING_NONE_DESC" desc="Description for safe browsing no protection mode">
 -      Does not protect you against dangerous websites, downloads, and extensions. Your Safe Browsing settings in other Google products won't be affected.
 +      Does not protect you against dangerous websites, downloads, and extensions. The browser then makes no Safe Browsing requests at all.
      </message>
---- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-+++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2284,4 +2284,8 @@
-       {"spellingDescription", IDS_SETTINGS_SPELLING_PREF_DESC},
-       {"searchSuggestPref", IDS_SETTINGS_SUGGEST_PREF},
-       {"searchSuggestPrefDesc", IDS_SETTINGS_SUGGEST_PREF_DESC},
-+      {"plainBrowserSafeBrowsingProxy",
-+       IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY},
-+      {"plainBrowserSafeBrowsingProxyDesc",
-+       IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY_DESC},
-       {"searchAggregatorSuggestPref", IDS_SETTINGS_SEARCH_AGGREGATOR_PREF},
---- a/chrome/browser/resources/settings/people_page/google_services_page.ts
-+++ b/chrome/browser/resources/settings/people_page/google_services_page.ts
-@@ -8,5 +8,6 @@
-  * to manage non-personalized Google services.
-  */
-+import '../controls/settings_toggle_button.js';
- import '../settings_page/settings_subpage.js';
- import '../privacy_page/personalization_options.js';
-
+     <message name="IDS_SETTINGS_SAFEBROWSING_DISABLE_DIALOG_TITLE" desc="Title for the confirmation dialog to turn off SafeBrowsing">
+       Turn off Safe Browsing?
 --- a/chrome/browser/resources/settings/people_page/google_services_page.html.ts
 +++ b/chrome/browser/resources/settings/people_page/google_services_page.html.ts
-@@ -11,5 +11,10 @@
+@@ -10,6 +10,11 @@
+   return html`<!--_html_template_start_-->
  <settings-subpage page-title="$i18n{googleServicesPageTitle}"
      route-path="${this.routePath}">
 +  <settings-toggle-button id="safeBrowsingProxyToggle" class="hr"
@@ -68,26 +54,49 @@ computed the way grit does (first 64 bits of the MD5 of the English text, sign b
    ${this.shouldShowPageContents_() ? html`
      <settings-personalization-options .syncStatus="${this.syncStatus_}">
      </settings-personalization-options>
+--- a/chrome/browser/resources/settings/people_page/google_services_page.ts
++++ b/chrome/browser/resources/settings/people_page/google_services_page.ts
+@@ -7,6 +7,7 @@
+  * 'settings-google-services-page' is the settings subpage containing controls
+  * to manage non-personalized Google services.
+  */
++import '../controls/settings_toggle_button.js';
+ import '../settings_page/settings_subpage.js';
+ import '../privacy_page/personalization_options.js';
+ 
 --- a/chrome/browser/resources/settings/privacy_page/security/security_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/security/security_page.html
-@@ -85,7 +85,7 @@
-           pref="{{prefs.generated.safe_browsing}}"
+@@ -12,7 +12,7 @@
+           pref-key="generated.safe_browsing"
            selectable-elements="cr-radio-button, settings-collapse-radio-button"
-           on-change="onSafeBrowsingRadioChange_">
+           @change="${this.onSafeBrowsingRadioChange_}">
 -        <settings-collapse-radio-button id="safeBrowsingEnhanced"
 +        <settings-collapse-radio-button id="safeBrowsingEnhanced" hidden
-             name="[[safeBrowsingSettingEnum_.ENHANCED]]"
-             pref="[[prefs.generated.safe_browsing]]"
+             name="${SafeBrowsingSetting.ENHANCED}"
+             pref-key="generated.safe_browsing"
              label="$i18n{safeBrowsingEnhanced}"
-@@ -166,7 +166,7 @@
+@@ -94,7 +94,7 @@
            </div>
          </settings-collapse-radio-button>
          <settings-collapse-radio-button id="safeBrowsingStandard"
--            no-collapse="[[hideExtendedReportingRadioButton_]]"
+-            ?no-collapse="${this.hideExtendedReportingRadioButton_}"
 +            no-collapse
-             name="[[safeBrowsingSettingEnum_.STANDARD]]"
-             pref="[[prefs.generated.safe_browsing]]"
+             name="${SafeBrowsingSetting.STANDARD}"
+             pref-key="generated.safe_browsing"
              label="$i18n{safeBrowsingStandard}"
+--- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
++++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
+@@ -2277,6 +2277,10 @@
+       {"spellingDescription", IDS_SETTINGS_SPELLING_PREF_DESC},
+       {"searchSuggestPref", IDS_SETTINGS_SUGGEST_PREF},
+       {"searchSuggestPrefDesc", IDS_SETTINGS_SUGGEST_PREF_DESC},
++      {"plainBrowserSafeBrowsingProxy",
++       IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY},
++      {"plainBrowserSafeBrowsingProxyDesc",
++       IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY_DESC},
+       {"searchAggregatorSuggestPref", IDS_SETTINGS_SEARCH_AGGREGATOR_PREF},
+       {"searchAggregatorSuggestPrefDesc",
+        IDS_SETTINGS_SEARCH_AGGREGATOR_PREF_DESC},
 --- a/chrome/app/resources/generated_resources_pl.xtb
 +++ b/chrome/app/resources/generated_resources_pl.xtb
 @@ -10832,1 +10832,5 @@

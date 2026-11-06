@@ -12,20 +12,22 @@ package's logo (branding/icons/msix). Web app windows (earlier return) and the p
 ---
 --- a/chrome/browser/ui/views/frame/browser_window_property_manager_win.cc
 +++ b/chrome/browser/ui/views/frame/browser_window_property_manager_win.cc
-@@ -5,5 +5,9 @@
- #include "chrome/browser/ui/views/frame/browser_window_property_manager_win.h"
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
  
+ #include "chrome/browser/ui/views/frame/browser_window_property_manager_win.h"
++
 +#include <windows.h>
 +
 +#include <appmodel.h>
-+
+ 
  #include "base/command_line.h"
  #include "base/functional/bind.h"
- #include "base/strings/utf_string_conversions.h"
-@@ -26,4 +30,19 @@
+@@ -25,6 +29,21 @@
+ #include "ui/views/win/hwnd_util.h"
  
  using extensions::ExtensionRegistry;
- 
++
 +namespace {
 +
 +// Plain Browser: the App User Model ID of the MSIX package's app
@@ -40,9 +42,11 @@ package's logo (branding/icons/msix). Web app windows (earlier return) and the p
 +}
 +
 +}  // namespace
-+
+ 
  BrowserWindowPropertyManager::BrowserWindowPropertyManager(
-@@ -87,4 +106,14 @@
+     const BrowserView* view,
+@@ -86,6 +105,16 @@
+     }
    }
  
 +  // Plain Browser: inside the MSIX package the window takes the package app's
@@ -57,3 +61,4 @@ package's logo (branding/icons/msix). Web app windows (earlier return) and the p
 +
    ProfileManager* const profile_manager = g_browser_process->profile_manager();
    ProfileShortcutManager* const shortcut_manager =
+       profile_manager ? profile_manager->profile_shortcut_manager() : nullptr;

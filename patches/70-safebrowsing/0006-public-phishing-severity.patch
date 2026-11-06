@@ -7,11 +7,9 @@ lists under NOTREACHED(). In the official build that is a fatal crash of the bro
 0.1.5.0: "sb_local_database_manager.cc:171 NOTREACHED hit. Unexpected ThreatType encountered: 2"). It gets the
 same severity as SOCIAL_ENGINEERING.
 ---
-diff --git a/components/safe_browsing/core/browser/db/sb_local_database_manager.cc b/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
-index 0f06720..fc2a62e 100644
 --- a/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
 +++ b/components/safe_browsing/core/browser/db/sb_local_database_manager.cc
-@@ -149,6 +149,9 @@ ThreatSeverity GetThreatSeverity(const ListIdentifier& list_id) {
+@@ -149,6 +149,9 @@
    switch (list_id.threat_type()) {
      case MALWARE_THREAT:
      case SOCIAL_ENGINEERING:
@@ -21,7 +19,7 @@ index 0f06720..fc2a62e 100644
      case MALICIOUS_BINARY:
        return 0;
      case UNWANTED_SOFTWARE:
-@@ -166,7 +169,6 @@ ThreatSeverity GetThreatSeverity(const ListIdentifier& list_id) {
+@@ -166,7 +169,6 @@
      case CLIENT_INCIDENT:
      case CSD_DOWNLOAD_ALLOWLIST:
      case POTENTIALLY_HARMFUL_APPLICATION:

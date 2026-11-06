@@ -16,7 +16,7 @@ changes made in the toolbar bubble without a new renderer process.
  #include "components/optimization_guide/core/optimization_guide_features.h"
  #include "components/page_content_annotations/content/renderer/page_stability_monitor_manager.h"
  #include "components/page_content_annotations/core/page_content_annotations_features.h"
-@@ -648,6 +649,8 @@
+@@ -649,6 +650,8 @@
    // definition of |ExposeChromeRendererInterfacesToBrowser()| to ensure
    // security review coverage.
    ExposeChromeRendererInterfacesToBrowser(this, binders);

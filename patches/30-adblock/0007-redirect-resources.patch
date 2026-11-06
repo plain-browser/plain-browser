@@ -10,7 +10,7 @@ the extensions check, so an extension that blocks the request still wins.
 ---
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
-@@ -75,6 +75,7 @@
+@@ -74,6 +74,7 @@
  #include "chrome/renderer/websocket_handshake_throttle_provider_impl.h"
  #include "chrome/renderer/webui_browser/webui_browser_renderer_extension.h"
  #include "chrome/renderer/worker_content_settings_client.h"
@@ -18,7 +18,7 @@ the extensions check, so an extension that blocks the request still wins.
  #include "chrome/services/speech/buildflags/buildflags.h"
  #include "components/autofill/content/renderer/autofill_agent.h"
  #include "components/autofill/content/renderer/password_autofill_agent.h"
-@@ -1354,6 +1355,13 @@
+@@ -1359,6 +1360,13 @@
      return;
  #endif
  

@@ -6,27 +6,6 @@ ToolbarView gets one more ToolbarButton (shield icon) after the location bar; it
 site, a toggle "Protections on for this site" (per-site exception list) and the number of requests
 blocked on the page. //plainbrowser/shields:ui is linked through //plainbrowser:browser (00-build).
 ---
---- a/chrome/browser/ui/views/toolbar/toolbar_view.h
-+++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
-@@ -71,6 +71,10 @@
- class LabelButton;
- }  // namespace views
- 
-+namespace plainbrowser::shields {
-+class ShieldsButton;
-+}
-+
- namespace glic {
- class ToolbarGlicButton;
- class ToolbarGlicButtonInterface;
-@@ -421,6 +425,7 @@
-   raw_ptr<SplitTabsToolbarButton> split_tabs_ = nullptr;
-   raw_ptr<CustomTabBarView> custom_tab_bar_ = nullptr;
-   raw_ptr<LocationBarView> location_bar_view_ = nullptr;
-+  raw_ptr<plainbrowser::shields::ShieldsButton> shields_button_ = nullptr;
- 
-   // An alias for `location_bar_view_` or `toolbar_webview_->GetLocationBar()`.
-   raw_ptr<LocationBar> location_bar_ = nullptr;
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
 @@ -125,6 +125,7 @@
@@ -37,7 +16,7 @@ blocked on the page. //plainbrowser/shields:ui is linked through //plainbrowser:
  #include "chrome/grit/branded_strings.h"
  #include "chrome/grit/generated_resources.h"
  #include "chrome/grit/theme_resources.h"
-@@ -491,6 +492,10 @@
+@@ -480,6 +481,10 @@
      location_bar_ = toolbar_webview_->GetLocationBar();
    }
  
@@ -48,3 +27,24 @@ blocked on the page. //plainbrowser/shields:ui is linked through //plainbrowser:
    bool is_glic_left_of_profile =
        features::kGlicToolbarButtonLocationParam.Get() ==
            features::GlicToolbarButtonLocation::kLeftOfProfileChip ||
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -72,6 +72,10 @@
+ class LabelButton;
+ }  // namespace views
+ 
++namespace plainbrowser::shields {
++class ShieldsButton;
++}
++
+ namespace glic {
+ class ToolbarGlicButton;
+ class ToolbarGlicButtonInterface;
+@@ -414,6 +418,7 @@
+   raw_ptr<SplitTabsToolbarButton> split_tabs_ = nullptr;
+   raw_ptr<CustomTabBarView> custom_tab_bar_ = nullptr;
+   raw_ptr<LocationBarView> location_bar_view_ = nullptr;
++  raw_ptr<plainbrowser::shields::ShieldsButton> shields_button_ = nullptr;
+ 
+   // An alias for `location_bar_view_` or `toolbar_webview_->GetLocationBar()`.
+   raw_ptr<LocationBar> location_bar_ = nullptr;
