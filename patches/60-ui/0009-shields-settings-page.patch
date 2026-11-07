@@ -242,7 +242,7 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +      this.lastCheckText_ = this.computeLastCheck_(pref.value);
 +    });
 +    this.addPrefObserver<boolean>(LIST_UPDATES_PREF, pref => {
-+      this.listUpdatesEnabled_ = !!pref.value;
++      this.listUpdatesEnabled_ = pref.value;
 +    });
 +  }
 +

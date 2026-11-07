@@ -97,6 +97,20 @@ computed the way grit does (first 64 bits of the MD5 of the English text, sign b
      ${this.showDisableSafebrowsingDialog_ ? html`
        <settings-simple-confirmation-dialog
            title-text="$i18n{safeBrowsingDisableDialog}"
+--- a/chrome/browser/resources/settings/privacy_page/security/security_page.ts
++++ b/chrome/browser/resources/settings/privacy_page/security/security_page.ts
+@@ -30,5 +30,4 @@
+ import type {SettingsCollapseRadioButtonElement} from '../../controls/collapse_radio_button.js';
+ import type {SettingsRadioGroupElement} from '../../controls/settings_radio_group.js';
+-import type {SettingsToggleButtonElement} from '../../controls/settings_toggle_button.js';
+ import {loadTimeData} from '../../i18n_setup.js';
+ import type {MetricsBrowserProxy} from '../../metrics_browser_proxy.js';
+@@ -63,5 +62,4 @@
+ export interface SettingsSecurityPageElement {
+   $: {
+-    passwordsLeakToggle: SettingsToggleButtonElement,
+     safeBrowsingDisabled: SettingsCollapseRadioButtonElement,
+     safeBrowsingEnhanced: SettingsCollapseRadioButtonElement,
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 @@ -2277,6 +2277,10 @@

@@ -5,6 +5,16 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.0-beta.6] - 2026-11-07 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
+
+### Fixed
+- Build: the settings lint (eslint) failed on two of our files: `!!pref.value` on a boolean in the shields exceptions
+  component (`60-ui/0009`), and `passwordsLeakToggle` still listed in the `$` interface of `security_page.ts` after
+  ungoogled removes that element (`70-safebrowsing/0005` removes the entry and its import). 0.2.0-beta.5 was tagged
+  but its build stopped there (stage 5, after four stages of compiling) and was never released.
+- Build: `build-windows.yml` can resume at stage 5 (`resume_stage`), and `scripts/ci/hotfix-tree.py` applies these two
+  edits and this revision's `version.h` to the resumed tree, so beta.6 was built on top of beta.5's compiled stages 1-4.
+
 ## [0.2.0-beta.5] - 2026-11-06 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
 
 ### Fixed
