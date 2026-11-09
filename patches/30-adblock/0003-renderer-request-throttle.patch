@@ -2,81 +2,37 @@ From: Plain Browser
 Subject: [adblock] Add the Plain Browser adblock throttle to renderer subresource loads
 
 Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wires it in.
-The frame token is passed along so the throttle can tell the browser the page's top-level origin
-(per-site exceptions) and which tab the request belongs to (blocked-request counter).
+AdblockThrottleProvider (adblock/renderer) wraps the provider chrome creates and puts the adblock
+throttle first in the throttles of every subresource request; Clone() wraps the clone, so worker
+threads and background resource fetch are covered. URLLoaderThrottleProviderImpl itself is not
+edited. The frame token the provider gets lets the throttle tell the browser the page's top-level
+origin (per-site exceptions) and which tab the request belongs to (blocked-request counter).
 ---
---- a/chrome/renderer/url_loader_throttle_provider_impl.cc
-+++ b/chrome/renderer/url_loader_throttle_provider_impl.cc
-@@ -117,7 +117,7 @@
-       pending_extension_web_request_reporter.InitWithNewPipeAndPassReceiver());
- #endif  // BUILDFLAG(ENABLE_EXTENSIONS)
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
  
--  return std::make_unique<URLLoaderThrottleProviderImpl>(
-+  auto provider = std::make_unique<URLLoaderThrottleProviderImpl>(
-       type, chrome_content_renderer_client, std::move(pending_safe_browsing),
- #if BUILDFLAG(ENABLE_EXTENSIONS)
-       std::move(pending_extension_web_request_reporter),
-@@ -127,6 +127,9 @@
-           ? base::SequencedTaskRunner::GetCurrentDefault()
-           : nullptr,
-       base::PassKey<URLLoaderThrottleProviderImpl>());
-+  provider->plainbrowser_adblock_ =
-+      plainbrowser::adblock::AdblockThrottleFactory::Create(broker);
-+  return provider;
- }
+ #include "chrome/renderer/chrome_content_renderer_client.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/adblock/renderer/adblock_throttle_provider.h"
  
- URLLoaderThrottleProviderImpl::URLLoaderThrottleProviderImpl(
-@@ -158,12 +161,16 @@
+ #include <functional>
+ #include <memory>
+@@ -1658,8 +1662,12 @@
  std::unique_ptr<blink::URLLoaderThrottleProvider>
- URLLoaderThrottleProviderImpl::Clone() {
-   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
--  return std::make_unique<URLLoaderThrottleProviderImpl>(
-+  auto clone = std::make_unique<URLLoaderThrottleProviderImpl>(
-       type_, chrome_content_renderer_client_, CloneSafeBrowsingPendingRemote(),
- #if BUILDFLAG(ENABLE_EXTENSIONS)
-       CloneExtensionWebRequestReporterPendingRemote(),
- #endif  // BUILDFLAG(ENABLE_EXTENSIONS)
-       main_thread_task_runner_, base::PassKey<URLLoaderThrottleProviderImpl>());
-+  if (plainbrowser_adblock_) {
-+    clone->plainbrowser_adblock_ = plainbrowser_adblock_->Clone();
-+  }
-+  return clone;
+ ChromeContentRendererClient::CreateURLLoaderThrottleProvider(
+     blink::URLLoaderThrottleProviderType provider_type) {
+-  return URLLoaderThrottleProviderImpl::Create(provider_type, this,
+-                                               browser_interface_broker_.get());
++  // Plain Browser: the adblock throttle goes in front of chrome's throttles
++  // for every subresource request (patches/30-adblock/0003).
++  return plainbrowser::adblock::AdblockThrottleProvider::Wrap(
++      URLLoaderThrottleProviderImpl::Create(provider_type, this,
++                                            browser_interface_broker_.get()),
++      browser_interface_broker_.get());
  }
  
- std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
-@@ -191,6 +198,14 @@
- 
-   DCHECK(!is_frame_resource ||
-          type_ == blink::URLLoaderThrottleProviderType::kFrame);
-+
-+  // Plain Browser adblock: subresources only (returns null for frame resources).
-+  if (plainbrowser_adblock_) {
-+    if (auto throttle = plainbrowser_adblock_->MaybeCreateThrottle(
-+            local_frame_token, request)) {
-+      throttles.emplace_back(std::move(throttle));
-+    }
-+  }
- 
- #if BUILDFLAG(SAFE_BROWSING_AVAILABLE)
-   if (!is_frame_resource) {
---- a/chrome/renderer/url_loader_throttle_provider_impl.h
-+++ b/chrome/renderer/url_loader_throttle_provider_impl.h
-@@ -17,6 +17,8 @@
- #include "mojo/public/cpp/bindings/remote.h"
- #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
- #include "third_party/blink/public/platform/url_loader_throttle_provider.h"
-+
-+#include "plainbrowser/adblock/renderer/adblock_throttle_factory.h"
- 
- #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
- #include "extensions/renderer/extension_throttle_manager.h"
-@@ -95,6 +97,9 @@
-   // provider which was created on the main thread.
-   scoped_refptr<base::SequencedTaskRunner> main_thread_task_runner_;
- 
-+  // Plain Browser adblock; null when the filter interface is unavailable.
-+  std::unique_ptr<plainbrowser::adblock::AdblockThrottleFactory> plainbrowser_adblock_;
-+
-   SEQUENCE_CHECKER(sequence_checker_);
- };
- 
+ blink::WebFrame* ChromeContentRendererClient::FindFrame(

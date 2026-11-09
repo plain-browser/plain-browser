@@ -8,7 +8,7 @@ a NetLog). The local store name and SBThreatType stay the same, so lookups and U
 ---
 --- a/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
 +++ b/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
-@@ -299,10 +299,13 @@
+@@ -302,10 +302,13 @@
  }
  
  ListIdentifier GetUrlSocEngId() {

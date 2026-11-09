@@ -7,39 +7,12 @@ safebrowsing.enabled (the same pref the Security page's radio group drives, so b
 Security page the Enhanced protection radio is hidden (its real-time lookups are not something the proxy
 supports and docs/PRIVACY.md promises it cannot be turned on), the Standard radio loses its collapse (only the
 reporting toggle lived there; reporting is disabled by the iridium patches) and the Standard / No protection
-descriptions say where requests go. Polish translations are added to generated_resources_pl.xtb with ids
-computed the way grit does (first 64 bits of the MD5 of the English text, sign bit stripped).
+descriptions say where requests go. The texts, with their Polish translations, live in
+//plainbrowser/shields/resources (the grdp and xtb of 60-ui/0008); //plainbrowser/safebrowsing/ui adds them
+to the settings data source at the end of settings::AddLocalizedStrings under Chromium's own keys
+(safeBrowsingStandardDesc, safeBrowsingNoneDesc), which replaces Chromium's texts without a hunk in
+settings_strings.grdp or in the generated .xtb files.
 ---
---- a/chrome/app/settings_strings.grdp
-+++ b/chrome/app/settings_strings.grdp
-@@ -1722,11 +1722,17 @@
-     <message name="IDS_SETTINGS_SAFEBROWSING_ENHANCED_THINGS_TO_CONSIDER_BULLET_THREE" desc="Bullet point under the Safe Browsing enhanced protection mode section titled 'Things to consider'">
-       Doesn't noticeably slow down your browser or device.
-     </message>
-+    <message name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY" desc="Label of the Safe Browsing toggle on the Google services page">
-+      Safe Browsing through the Plain Browser proxy
-+    </message>
-+    <message name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY_DESC" desc="Description of the Safe Browsing toggle on the Google services page">
-+      Checks the sites you visit against a local copy of Google's Safe Browsing list. The list updates go through sb.plain-browser.app, so Google does not see your IP address or the sites you visit.
-+    </message>
-     <message name="IDS_SETTINGS_SAFEBROWSING_STANDARD" desc="Label for safe browsing standard protection mode">
-       Standard protection
-     </message>
-     <message name="IDS_SETTINGS_SAFEBROWSING_STANDARD_DESC" desc="Description for safe browsing standard protection mode">
--      Protects against sites, downloads, and extensions that are known to be dangerous. If a page does something suspicious, URLs and bits of page content are sent to Google Safe Browsing.
-+      Protects against sites, downloads, and extensions that are known to be dangerous. The check runs against a list stored on your device; the list updates go through the Plain Browser proxy, so Google does not see your IP address or the sites you visit.
-     </message>
-     <if expr="_google_chrome">
-       <message name="IDS_SETTINGS_SAFEBROWSING_STANDARD_DESC_PROXY" desc="Description for safe browsing standard protection mode">
-@@ -1749,7 +1755,7 @@
-       No protection (not recommended)
-     </message>
-     <message name="IDS_SETTINGS_SAFEBROWSING_NONE_DESC" desc="Description for safe browsing no protection mode">
--      Does not protect you against dangerous websites, downloads, and extensions. Your Safe Browsing settings in other Google products won't be affected.
-+      Does not protect you against dangerous websites, downloads, and extensions. The browser then makes no Safe Browsing requests at all.
-     </message>
-     <message name="IDS_SETTINGS_SAFEBROWSING_DISABLE_DIALOG_TITLE" desc="Title for the confirmation dialog to turn off SafeBrowsing">
-       Turn off Safe Browsing?
 --- a/chrome/browser/resources/settings/people_page/google_services_page.html.ts
 +++ b/chrome/browser/resources/settings/people_page/google_services_page.html.ts
 @@ -10,6 +10,11 @@
@@ -99,37 +72,37 @@ computed the way grit does (first 64 bits of the MD5 of the English text, sign b
            title-text="$i18n{safeBrowsingDisableDialog}"
 --- a/chrome/browser/resources/settings/privacy_page/security/security_page.ts
 +++ b/chrome/browser/resources/settings/privacy_page/security/security_page.ts
-@@ -30,5 +30,4 @@
+@@ -29,7 +29,6 @@
+ 
  import type {SettingsCollapseRadioButtonElement} from '../../controls/collapse_radio_button.js';
  import type {SettingsRadioGroupElement} from '../../controls/settings_radio_group.js';
 -import type {SettingsToggleButtonElement} from '../../controls/settings_toggle_button.js';
  import {loadTimeData} from '../../i18n_setup.js';
  import type {MetricsBrowserProxy} from '../../metrics_browser_proxy.js';
-@@ -63,5 +62,4 @@
+ import {MetricsBrowserProxyImpl, PrivacyElementInteractions, SafeBrowsingInteractions} from '../../metrics_browser_proxy.js';
+@@ -62,7 +61,6 @@
+ 
  export interface SettingsSecurityPageElement {
    $: {
 -    passwordsLeakToggle: SettingsToggleButtonElement,
      safeBrowsingDisabled: SettingsCollapseRadioButtonElement,
      safeBrowsingEnhanced: SettingsCollapseRadioButtonElement,
+     safeBrowsingRadioGroup: SettingsRadioGroupElement,
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -2277,6 +2277,10 @@
-       {"spellingDescription", IDS_SETTINGS_SPELLING_PREF_DESC},
-       {"searchSuggestPref", IDS_SETTINGS_SUGGEST_PREF},
-       {"searchSuggestPrefDesc", IDS_SETTINGS_SUGGEST_PREF_DESC},
-+      {"plainBrowserSafeBrowsingProxy",
-+       IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY},
-+      {"plainBrowserSafeBrowsingProxyDesc",
-+       IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY_DESC},
-       {"searchAggregatorSuggestPref", IDS_SETTINGS_SEARCH_AGGREGATOR_PREF},
-       {"searchAggregatorSuggestPrefDesc",
-        IDS_SETTINGS_SEARCH_AGGREGATOR_PREF_DESC},
---- a/chrome/app/resources/generated_resources_pl.xtb
-+++ b/chrome/app/resources/generated_resources_pl.xtb
-@@ -10832,1 +10832,5 @@
-+<translation id="6222441249019099919">Bezpieczne przeglądanie przez proxy Plain Browser</translation>
-+<translation id="869795889822625764">Sprawdza odwiedzane strony w lokalnej kopii listy Google Safe Browsing. Aktualizacje listy idą przez sb.plain-browser.app, więc Google nie widzi Twojego adresu IP ani odwiedzanych stron.</translation>
-+<translation id="1785002958602061678">Chroni przed stronami, pobieranymi plikami i rozszerzeniami, o których wiadomo, że są niebezpieczne. Sprawdzanie odbywa się w liście zapisanej na Twoim urządzeniu; aktualizacje listy idą przez proxy Plain Browser, więc Google nie widzi Twojego adresu IP ani odwiedzanych stron.</translation>
-+<translation id="3300913186291584714">Nie chroni przed niebezpiecznymi stronami, pobieranymi plikami ani rozszerzeniami. Przeglądarka nie wysyła wtedy żadnych żądań Bezpiecznego przeglądania.</translation>
- </translationbundle>
-\ No newline at end of file
+@@ -6,6 +6,7 @@
+ 
+ // Plain Browser: own includes (patches/series), kept together up here so that
+ // changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/safebrowsing/ui/safe_browsing_settings_strings.h"
+ #include "plainbrowser/shields/ui/shields_settings_strings.h"
+ 
+ #include <string>
+@@ -4680,6 +4681,7 @@
+ 
+   // Plain Browser: last, so that our strings may replace Chromium's.
+   plainbrowser::shields::AddSettingsStrings(html_source);
++  plainbrowser::safebrowsing::AddSettingsStrings(html_source);
+ 
+   html_source->UseStringsJs();
+ }

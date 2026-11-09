@@ -1,22 +1,45 @@
 From: Plain Browser
-Subject: [ui] Expose the renderer's ShieldsConfig receiver to the browser
+Subject: [ui] The ShieldsConfig pipe between the browser and every renderer
 
 Category: 60-ui. Code lives in //plainbrowser/shields; this patch only wires it in.
 The browser pushes the per-site exception list to every renderer over this interface, so the
 fingerprint agent (which decides synchronously when a document's script context is created) sees
-changes made in the toolbar bubble without a new renderer process.
+changes made in the toolbar bubble without a new renderer process. Browser side: ShieldsService
+binds its remote when a render process is created (next to the adblock filter of 30-adblock/0002);
+renderer side: the receiver is exposed to the browser.
 ---
+--- a/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
++++ b/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
+@@ -5,6 +5,7 @@
+ // Plain Browser: own includes (patches/series), kept together up here so that
+ // changes to the upstream include list below never touch this hunk.
+ #include "plainbrowser/adblock/browser/renderer_interfaces.h"
++#include "plainbrowser/shields/browser/shields_service.h"
+ 
+ // This file exposes services from the browser to child processes.
+ 
+@@ -246,6 +247,10 @@
+   // Plain Browser: adblock filter for renderer subresource and cosmetic
+   // filtering (patches/30-adblock/0002).
+   plainbrowser::adblock::ExposeInterfacesToRenderer(registry, render_process_host);
++  // Plain Browser: the per-site exception list for the new renderer
++  // (patches/60-ui/0007).
++  plainbrowser::shields::ShieldsService::GetInstance()->OnRendererProcessCreated(
++      render_process_host);
+ 
+   if (NetBenchmarking::CheckBenchmarkingEnabled()) {
+     Profile* profile =
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
-@@ -106,6 +106,7 @@
- #include "components/no_state_prefetch/renderer/no_state_prefetch_helper.h"
- #include "components/no_state_prefetch/renderer/no_state_prefetch_render_frame_observer.h"
- #include "components/no_state_prefetch/renderer/no_state_prefetch_utils.h"
+@@ -9,6 +9,7 @@
+ #include "plainbrowser/adblock/renderer/adblock_throttle_provider.h"
+ #include "plainbrowser/adblock/renderer/cosmetic_filter_agent.h"
+ #include "plainbrowser/adblock/renderer/request_redirector.h"
 +#include "plainbrowser/shields/renderer/shields_config_impl.h"
- #include "components/optimization_guide/core/optimization_guide_features.h"
- #include "components/page_content_annotations/content/renderer/page_stability_monitor_manager.h"
- #include "components/page_content_annotations/core/page_content_annotations_features.h"
-@@ -649,6 +650,8 @@
+ 
+ #include <functional>
+ #include <memory>
+@@ -653,6 +654,8 @@
    // definition of |ExposeChromeRendererInterfacesToBrowser()| to ensure
    // security review coverage.
    ExposeChromeRendererInterfacesToBrowser(this, binders);

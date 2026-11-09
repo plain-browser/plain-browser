@@ -3,7 +3,23 @@
 All notable changes to Plain Browser. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow the product version in `versions.toml`; the Chromium base is given in brackets.
 
-## [Unreleased]
+## [0.2.0-beta.7] - 2026-11-09 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
+
+### Changed
+- Patches rewritten for cheaper Chromium bumps, same behaviour. Our `#include`s sit in one "Plain Browser: own
+  includes" block right after each file's own header instead of between upstream includes (the list that changes
+  every release). The adblock throttle is added by `AdblockThrottleProvider`, a wrapper around chrome's
+  `URLLoaderThrottleProviderImpl`, so `30-adblock/0003` no longer edits that class. The Safe Browsing settings
+  texts and their Polish translations moved from hunks in `settings_strings.grdp` and the generated
+  `generated_resources_pl.xtb` to our own grdp/xtb (`//plainbrowser/safebrowsing/ui` sets them under Chromium's
+  keys). The `[crate.*]` tables of adblock-rust's dependencies are one block at the end of `gnrt_config.toml`.
+  `40-mv2/0001` and `60-ui/0004` are one-line hunks. The ShieldsConfig binding of a new renderer is in
+  `60-ui/0007` with the rest of that pipe, not in the adblock patch. The settings section "Sites with
+  protections off" is a Lit element (Chromium is moving Settings off Polymer); `60-ui/0006` includes the button
+  header after the include guard and keeps the member at the end of the class.
+- `scripts/check-patches.py`: a patch that applies with fuzz is a failure (the hunk may have landed in the wrong
+  place), and `patches/upstream-revert.hunks` (written by `--regenerate`) pins which hunks the `hunks:` entries of
+  `upstream-revert.list` drop, so a hunk split or move upstream is reported before a build.
 
 ## [0.2.1-beta.1] - 2026-11-10 [Chromium 157.0.8103.50, ungoogled-chromium-windows 157.0.8103.50-1.1]
 

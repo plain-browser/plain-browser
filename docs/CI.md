@@ -154,8 +154,10 @@ variable `PIPELINE_ENABLED=false`; `DRY_RUN=1 python3 scripts/ci/pipeline.py` pr
    level (`0.1.5-alpha.1` -> `0.1.6-alpha.1`; the Store package version is `major.minor.patch.0` and must grow with every
    submission), the files go to `main` as one commit made through the GitHub API (that commit is signed by GitHub, which
    the `protect-main` ruleset requires), the tag `vX.Y.Z-alpha.1` is created and `build-windows` is dispatched on it.
-   A patch that does not apply: issue `Upstream update: ...` with label `needs-human`; the build starts by itself in
-   the first pass after the patches are fixed.
+   A patch that does not apply, applies with fuzz (context changed: `check-patches.py --regenerate`, then review),
+   or an upstream patch whose dropped hunks no longer match `patches/upstream-revert.hunks`: issue
+   `Upstream update: ...` with label `needs-human`; the build starts by itself in the first pass after the patches
+   are fixed.
 2. **Build.** The newest release tag has no build: dispatch one. A failed build: the logs of the failed jobs are
    classified. Runner and network problems (curl, shutdown signal, artifact transfer) are rerun with `gh run rerun --failed`
    (up to 4 times; finished stages are kept), unknown ones twice. Source problems (compile error, patch that does not

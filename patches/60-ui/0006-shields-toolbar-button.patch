@@ -5,18 +5,12 @@ Category: 60-ui. Code lives in //plainbrowser/shields/ui; this patch only wires 
 ToolbarView gets one more ToolbarButton (shield icon) after the location bar; its bubble shows the
 site, a toggle "Protections on for this site" (per-site exception list) and the number of requests
 blocked on the page. //plainbrowser/shields:ui is linked through //plainbrowser:browser (00-build).
+The header includes shields_button.h right after its include guard and keeps the member at the end
+of the class: both anchors that upstream edits to the toolbar never move.
 ---
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
-@@ -125,6 +125,7 @@
- #include "chrome/common/chrome_features.h"
- #include "chrome/common/pref_names.h"
- #include "chrome/common/webui_url_constants.h"
-+#include "plainbrowser/shields/ui/shields_button.h"
- #include "chrome/grit/branded_strings.h"
- #include "chrome/grit/generated_resources.h"
- #include "chrome/grit/theme_resources.h"
-@@ -480,6 +481,10 @@
+@@ -480,6 +480,10 @@
      location_bar_ = toolbar_webview_->GetLocationBar();
    }
  
@@ -29,22 +23,24 @@ blocked on the page. //plainbrowser/shields:ui is linked through //plainbrowser:
            features::GlicToolbarButtonLocation::kLeftOfProfileChip ||
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.h
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
-@@ -72,6 +72,10 @@
- class LabelButton;
- }  // namespace views
+@@ -4,6 +4,10 @@
  
-+namespace plainbrowser::shields {
-+class ShieldsButton;
-+}
+ #ifndef CHROME_BROWSER_UI_VIEWS_TOOLBAR_TOOLBAR_VIEW_H_
+ #define CHROME_BROWSER_UI_VIEWS_TOOLBAR_TOOLBAR_VIEW_H_
 +
- namespace glic {
- class ToolbarGlicButton;
- class ToolbarGlicButtonInterface;
-@@ -414,6 +418,7 @@
-   raw_ptr<SplitTabsToolbarButton> split_tabs_ = nullptr;
-   raw_ptr<CustomTabBarView> custom_tab_bar_ = nullptr;
-   raw_ptr<LocationBarView> location_bar_view_ = nullptr;
-+  raw_ptr<plainbrowser::shields::ShieldsButton> shields_button_ = nullptr;
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/shields/ui/shields_button.h"
  
-   // An alias for `location_bar_view_` or `toolbar_webview_->GetLocationBar()`.
-   raw_ptr<LocationBar> location_bar_ = nullptr;
+ #include <memory>
+ #include <optional>
+@@ -506,6 +510,9 @@
+   bool should_show_glic_actor_ = false;
+ 
+   bool was_mouse_down_ = false;
++
++  // Plain Browser: protections button, right of the omnibox (60-ui/0006).
++  raw_ptr<plainbrowser::shields::ShieldsButton> shields_button_ = nullptr;
+ };
+ 
+ extern const ui::ClassProperty<bool>* const kActionItemUnderlineIndicatorKey;

@@ -165,4 +165,20 @@
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ABOUT_COMPONENTS" desc="Line on the About page: the ad blocking component and the filter lists built into this browser.">
     Ad blocking: adblock-rust <ph name="ADBLOCK_VERSION">$1<ex>0.13.3</ex></ph> with the EasyList, EasyPrivacy and EasyList Polish filter lists
   </message>
+
+  <!-- Safe Browsing through the Plain Browser proxy (patches/70-safebrowsing/0005,
+       //plainbrowser/safebrowsing/ui). The last two replace Chromium's
+       descriptions on the Security page. -->
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY" desc="Label of the Safe Browsing toggle on the Google services page">
+    Safe Browsing through the Plain Browser proxy
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_PROXY_DESC" desc="Description of the Safe Browsing toggle on the Google services page">
+    Checks the sites you visit against a local copy of Google's Safe Browsing list. The list updates go through sb.plain-browser.app, so Google does not see your IP address or the sites you visit.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_STANDARD_DESC" desc="Description for safe browsing standard protection mode (replaces Chromium's)">
+    Protects against sites, downloads, and extensions that are known to be dangerous. The check runs against a list stored on your device; the list updates go through the Plain Browser proxy, so Google does not see your IP address or the sites you visit.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_NONE_DESC" desc="Description for safe browsing no protection mode (replaces Chromium's)">
+    Does not protect you against dangerous websites, downloads, and extensions. The browser then makes no Safe Browsing requests at all.
+  </message>
 </grit-part>

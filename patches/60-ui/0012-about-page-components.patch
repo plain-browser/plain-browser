@@ -10,7 +10,7 @@ the markup.
 ---
 --- a/chrome/browser/resources/settings/about_page/about_page.html.ts
 +++ b/chrome/browser/resources/settings/about_page/about_page.html.ts
-@@ -112,6 +112,13 @@
+@@ -110,6 +110,13 @@
        <div class="secondary">$i18n{aboutProductCopyright}</div>
      </div>
  

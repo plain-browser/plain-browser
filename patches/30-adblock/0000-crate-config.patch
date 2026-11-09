@@ -25,20 +25,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
 +features = ["full-regex-handling", "embedded-domain-resolver"]
 --- a/third_party/rust/chromium_crates_io/gnrt_config.toml
 +++ b/third_party/rust/chromium_crates_io/gnrt_config.toml
-@@ -114,6 +114,12 @@
- remove_crates = []
- root = "chromium"
- 
-+[crate.adblock]
-+extra_kv = { allow_unsafe = true }
-+
-+[crate.addr]
-+extra_kv = { allow_unsafe = false }
-+
- [crate.addr2line]
- allow_first_party_usage = false
- extra_kv = { allow_unsafe = true }
-@@ -129,7 +135,7 @@
+@@ -129,7 +129,7 @@
  [crate.aho-corasick]
  group = 'safe'
  allow_first_party_usage = false
@@ -47,84 +34,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  
  [crate.android_system_properties]
  extra_kv = { allow_unsafe = true }
-@@ -151,6 +157,9 @@
- allow_unsafe = true
- 
- [crate.array-init]
-+extra_kv = { allow_unsafe = true }
-+
-+[crate.arrayvec]
- extra_kv = { allow_unsafe = true }
- 
- [crate.autocfg.extra_kv]
-@@ -363,6 +372,10 @@
- 
- [crate.fend-core.extra_kv]
- allow_unsafe = false
-+
-+[crate.flatbuffers]
-+remove_build_rs = true
-+extra_kv = { allow_unsafe = true }
- 
- [crate.fixed_decimal.extra_kv]
- allow_unsafe = true
-@@ -388,6 +401,9 @@
- 
- [crate.font-types.extra_kv]
- allow_unsafe = true
-+
-+[crate.form_urlencoded]
-+extra_kv = { allow_unsafe = true }
- 
- [crate.fs2]
- group = 'test'
-@@ -554,6 +570,12 @@
- allow_first_party_usage = true
- extra_kv = { allow_unsafe = false }
- 
-+[crate.idna]
-+extra_kv = { allow_unsafe = true }
-+
-+[crate.idna_adapter]
-+extra_kv = { allow_unsafe = false }
-+
- [crate.image]
- extra_input_roots = ['../README.md']
- extra_kv = { allow_unsafe = true }
-@@ -777,6 +799,9 @@
- [crate.parking_lot_core]
- extra_kv = { allow_unsafe = true }
- 
-+[crate.percent-encoding]
-+extra_kv = { allow_unsafe = true }
-+
- [crate.png.extra_kv]
- allow_unsafe = false
- # Web tests (aka WPT tests, also formerly known as Layout Tests) require fast
-@@ -798,6 +823,9 @@
- [crate.potential_utf.extra_kv]
- allow_unsafe = true
- 
-+[crate.precomputed-hash]
-+extra_kv = { allow_unsafe = false }
-+
- [crate.primal-check]
- extra_kv = { allow_unsafe = false }
- 
-@@ -813,6 +841,12 @@
- extra_kv = { allow_unsafe = false }
- group = 'test'
- 
-+[crate.psl]
-+extra_kv = { allow_unsafe = false }
-+
-+[crate.psl-types]
-+extra_kv = { allow_unsafe = false }
-+
- [crate.pxfm]
- extra_kv = { allow_unsafe = true }
- 
-@@ -838,7 +872,7 @@
+@@ -838,7 +838,7 @@
  extra_kv = { allow_unsafe = false }
  
  [crate.regex]
@@ -133,33 +43,7 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  allow_first_party_usage = false
  extra_kv = { allow_unsafe = true }
  
-@@ -860,6 +894,12 @@
- [crate.rustc-demangle-capi]
- extra_kv = { allow_unsafe = true }
- shipped = false
-+
-+[crate.rustc-hash]
-+extra_kv = { allow_unsafe = false }
-+
-+[crate.rustc_version]
-+extra_kv = { allow_unsafe = false }
- 
- [crate.rustfft]
- extra_kv = { allow_unsafe = true }
-@@ -878,6 +918,12 @@
- extra_kv = { allow_unsafe = true }
- 
- [crate.scopeguard]
-+extra_kv = { allow_unsafe = true }
-+
-+[crate.seahash]
-+extra_kv = { allow_unsafe = true }
-+
-+[crate.semver]
- extra_kv = { allow_unsafe = true }
- 
- [crate.serde]
-@@ -1032,7 +1078,10 @@
+@@ -1032,7 +1032,10 @@
  [crate.termcolor.extra_kv]
  allow_unsafe = false
  
@@ -171,16 +55,61 @@ runs gnrt vendor and gnrt gen to produce them. Cargo.lock is not in the patch ei
  build_script_outputs = [ "private.rs" ]
  extra_kv = { allow_unsafe = false }
  
-@@ -1100,6 +1149,9 @@
- allow_first_party_usage = false
- extra_kv = { allow_unsafe = true }
+@@ -1233,3 +1236,54 @@
  
-+[crate.url]
+ [crate.zune-jpeg]
+ extra_kv = { allow_unsafe = true }
++
++# Plain Browser: crates of adblock-rust (//plainbrowser/adblock) that Chromium does not
++# vendor itself, one block so the hunk is independent of the entries above.
++[crate.adblock]
 +extra_kv = { allow_unsafe = true }
 +
- [crate.utf16_iter]
- license_files = ["LICENSE-APACHE"]
- 
++[crate.addr]
++extra_kv = { allow_unsafe = false }
++
++[crate.arrayvec]
++extra_kv = { allow_unsafe = true }
++
++[crate.flatbuffers]
++remove_build_rs = true
++extra_kv = { allow_unsafe = true }
++
++[crate.form_urlencoded]
++extra_kv = { allow_unsafe = true }
++
++[crate.idna]
++extra_kv = { allow_unsafe = true }
++
++[crate.idna_adapter]
++extra_kv = { allow_unsafe = false }
++
++[crate.percent-encoding]
++extra_kv = { allow_unsafe = true }
++
++[crate.precomputed-hash]
++extra_kv = { allow_unsafe = false }
++
++[crate.psl-types]
++extra_kv = { allow_unsafe = false }
++
++[crate.psl]
++extra_kv = { allow_unsafe = false }
++
++[crate.rustc-hash]
++extra_kv = { allow_unsafe = false }
++
++[crate.rustc_version]
++extra_kv = { allow_unsafe = false }
++
++[crate.seahash]
++extra_kv = { allow_unsafe = true }
++
++[crate.semver]
++extra_kv = { allow_unsafe = true }
++
++[crate.url]
++extra_kv = { allow_unsafe = true }
 --- /dev/null
 +++ b/third_party/rust/chromium_crates_io/patches/flatbuffers-v25/0001-Add-LICENSE-file.patch
 @@ -0,0 +1,219 @@

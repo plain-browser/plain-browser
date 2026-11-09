@@ -54,6 +54,24 @@ def filter_patch(text, regex, keep, exclude_path=None):
     return "".join(out), matched
 
 
+def matches_by_file(text, regex, exclude_path=None):
+    """{path: number of hunks that match}, the files a --drop would cut hunks from (upstream-revert.hunks)."""
+    pat = re.compile(regex)
+    excl = re.compile(exclude_path) if exclude_path else None
+    counts = {}
+    for header, hunks in split(text):
+        path = header[1][4:].strip()
+        if excl and excl.search(path):
+            continue
+        path_hit = bool(pat.search(path))
+        if path.startswith("b/"):
+            path = path[2:]
+        n = sum(1 for hunk in hunks if path_hit or any(pat.search(l) for l in hunk[1:] if l[:1] in "+-"))
+        if n:
+            counts[path] = n
+    return counts
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("patch")

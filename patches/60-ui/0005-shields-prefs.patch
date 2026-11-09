@@ -7,15 +7,15 @@ fingerprint protection are off. Edited from the toolbar bubble (60-ui/0006).
 ---
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -8,6 +8,7 @@
- #include <optional>
- #include <string>
- #include <string_view>
+@@ -7,6 +7,7 @@
+ // Plain Browser: own includes (patches/series), kept together up here so that
+ // changes to the upstream include list below never touch this hunk.
+ #include "plainbrowser/adblock/browser/filter_list_updater.h"
 +#include "plainbrowser/shields/browser/shields_prefs.h"
  
- #include "ash/constants/ash_login_pref_names.h"
- #include "base/files/file_path.h"
-@@ -1992,6 +1993,8 @@
+ #include <array>
+ #include <optional>
+@@ -1995,6 +1996,8 @@
  void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
                            const std::string& locale) {
    TRACE_EVENT0("browser", "chrome::RegisterProfilePrefs");

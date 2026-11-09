@@ -3,27 +3,31 @@ Subject: [ui] Settings > Privacy and security: the list of sites with protection
 
 Category: 60-ui. A section under "Site settings" on chrome://settings/privacy lists
 plainbrowser.shields.exceptions (the per-site exception list of 60-ui/0005) with a remove button per site
-and an Add dialog. The element is new (privacy_page/plainbrowser_shields_exceptions.*, Polymer like the
-page around it) and edits the pref through settingsPrivate, which needs the pref in prefs_util.cc's
-allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 sites. Strings come from
-//plainbrowser/shields (AddSettingsStrings, strings in 60-ui/0008). The same element holds the toggle for
-daily filter list updates (Local State pref plainbrowser.adblock.list_updates.enabled, 30-adblock/0006),
-also allowlisted; settingsPrivate finds Local State prefs by itself. Above the list, the global "Block ads and trackers"
-toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists were last checked
-(plainbrowser.adblock.list_updates.last_success) and a link to chrome://adblock (60-ui/0011).
+and an Add dialog. The element is new (privacy_page/plainbrowser_shields_exceptions.*, a Lit element like the
+page around it; Chromium is moving Settings off Polymer) and edits the pref through settingsPrivate, which needs
+the pref in prefs_util.cc's allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 sites.
+Strings come from //plainbrowser/shields (AddSettingsStrings, strings in 60-ui/0008), called at the end of
+settings::AddLocalizedStrings. The same element holds the toggle for daily filter list updates (Local State pref
+plainbrowser.adblock.list_updates.enabled, 30-adblock/0006), also allowlisted; settingsPrivate finds Local State
+prefs by itself. Above the list, the global "Block ads and trackers" toggle (plainbrowser.adblock.enabled); below
+the update toggle, when the lists were last checked (plainbrowser.adblock.list_updates.last_success) and a link to
+chrome://adblock (60-ui/0011).
 ---
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -82,6 +82,8 @@
- #include "extensions/browser/extension_system.h"
- #include "extensions/browser/management_policy.h"
- #include "extensions/common/extension.h"
+@@ -3,6 +3,11 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/extensions/api/settings_private/prefs_util.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
 +#include "plainbrowser/adblock/common/pref_names.h"
 +#include "plainbrowser/shields/common/pref_names.h"
  
- #if BUILDFLAG(IS_CHROMEOS)
- #include "ash/constants/ash_login_pref_names.h"
-@@ -442,6 +444,18 @@
+ #include <memory>
+ 
+@@ -442,6 +447,18 @@
        settings_api::PrefType::kString;
  #endif
  
@@ -54,12 +58,7 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
      "privacy_page/security/fingerprint_progress_arc.ts",
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.html
-@@ -0,0 +1,70 @@
-+<style include="cr-shared-style cr-hidden-style settings-shared">
-+  :host {
-+    display: block;
-+  }
-+</style>
+@@ -0,0 +1,67 @@
 +<settings-toggle-button id="blocking"
 +    pref-key="plainbrowser.adblock.enabled"
 +    label="$i18n{plainBrowserBlocking}"
@@ -71,22 +70,23 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +    <div class="secondary">$i18n{plainBrowserShieldsDesc}</div>
 +  </div>
 +  <cr-button id="addSite" class="header-aligned-button"
-+      on-click="onAddClick_">
++      @click="${this.onAddClick_}">
 +    $i18n{plainBrowserShieldsAdd}
 +  </cr-button>
 +</div>
 +<div id="list" class="list-frame vertical-list" role="list">
-+  <template is="dom-repeat" items="[[sites_]]">
++  ${this.sites_.map(site => html`
 +    <div class="list-item" role="listitem">
-+      <div class="start text-elide">[[item]]</div>
-+      <cr-icon-button class="icon-delete-gray"
-+          title="[[removeLabel_(item)]]" aria-label="[[removeLabel_(item)]]"
-+          on-click="onRemoveClick_">
++      <div class="start text-elide">${site}</div>
++      <cr-icon-button class="icon-delete-gray" data-site="${site}"
++          title="${this.removeLabel_(site)}"
++          aria-label="${this.removeLabel_(site)}"
++          @click="${this.onRemoveClick_}">
 +      </cr-icon-button>
 +    </div>
-+  </template>
++  `)}
 +  <div id="empty" class="list-item secondary"
-+      hidden="[[hasSites_(sites_)]]">
++      ?hidden="${this.sites_.length > 0}">
 +    $i18n{plainBrowserShieldsEmpty}
 +  </div>
 +</div>
@@ -96,38 +96,39 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +    sub-label="$i18n{plainBrowserListUpdatesDesc}">
 +</settings-toggle-button>
 +<div id="lastCheck" class="settings-box continuation secondary"
-+    hidden="[[!listUpdatesEnabled_]]">
-+  [[lastCheckText_]]
++    ?hidden="${!this.listUpdatesEnabled_}">
++  ${this.lastCheckText_}
 +</div>
 +<cr-link-row id="status" label="$i18n{plainBrowserAdblockStatus}"
 +    sub-label="$i18n{plainBrowserAdblockStatusDesc}" external
-+    on-click="onStatusClick_">
++    @click="${this.onStatusClick_}">
 +</cr-link-row>
-+<template is="dom-if" if="[[showDialog_]]" restamp>
++${this.showDialog_ ? html`
 +  <cr-dialog id="dialog" close-text="$i18n{close}" show-on-attach
-+      on-close="onDialogClose_">
++      @close="${this.onDialogClose_}">
 +    <div slot="title">$i18n{plainBrowserShieldsAddTitle}</div>
 +    <div slot="body">
 +      <cr-input id="input" label="$i18n{plainBrowserShieldsSiteLabel}"
-+          placeholder="example.com" value="{{input_}}" invalid="[[invalid_]]"
++          placeholder="example.com" .value="${this.input_}"
++          @value-changed="${this.onInputChanged_}" ?invalid="${this.invalid_}"
 +          error-message="$i18n{plainBrowserShieldsInvalid}"
-+          on-input="onInput_" spellcheck="false" autofocus>
++          spellcheck="false" autofocus>
 +      </cr-input>
 +    </div>
 +    <div slot="button-container">
-+      <cr-button class="cancel-button" on-click="onCancelClick_">
++      <cr-button class="cancel-button" @click="${this.onCancelClick_}">
 +        $i18n{cancel}
 +      </cr-button>
 +      <cr-button id="confirm" class="action-button"
-+          on-click="onConfirmClick_" disabled="[[!input_]]">
++          @click="${this.onConfirmClick_}" ?disabled="${!this.input_}">
 +        $i18n{plainBrowserShieldsAdd}
 +      </cr-button>
 +    </div>
 +  </cr-dialog>
-+</template>
++` : ''}
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.ts
-@@ -0,0 +1,190 @@
+@@ -0,0 +1,197 @@
 +// Copyright Plain Browser contributors. MPL-2.0.
 +
 +/**
@@ -143,28 +144,31 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 + * updates (plainbrowser.adblock.list_updates.enabled, FilterListUpdater), when
 + * the lists were last checked (plainbrowser.adblock.list_updates.last_success,
 + * ms since the epoch) and a link to chrome://adblock.
++ *
++ * A Lit element, like the privacy page around it: the settings prefs live in
++ * PrefService (one cache, observed by key).
 + */
 +import 'chrome://resources/cr_elements/cr_button/cr_button.js';
 +import 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
-+import 'chrome://resources/cr_elements/cr_hidden_style.css.js';
 +import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
 +import 'chrome://resources/cr_elements/cr_input/cr_input.js';
 +import 'chrome://resources/cr_elements/cr_link_row/cr_link_row.js';
-+import 'chrome://resources/cr_elements/cr_shared_style.css.js';
 +import '../controls/settings_toggle_button.js';
-+import '../settings_shared.css.js';
 +
 +import {PrefService} from '/shared/settings/prefs2/pref_service.js';
-+import {PrefServiceObserverMixin} from '/shared/settings/prefs2/pref_service_observer_mixin.js';
++import {PrefServiceObserverMixinLit} from '/shared/settings/prefs2/pref_service_observer_mixin_lit.js';
 +import type {CrButtonElement} from 'chrome://resources/cr_elements/cr_button/cr_button.js';
 +import type {CrDialogElement} from 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
-+import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js';
++import {getCss as getCrHiddenStyleCss} from 'chrome://resources/cr_elements/cr_hidden_style_lit.css.js';
++import {getCss as getCrSharedStyleCss} from 'chrome://resources/cr_elements/cr_shared_style_lit.css.js';
++import {I18nMixinLit} from 'chrome://resources/cr_elements/i18n_mixin_lit.js';
 +import {focusWithoutInk} from 'chrome://resources/js/focus_without_ink.js';
 +import {OpenWindowProxyImpl} from 'chrome://resources/js/open_window_proxy.js';
-+import type {DomRepeatEvent} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
-+import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
++import {CrLitElement} from 'chrome://resources/lit/v3_0/lit.rollup.js';
 +
-+import {getTemplate} from './plainbrowser_shields_exceptions.html.js';
++import {getCss as getSettingsSharedCss} from '../settings_shared_lit.css.js';
++
++import {getHtml} from './plainbrowser_shields_exceptions.html.js';
 +
 +const EXCEPTIONS_PREF = 'plainbrowser.shields.exceptions';
 +const LAST_SUCCESS_PREF = 'plainbrowser.adblock.list_updates.last_success';
@@ -199,7 +203,7 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +}
 +
 +const SettingsPlainBrowserShieldsExceptionsElementBase =
-+    I18nMixin(PrefServiceObserverMixin(PolymerElement));
++    I18nMixinLit(PrefServiceObserverMixinLit(CrLitElement));
 +
 +export class SettingsPlainBrowserShieldsExceptionsElement extends
 +    SettingsPlainBrowserShieldsExceptionsElementBase {
@@ -207,30 +211,36 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +    return 'settings-plainbrowser-shields-exceptions';
 +  }
 +
-+  static get template() {
-+    return getTemplate();
++  static override get styles() {
++    return [
++      getCrSharedStyleCss(),
++      getCrHiddenStyleCss(),
++      getSettingsSharedCss(),
++    ];
 +  }
 +
-+  static get properties() {
++  override render() {
++    return getHtml.bind(this)();
++  }
++
++  static override get properties() {
 +    return {
-+      sites_: {type: Array, value: () => []},
-+      lastCheckText_: {type: String, value: ''},
-+      listUpdatesEnabled_: {type: Boolean, value: false},
-+      showDialog_: {type: Boolean, value: false},
-+      input_: {type: String, value: ''},
-+      invalid_: {type: Boolean, value: false},
++      sites_: {type: Array},
++      lastCheckText_: {type: String},
++      listUpdatesEnabled_: {type: Boolean},
++      showDialog_: {type: Boolean},
++      input_: {type: String},
++      invalid_: {type: Boolean},
 +    };
 +  }
 +
-+  declare private sites_: string[];
-+  declare private lastCheckText_: string;
-+  declare private listUpdatesEnabled_: boolean;
-+  declare private showDialog_: boolean;
-+  declare private input_: string;
-+  declare private invalid_: boolean;
++  protected accessor sites_: string[] = [];
++  protected accessor lastCheckText_: string = '';
++  protected accessor listUpdatesEnabled_: boolean = false;
++  protected accessor showDialog_: boolean = false;
++  protected accessor input_: string = '';
++  protected accessor invalid_: boolean = false;
 +
-+  // Chromium 157 keeps the settings prefs in PrefService (one cache, observed
-+  // by key) instead of passing a `prefs` object down the page tree.
 +  override connectedCallback() {
 +    super.connectedCallback();
 +    this.addPrefObserver<unknown[]>(EXCEPTIONS_PREF, pref => {
@@ -257,34 +267,32 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +    return this.i18n('plainBrowserListLastCheck', when);
 +  }
 +
-+  private onStatusClick_() {
++  protected onStatusClick_() {
 +    OpenWindowProxyImpl.getInstance().openUrl('chrome://adblock');
 +  }
 +
-+  private hasSites_(sites: string[]): boolean {
-+    return !!sites && sites.length > 0;
-+  }
-+
-+  private removeLabel_(site: string): string {
++  protected removeLabel_(site: string): string {
 +    return this.i18n('plainBrowserShieldsRemove', site);
 +  }
 +
-+  private onRemoveClick_(e: DomRepeatEvent<string>) {
++  protected onRemoveClick_(e: Event) {
++    const site = (e.currentTarget as HTMLElement).dataset['site'];
 +    PrefService.getInstance().setPrefValue(
-+        EXCEPTIONS_PREF, this.sites_.filter(site => site !== e.model.item));
++        EXCEPTIONS_PREF, this.sites_.filter(s => s !== site));
 +  }
 +
-+  private onAddClick_() {
++  protected onAddClick_() {
 +    this.input_ = '';
 +    this.invalid_ = false;
 +    this.showDialog_ = true;
 +  }
 +
-+  private onInput_() {
++  protected onInputChanged_(e: CustomEvent<{value: string}>) {
++    this.input_ = e.detail.value;
 +    this.invalid_ = false;
 +  }
 +
-+  private onConfirmClick_() {
++  protected onConfirmClick_() {
 +    const host = hostFromInput(this.input_);
 +    if (!host) {
 +      this.invalid_ = true;
@@ -294,7 +302,7 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +    this.closeDialog_();
 +  }
 +
-+  private onCancelClick_() {
++  protected onCancelClick_() {
 +    this.closeDialog_();
 +  }
 +
@@ -302,7 +310,7 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
 +    this.shadowRoot!.querySelector<CrDialogElement>('#dialog')!.close();
 +  }
 +
-+  private onDialogClose_() {
++  protected onDialogClose_() {
 +    this.showDialog_ = false;
 +    focusWithoutInk(this.$.addSite);
 +  }
@@ -341,19 +349,24 @@ toggle (plainbrowser.adblock.enabled); below the update toggle, when the lists w
  import {PrefServiceObserverMixinLit} from '/shared/settings/prefs2/pref_service_observer_mixin_lit.js';
 --- a/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
 +++ b/chrome/browser/ui/webui/settings/settings_localized_strings_provider.cc
-@@ -62,6 +62,7 @@
- #include "chrome/browser/ui/webui/settings/glic_handler.h"
- #include "chrome/browser/ui/webui/settings/reset_settings_handler.h"
- #include "chrome/browser/ui/webui/settings/shared_settings_localized_strings_provider.h"
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/webui/settings/settings_localized_strings_provider.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
 +#include "plainbrowser/shields/ui/shields_settings_strings.h"
- #include "chrome/browser/ui/webui/version/version_ui.h"
- #include "chrome/common/channel_info.h"
- #include "chrome/common/chrome_features.h"
-@@ -4655,6 +4656,7 @@
-   AddPrivacySandboxStrings(html_source, profile);
-   AddPrivacyGuideStrings(html_source, profile);
-   AddPrivacyStrings(html_source, profile);
+ 
+ #include <string>
+ 
+@@ -4674,6 +4678,9 @@
+   policy_indicator::AddLocalizedStrings(html_source);
+   AddSecurityKeysStrings(html_source);
+ 
++  // Plain Browser: last, so that our strings may replace Chromium's.
 +  plainbrowser::shields::AddSettingsStrings(html_source);
-   AddSafetyHubStrings(html_source);
-   AddShortcutInputStrings(html_source);
-   AddResetStrings(html_source, profile);
++
+   html_source->UseStringsJs();
+ }
+ 

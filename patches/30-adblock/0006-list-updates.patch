@@ -10,15 +10,18 @@ lists.plain-browser.app for new ones once a day. //plainbrowser/adblock:updater 
 ---
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -94,6 +94,7 @@
- #include "chrome/grit/branded_strings.h"
- #include "chrome/installer/util/google_update_settings.h"
- #include "components/color/color_mixers.h"
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/chrome_browser_main.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
 +#include "plainbrowser/adblock/browser/filter_list_updater.h"
- #include "components/device_event_log/device_event_log.h"
- #include "components/embedder_support/origin_trials/component_updater_utils.h"
- #include "components/embedder_support/origin_trials/origin_trials_settings_storage.h"
-@@ -1731,6 +1732,11 @@
+ 
+ #include <memory>
+ #include <string>
+@@ -1731,6 +1735,11 @@
  
    browser_process_->browser_policy_connector()->OnBrowserStarted();
  
@@ -32,15 +35,18 @@ lists.plain-browser.app for new ones once a day. //plainbrowser/adblock:updater 
    // This is done here instead of just relying on the main message loop's start
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -15,6 +15,7 @@
- #include "base/json/values_util.h"
- #include "base/time/time.h"
- #include "base/trace_event/trace_event.h"
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/prefs/browser_prefs.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
 +#include "plainbrowser/adblock/browser/filter_list_updater.h"
- #include "build/android_buildflags.h"
- #include "build/branding_buildflags.h"
- #include "build/build_config.h"
-@@ -1658,6 +1659,8 @@
+ 
+ #include <array>
+ #include <optional>
+@@ -1658,6 +1662,8 @@
    // Call outs to individual subsystems that register Local State (browser-wide)
    // prefs en masse. See RegisterProfilePrefs for per-profile prefs. Please
    // keep this list alphabetized.

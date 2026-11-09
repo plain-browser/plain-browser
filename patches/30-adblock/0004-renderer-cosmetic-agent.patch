@@ -5,15 +5,15 @@ Category: 30-adblock. Code lives in //plainbrowser/adblock; this patch only wire
 ---
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
-@@ -134,6 +134,7 @@
- #include "components/web_cache/renderer/web_cache_impl.h"
- #include "components/webapps/renderer/web_page_metadata_agent.h"
- #include "content/public/common/content_constants.h"
+@@ -7,6 +7,7 @@
+ // Plain Browser: own includes (patches/series), kept together up here so that
+ // changes to the upstream include list below never touch this hunk.
+ #include "plainbrowser/adblock/renderer/adblock_throttle_provider.h"
 +#include "plainbrowser/adblock/renderer/cosmetic_filter_agent.h"
- #include "content/public/common/content_features.h"
- #include "content/public/common/content_switches.h"
- #include "content/public/common/page_visibility_state.h"
-@@ -656,6 +657,8 @@
+ 
+ #include <functional>
+ #include <memory>
+@@ -660,6 +661,8 @@
    service_manager::BinderRegistry* registry = render_frame_observer->registry();
  
    new prerender::NoStatePrefetchRenderFrameObserver(render_frame);

@@ -3,7 +3,7 @@ Subject: [ui] Do not open the ungoogled-chromium first-run page
 ---
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
-@@ -1332,7 +1332,6 @@
+@@ -1335,7 +1335,6 @@
    if (first_run::IsChromeFirstRun()) {
      if (!base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kApp) &&
          !base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kAppId)) {

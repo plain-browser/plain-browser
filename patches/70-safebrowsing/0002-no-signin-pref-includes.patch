@@ -9,7 +9,7 @@ tracked-pref entries in chrome_pref_service_factory.cc, which shared a hunk with
 ---
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
-@@ -66,7 +66,6 @@
+@@ -71,7 +71,6 @@
  #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
  #include "components/saved_tab_groups/public/pref_names.h"
  #include "components/search_engines/default_search_manager.h"

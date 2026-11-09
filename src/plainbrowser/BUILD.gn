@@ -10,6 +10,7 @@ group("browser") {
     "//plainbrowser/adblock:updater",
     "//plainbrowser/adblock:webui",
     "//plainbrowser/fingerprint:browser",
+    "//plainbrowser/safebrowsing:ui",
     "//plainbrowser/shields:browser",
     "//plainbrowser/shields:ui",
   ]

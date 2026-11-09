@@ -1,7 +1,9 @@
 # Shields strings
 
 `plainbrowser_shields_strings.grdp` holds every user-visible string of `//plainbrowser/shields`: the toolbar
-button, its bubble and the "Sites with protections off" section on `chrome://settings/privacy`. It is a
+button, its bubble and the "Sites with protections off" section on `chrome://settings/privacy`, plus the
+Safe Browsing settings texts of `//plainbrowser/safebrowsing/ui` (the Google services toggle and the two
+Security page descriptions that replace Chromium's under its own `$i18n` keys). It is a
 `<part>` of `chrome/app/generated_resources.grd` (`patches/60-ui/0008`), so C++ uses the `IDS_` ids from
 `chrome/grit/generated_resources.h` and `l10n_util`, and the settings page gets them through
 `ui/shields_settings_strings.cc` (`$i18n{plainBrowserShields...}`). The strings end up in the normal locale

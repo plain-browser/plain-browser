@@ -1,0 +1,15 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# Safe Browsing through the Plain Browser proxy: the Chromium side is
+# patches/70-safebrowsing (URL prefixes, public lists); this directory holds the
+# settings strings that go with it. Linked through //plainbrowser:browser.
+
+source_set("ui") {
+  sources = [
+    "ui/safe_browsing_settings_strings.cc",
+    "ui/safe_browsing_settings_strings.h",
+  ]
+  deps = [
+    "//chrome/app:generated_resources",
+    "//content/public/browser",
+  ]
+}

@@ -9,7 +9,12 @@
 # Rule: no Google hostnames in hunks. ungoogled's domain substitution rewrites them after patching, so a hunk
 # that contains one applies in one flow (prepare.py, before substitution) and fails in the other
 # (apply-plainbrowser.ps1, after). Add our own constant next to the upstream one instead.
-# scripts/check-patches.py dry-runs this series against any ungoogled-chromium-windows tag without a checkout.
+# Rule: an #include of ours goes into the "Plain Browser: own includes" block right after the file's own header
+# (or include guard), never between upstream includes: the upstream include list changes every release, that
+# block never does. A hook into a function body goes next to the most stable line of that function.
+# scripts/check-patches.py dry-runs this series against any ungoogled-chromium-windows tag without a checkout;
+# fuzz is a failure there (regenerate and review), and patches/upstream-revert.hunks pins which hunks the
+# hunks: entries of upstream-revert.list drop.
 00-build/0001-gn-deps.patch
 10-branding/0001-install-modes.patch
 30-adblock/0000-crate-config.patch

@@ -21,15 +21,18 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
      "//net",
 --- a/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
 +++ b/components/safe_browsing/core/browser/db/sb_protocol_manager_util.cc
-@@ -30,6 +30,7 @@
- #include "net/base/net_errors.h"
- #include "net/base/registry_controlled_domains/registry_controlled_domain.h"
- #include "net/http/http_request_headers.h"
-+#include "plainbrowser/common/version.h"
- #include "url/url_canon_stdstring.h"
- #include "url/url_util.h"
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
  
-@@ -166,6 +167,19 @@
+ #include "components/safe_browsing/core/browser/db/sb_protocol_manager_util.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/common/version.h"
+ 
+ #include <algorithm>
+ #include <string_view>
+@@ -166,6 +170,19 @@
    hosts->push_back(host);
  }
  
@@ -49,7 +52,7 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
  }  // namespace
  
  void SetSbV4UrlPrefixForTesting(const char* url_prefix) {
-@@ -178,7 +192,7 @@
+@@ -178,7 +195,7 @@
  
  const char* GetSbV5UrlPrefix() {
    return g_sbv5_url_prefix_for_testing ? g_sbv5_url_prefix_for_testing
@@ -58,7 +61,7 @@ infra/safebrowsing-proxy/README.md, section "Chromium side".
  }
  
  std::string GetReportUrl(const SBProtocolConfig& config,
-@@ -588,10 +602,11 @@
+@@ -588,10 +605,11 @@
      net::HttpRequestHeaders* headers) {
    const char* url_prefix = g_sbv4_url_prefix_for_testing
                                 ? g_sbv4_url_prefix_for_testing

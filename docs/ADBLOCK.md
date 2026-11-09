@@ -26,7 +26,8 @@ disconnected filters and fails open after 3 s.
   `--disable-features=PlainBrowserTrackingParams`; POST navigations are left alone).
 - `renderer/` – `AdblockURLLoaderThrottle` (defers each http(s) subresource, asks the
   browser, cancels with `ERR_BLOCKED_BY_CLIENT`), `AdblockThrottleFactory` (owned by
-  chrome's `URLLoaderThrottleProviderImpl`, cloned per worker thread like SafeBrowsing),
+  `AdblockThrottleProvider`, which wraps chrome's `URLLoaderThrottleProviderImpl` and puts the throttle first;
+  cloned per worker thread like SafeBrowsing),
   `CosmeticFilterAgent` (per frame, inserts hide-selector CSS as a user stylesheet, and generic class/id rules
   for the names found in the document; see "Generic element hiding").
 - `common/adblock.mojom` – `AdblockFilter { Clone, ShouldBlockRequest, GetCosmeticCss, GetGenericCosmeticCss }`;
@@ -79,7 +80,7 @@ button and the bubble, checks the pushed exception list in the running renderer 
   "Protections on for this site", a status line with the live count (or that protections are off) and a
   "Manage sites" link to the settings section below. Flipping the toggle edits the pref and reloads the tab.
 - **Settings section** (`patches/60-ui/0009`): "Sites with protections off" on `chrome://settings/privacy`,
-  under Site settings. A new Polymer element (`privacy_page/plainbrowser_shields_exceptions.*`, added by the
+  under Site settings. A new Lit element (`privacy_page/plainbrowser_shields_exceptions.*`, added by the
   patch) lists the pref with a remove button per site and an Add dialog; it edits the pref through
   `settingsPrivate` (the pref is in `prefs_util.cc`'s allowlist as a list). The dialog accepts a site, a host or
   a URL and stores the host; `ShieldsService` rewrites every entry as its eTLD+1 (`NormalizeExceptions`, posted

@@ -17,8 +17,14 @@ replayed, e.g. the patches listed in upstream-revert.list, to see what their fil
 --export writes every replayed file, with ungoogled's domain substitution applied where upstream applies it,
 into DIR: the exact content an already-built tree should have for those files (copy it over the tree).
 --regenerate rewrites every patch in patches/ that applied (with or without offset) so that its hunks and
-context match the tag exactly (header kept, body regenerated with difflib, no timestamps). Review the diff
-before committing. Exit code 1 when any of our patches fails, 2 on a setup error (network, bad tag).
+context match the tag exactly (header kept, body regenerated with difflib, no timestamps), and rewrites
+patches/upstream-revert.hunks. Review the diff before committing.
+A patch that applies with fuzz (context no longer matches, patch guessed the place) counts as a failure
+unless --regenerate rewrites it: a guessed place compiles and is wrong. patches/upstream-revert.hunks lists,
+for every "hunks:" entry of upstream-revert.list, the files whose hunks are dropped and how many; when the
+upstream patch changes so that a different set is dropped (a hunk split, a file renamed), that is reported
+as a failure too, so a human checks the regex before the build starts.
+Exit code 1 when any of our patches fails, 2 on a setup error (network, bad tag).
 """
 import argparse, base64, json, os, re, shutil, subprocess, sys, tempfile, urllib.error, urllib.request
 from pathlib import Path
@@ -233,7 +239,8 @@ def main():
         else:
             reverted.add(tuple(line.split(":", 1)))
 
-    upstream_notes = []
+    HUNKS_FILE = ROOT / "patches" / "upstream-revert.hunks"
+    hunks_seen, upstream_notes = {}, []
     for name, raw, key in (("ungoogled-chromium", uc_raw, "uc"), ("ungoogled-chromium-windows", ucw_raw, "ucw")):
         upstream_series = series(http_get(raw + "patches/series"))
         for _, rel in reverted:
@@ -247,8 +254,9 @@ def main():
             if text is None:
                 upstream_notes.append(f"{name}/{rel}: not found"); continue
             if (key, rel) in hunk_drops:
-                from patchfilter import filter_patch as drop_hunks
+                from patchfilter import filter_patch as drop_hunks, matches_by_file
                 regex, exclude = hunk_drops[(key, rel)]
+                hunks_seen[f"{key}:{rel}"] = matches_by_file(text, regex, exclude)
                 text, n = drop_hunks(text, regex, keep=False, exclude_path=exclude)
                 upstream_notes.append(f"{name}/{rel}: {n} hunks dropped (patches/upstream-revert.list)")
             if not (touched_files(text) & our_files):
@@ -264,7 +272,24 @@ def main():
             else:
                 upstream_notes.append(f"{name}/{rel}: applied (shares files with our patches)")
 
-    rows, failed = [], []
+    # The dropped-hunk sets against the committed ones (see the docstring).
+    hunks_text = "".join(f"{entry}\n" + "".join(f"  {path} {n}\n" for path, n in sorted(files.items()))
+                         for entry, files in sorted(hunks_seen.items()))
+    hunks_text = ("# Written by scripts/check-patches.py --regenerate: for every hunks: entry of upstream-revert.list, the\n"
+                  "# files whose hunks the regex drops and how many. check-patches.py fails when the current tag gives a\n"
+                  "# different set (a hunk split or moved upstream): check the regex, then --regenerate.\n") + hunks_text
+    hunks_problem = None
+    if a.regenerate:
+        HUNKS_FILE.write_text(hunks_text, newline="\n")
+    elif not HUNKS_FILE.exists():
+        hunks_problem = f"`{HUNKS_FILE.name}` missing: run check-patches.py --regenerate"
+    elif HUNKS_FILE.read_text() != hunks_text:
+        import difflib
+        diff = "".join(difflib.unified_diff(HUNKS_FILE.read_text().splitlines(True), hunks_text.splitlines(True),
+                                            "committed", f"tag {tag}", n=0))
+        hunks_problem = f"the hunks dropped from the upstream patches changed (check the regex in upstream-revert.list, then --regenerate):\n```\n{diff}```"
+
+    rows, failed, fuzzed = [], [], []
     for rel in ours:
         patch_file = ROOT / "patches" / rel
         before = {}
@@ -276,8 +301,11 @@ def main():
         if a.regenerate and rc == 0:
             regenerate(patch_file, src, before)
         # Offsets are normal (upstream patches shift lines); fuzz means the context no longer matches.
-        if rc == 0:
-            note = " (fuzz: regenerate)" if "fuzz" in out else (" (offset)" if "offset" in out else "")
+        if rc == 0 and "fuzz" in out and not a.regenerate:
+            fuzzed.append(rel)
+            rows.append((rel, "FUZZ (context changed: review, then --regenerate)", out))
+        elif rc == 0:
+            note = " (fuzz: regenerated)" if "fuzz" in out else (" (offset)" if "offset" in out else "")
             rows.append((rel, "ok" + note, ""))
         else:
             failed.append(rel)
@@ -294,6 +322,8 @@ def main():
                   *[f"- `{p}`" for p in missing]]
     if upstream_notes:
         lines += ["", "Upstream patches touching the same files:", *[f"- {n}" for n in upstream_notes]]
+    if hunks_problem:
+        lines += ["", f"**upstream-revert.list:** {hunks_problem}"]
     lines += ["", "Not simulated: domain substitution, pruning, scripts/apply-branding.py, scripts/post-gnrt-fixups.ps1."]
     if a.export:
         export_tree(src, our_files, Path(a.export), uc_raw)
@@ -303,7 +333,7 @@ def main():
         Path(a.report).write_text(report)
     if not a.work:
         shutil.rmtree(work, ignore_errors=True)
-    return 1 if failed else 0
+    return 1 if failed or fuzzed or hunks_problem else 0
 
 
 if __name__ == "__main__":

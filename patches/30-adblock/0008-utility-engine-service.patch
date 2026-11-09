@@ -10,15 +10,18 @@ service factory; the GN dependency is in 00-build/0001.
 ---
 --- a/chrome/utility/services.cc
 +++ b/chrome/utility/services.cc
-@@ -30,6 +30,7 @@
- #include "mojo/public/cpp/bindings/pending_receiver.h"
- #include "mojo/public/cpp/bindings/service_factory.h"
- #include "pdf/buildflags.h"
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/utility/services.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
 +#include "plainbrowser/adblock/engine/ad_block_engine_service.h"
- #include "printing/buildflags/buildflags.h"
- #include "services/passage_embeddings/passage_embeddings_service.h"
- #include "ui/accessibility/accessibility_features.h"
-@@ -156,6 +157,13 @@
+ 
+ #include <memory>
+ #include <utility>
+@@ -156,6 +160,13 @@
  
  namespace {
  
@@ -32,7 +35,7 @@ service factory; the GN dependency is in 00-build/0001.
  auto RunFilePatcher(mojo::PendingReceiver<patch::mojom::FilePatcher> receiver) {
    return std::make_unique<patch::FilePatcherImpl>(std::move(receiver));
  }
-@@ -491,6 +499,7 @@
+@@ -491,6 +502,7 @@
  }
  
  void RegisterMainThreadServices(mojo::ServiceFactory& services) {

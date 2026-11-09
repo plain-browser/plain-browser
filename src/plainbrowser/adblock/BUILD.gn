@@ -283,6 +283,8 @@ source_set("renderer") {
   sources = [
     "renderer/adblock_throttle_factory.cc",
     "renderer/adblock_throttle_factory.h",
+    "renderer/adblock_throttle_provider.cc",
+    "renderer/adblock_throttle_provider.h",
     "renderer/cosmetic_filter_agent.cc",
     "renderer/cosmetic_filter_agent.h",
     "renderer/cosmetic_script.h",
