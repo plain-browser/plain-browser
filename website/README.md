@@ -47,7 +47,15 @@ npm run dev
    `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
    `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none'`.
    (`'unsafe-inline'` is needed for the Next.js hydration bootstrap and inline styles.)
-8. **Cloudflare settings worth switching on:** HTTP/3, Brotli, Early Hints. Leave Rocket Loader, Email
+8. **Trailing slashes.** Every page is a directory with `index.html`, so `/download/` is the page and `/download`
+   is not. Left to the bucket, `/download` gets a 301 to `http://plain-browser.app/download/index.html`, which
+   Cloudflare then bumps to https: two hops ending on a duplicate URL (Search Console reports these as
+   "Page with redirect"). Add a Redirect Rule so the slash is added at the edge in one hop:
+   when hostname equals `plain-browser.app` and URI path does not end with `/` and does not contain `.`
+   (expression: `http.host eq "plain-browser.app" and not ends_with(http.request.uri.path, "/") and not contains(http.request.uri.path, ".")`)
+   → dynamic redirect to `concat("https://plain-browser.app", http.request.uri.path, "/")`, status 301,
+   preserve query string.
+9. **Cloudflare settings worth switching on:** HTTP/3, Brotli, Early Hints. Leave Rocket Loader, Email
    Obfuscation, Web Analytics and the Insights beacon **off**; the site promises no third-party scripts.
 
 ## Deploy
