@@ -48,4 +48,6 @@
 <translation id="6960448024325525076">Sprawdź teraz</translation>
 <translation id="2258591756126042219">Sprawdzanie…</translation>
 <translation id="8176333615161936429">Ustawienia</translation>
+<translation id="1059992045765968998">Oparta na Chromium <ph name="CHROMIUM_VERSION" /> i ungoogled-chromium <ph name="UNGOOGLED_VERSION" /></translation>
+<translation id="5731486129568110378">Blokowanie reklam: adblock-rust <ph name="ADBLOCK_VERSION" /> z listami filtrów EasyList, EasyPrivacy i EasyList Polish</translation>
 </translationbundle>

@@ -157,4 +157,12 @@
   <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_SETTINGS" desc="Link on chrome://adblock to the browser's privacy settings.">
     Settings
   </message>
+
+  <!-- About page (chrome://settings/help). -->
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ABOUT_BASE" desc="Line on the About page: which Chromium and ungoogled-chromium versions this browser is built from.">
+    Based on Chromium <ph name="CHROMIUM_VERSION">$1<ex>157.0.8103.38</ex></ph> and ungoogled-chromium <ph name="UNGOOGLED_VERSION">$2<ex>157.0.8103.38-1.1</ex></ph>
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ABOUT_COMPONENTS" desc="Line on the About page: the ad blocking component and the filter lists built into this browser.">
+    Ad blocking: adblock-rust <ph name="ADBLOCK_VERSION">$1<ex>0.13.3</ex></ph> with the EasyList, EasyPrivacy and EasyList Polish filter lists
+  </message>
 </grit-part>
