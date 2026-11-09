@@ -110,7 +110,7 @@ chrome://adblock (60-ui/0011).
 +    <div slot="body">
 +      <cr-input id="input" label="$i18n{plainBrowserShieldsSiteLabel}"
 +          placeholder="example.com" .value="${this.input_}"
-+          @value-changed="${this.onInputChanged_}" ?invalid="${this.invalid_}"
++          @value-changed="${this.onInputValueChanged_}" ?invalid="${this.invalid_}"
 +          error-message="$i18n{plainBrowserShieldsInvalid}"
 +          spellcheck="false" autofocus>
 +      </cr-input>
@@ -196,17 +196,17 @@ chrome://adblock (60-ui/0011).
 +  }
 +}
 +
-+export interface SettingsPlainBrowserShieldsExceptionsElement {
++export interface PlainbrowserShieldsExceptionsElement {
 +  $: {
 +    addSite: CrButtonElement,
 +  };
 +}
 +
-+const SettingsPlainBrowserShieldsExceptionsElementBase =
++const PlainbrowserShieldsExceptionsElementBase =
 +    I18nMixinLit(PrefServiceObserverMixinLit(CrLitElement));
 +
-+export class SettingsPlainBrowserShieldsExceptionsElement extends
-+    SettingsPlainBrowserShieldsExceptionsElementBase {
++export class PlainbrowserShieldsExceptionsElement extends
++    PlainbrowserShieldsExceptionsElementBase {
 +  static get is() {
 +    return 'settings-plainbrowser-shields-exceptions';
 +  }
@@ -287,7 +287,7 @@ chrome://adblock (60-ui/0011).
 +    this.showDialog_ = true;
 +  }
 +
-+  protected onInputChanged_(e: CustomEvent<{value: string}>) {
++  protected onInputValueChanged_(e: CustomEvent<{value: string}>) {
 +    this.input_ = e.detail.value;
 +    this.invalid_ = false;
 +  }
@@ -307,7 +307,7 @@ chrome://adblock (60-ui/0011).
 +  }
 +
 +  private closeDialog_() {
-+    this.shadowRoot!.querySelector<CrDialogElement>('#dialog')!.close();
++    this.shadowRoot.querySelector<CrDialogElement>('#dialog')!.close();
 +  }
 +
 +  protected onDialogClose_() {
@@ -319,13 +319,13 @@ chrome://adblock (60-ui/0011).
 +declare global {
 +  interface HTMLElementTagNameMap {
 +    'settings-plainbrowser-shields-exceptions':
-+        SettingsPlainBrowserShieldsExceptionsElement;
++        PlainbrowserShieldsExceptionsElement;
 +  }
 +}
 +
 +customElements.define(
-+    SettingsPlainBrowserShieldsExceptionsElement.is,
-+    SettingsPlainBrowserShieldsExceptionsElement);
++    PlainbrowserShieldsExceptionsElement.is,
++    PlainbrowserShieldsExceptionsElement);
 --- a/chrome/browser/resources/settings/privacy_page/privacy_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/privacy_page.html
 @@ -33,6 +33,8 @@

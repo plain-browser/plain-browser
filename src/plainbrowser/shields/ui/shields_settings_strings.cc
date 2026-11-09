@@ -1,7 +1,6 @@
 // Copyright Plain Browser contributors. MPL-2.0.
 #include "plainbrowser/shields/ui/shields_settings_strings.h"
 
-#include "base/strings/utf_string_conversions.h"
 #include "chrome/grit/generated_resources.h"
 #include "content/public/browser/web_ui_data_source.h"
 #include "plainbrowser/common/version.h"
@@ -42,13 +41,13 @@ void AddSettingsStrings(content::WebUIDataSource* html_source) {
       "plainBrowserAboutBase",
       l10n_util::GetStringFUTF16(
           IDS_SETTINGS_PLAINBROWSER_ABOUT_BASE,
-          base::UTF8ToUTF16(PLAINBROWSER_CHROMIUM_VERSION),
-          base::UTF8ToUTF16(PLAINBROWSER_UNGOOGLED_VERSION)));
+          u"" PLAINBROWSER_CHROMIUM_VERSION,
+          u"" PLAINBROWSER_UNGOOGLED_VERSION));
   html_source->AddString(
       "plainBrowserAboutComponents",
       l10n_util::GetStringFUTF16(
           IDS_SETTINGS_PLAINBROWSER_ABOUT_COMPONENTS,
-          base::UTF8ToUTF16(PLAINBROWSER_ADBLOCK_VERSION)));
+          u"" PLAINBROWSER_ADBLOCK_VERSION));
 }
 
 }  // namespace plainbrowser::shields
