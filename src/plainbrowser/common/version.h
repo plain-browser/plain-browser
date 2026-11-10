@@ -7,5 +7,9 @@
 #define PLAINBROWSER_VERSION_FULL "0.2.1-beta.1"
 // major.minor.patch only: the part allowed in network requests.
 #define PLAINBROWSER_VERSION "0.2.1"
+// Upstream versions shown on chrome://settings/help (patches/60-ui/0012).
+#define PLAINBROWSER_CHROMIUM_VERSION "157.0.8103.50"
+#define PLAINBROWSER_UNGOOGLED_VERSION "157.0.8103.50-1.1"
+#define PLAINBROWSER_ADBLOCK_VERSION "0.13.3"
 
 #endif  // PLAINBROWSER_COMMON_VERSION_H_

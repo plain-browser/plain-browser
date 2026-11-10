@@ -56,7 +56,14 @@ tests and the Node tests; not yet compiled or run in a browser.
 - `filter_lists::ListMatches` and the mirror accept `! Title:` as a list header (uBlock Origin's lists have no
   `[Adblock Plus]` line).
 
-## [0.2.0-beta.7] - 2026-11-09 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
+## [0.2.1-beta.1] - 2026-11-10 [Chromium 157.0.8103.50, ungoogled-chromium-windows 157.0.8103.50-1.1]
+
+### Changed
+- Chromium base updated from 157.0.8103.38 to 157.0.8103.50 (upstream update, built and submitted to the
+  Microsoft Store by the automated release pipeline).
+- Package version 0.2.1.0.
+
+## [0.2.0-beta.7] - 2026-11-09 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1] (never released: 0.2.1-beta.1 was built from the pipeline's upstream update before these changes were pushed; they ship with the next release)
 
 ### Changed
 - Patches rewritten for cheaper Chromium bumps, same behaviour. Our `#include`s sit in one "Plain Browser: own
@@ -74,12 +81,11 @@ tests and the Node tests; not yet compiled or run in a browser.
   place), and `patches/upstream-revert.hunks` (written by `--regenerate`) pins which hunks the `hunks:` entries of
   `upstream-revert.list` drop, so a hunk split or move upstream is reported before a build.
 
-## [0.2.1-beta.1] - 2026-11-10 [Chromium 157.0.8103.50, ungoogled-chromium-windows 157.0.8103.50-1.1]
-
-### Changed
-- Chromium base updated from 157.0.8103.38 to 157.0.8103.50 (upstream update, built and submitted to the
-  Microsoft Store by the automated release pipeline).
-- Package version 0.2.1.0.
+### Added
+- About page (`chrome://settings/help`): the Chromium and ungoogled-chromium versions the build is made from, and
+  the ad blocking components (adblock-rust version, EasyList, EasyPrivacy, EasyList Polish), with a Polish
+  translation (`60-ui/0012`). The versions come from `versions.toml` and the adblock crate pin through
+  `scripts/sync-version.py`.
 
 ## [0.2.0-beta.6] - 2026-11-07 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
 
