@@ -36,6 +36,24 @@
     color: var(--accent); cursor: pointer; text-decoration: none;
   }
   button:disabled { color: var(--muted); cursor: default; }
+  .note { color: var(--muted); padding: 12px 16px 0; }
+  textarea {
+    box-sizing: border-box; width: calc(100% - 32px); margin: 12px 16px 0; min-height: 140px; resize: vertical;
+    font: 12px ui-monospace, monospace; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 4px; padding: 8px;
+  }
+  .actions .status { align-self: center; color: var(--muted); }
+  input[type=search] {
+    font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 16px;
+    padding: 5px 12px; flex: 1; min-width: 0;
+  }
+  #log { max-height: 420px; overflow-y: auto; }
+  .entry { padding: 8px 16px; border-top: 1px solid var(--line); }
+  .entry .what { display: flex; gap: 8px; color: var(--muted); font-size: 12px; }
+  .entry .tag { font-weight: 500; }
+  .entry .tag.blocked, .entry .tag.redirected { color: var(--warn); }
+  .entry .tag.params, .entry .tag.debounced { color: var(--ok); }
+  .entry .url { font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -58,6 +76,29 @@
   <section>
     <h2 id="listsLabel"></h2>
     <div id="lists"></div>
+    <div class="note" id="listsNote"></div>
+    <div class="actions">
+      <a class="button" id="listsSettings" href="chrome://settings/privacy"></a>
+    </div>
+  </section>
+  <section>
+    <h2 id="customLabel"></h2>
+    <div class="note" id="customDesc"></div>
+    <textarea id="custom" spellcheck="false" autocomplete="off"
+        placeholder="||ads.example.com^&#10;example.org##.banner&#10;@@||example.net^"></textarea>
+    <div class="actions">
+      <button id="saveCustom"></button>
+      <span class="status" id="customStatus"></span>
+    </div>
+  </section>
+  <section>
+    <h2 id="logLabel"></h2>
+    <div class="note" id="logDesc"></div>
+    <div class="actions">
+      <input type="search" id="logFilter">
+      <button id="clearLog"></button>
+    </div>
+    <div id="log"></div>
   </section>
   <section>
     <h2 id="updatesLabel"></h2>

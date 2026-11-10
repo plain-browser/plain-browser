@@ -10,11 +10,15 @@
 #include <utility>
 #include <vector>
 
+#include "base/containers/circular_deque.h"
 #include "base/functional/callback.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/no_destructor.h"
 #include "base/sequence_checker.h"
+#include "base/synchronization/lock.h"
 #include "base/task/sequenced_task_runner.h"
+#include "base/thread_annotations.h"
+#include "base/time/time.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "plainbrowser/adblock/common/adblock_engine.mojom.h"
@@ -37,7 +41,8 @@ namespace plainbrowser::adblock {
 // lists that were in use when it went away (they may be what made it crash):
 // those are dropped until the updater hands over new ones. After
 // kMaxEngineStarts starts the service stops starting it until the browser
-// restarts.
+// restarts. The optional lists and the user's own filters (SetUserConfig())
+// are kept across restarts of the process.
 class AdBlockService {
  public:
   using Launcher = base::RepeatingCallback<void(
@@ -71,6 +76,15 @@ class AdBlockService {
   // the old engine until it is swapped in. `done` runs on task_runner() after
   // the swap (or when there is no engine process to swap in).
   void UseLists(ListTexts lists, base::OnceClosure done = base::OnceClosure());
+
+  // Any thread. The optional lists that are on (kOptionalLists names, in that
+  // order) and the user's own filters, from the Local State prefs
+  // (FilterListUpdater). A running engine is rebuilt; one not started yet gets
+  // them when it starts. Until the first call: DefaultOptionalLists() and no
+  // filters. `done` as for UseLists().
+  void SetUserConfig(std::vector<std::string> optional_lists,
+                     std::string custom_filters,
+                     base::OnceClosure done = base::OnceClosure());
 
   void ShouldBlock(const GURL& url,
                    const GURL& source_url,
@@ -114,6 +128,41 @@ class AdBlockService {
   void CountBlocked() { ++blocked_total_; }
   int64_t blocked_total() const { return blocked_total_; }
 
+  // The request log of chrome://adblock: what the blocker did, newest last.
+  // Kept in memory only, and only while a chrome://adblock page is open
+  // (AddLogViewer() / RemoveLogViewer()); emptied when the last one closes, so
+  // nothing about the pages a user visits stays around otherwise.
+  enum class LogAction {
+    kBlocked,     // A network rule blocked the request.
+    kRedirected,  // A $redirect rule replaced the response.
+    kParamsRemoved,  // Tracking parameters were removed from a navigation.
+    kRedirectSkipped,  // A tracking redirector was skipped (debouncing).
+  };
+  struct LogEntry {
+    base::Time time;
+    LogAction action;
+    // The request (blocked, redirected) or the navigation's original URL.
+    std::string url;
+    // The page: the top-level origin, or for navigations the URL navigated to
+    // instead.
+    std::string page;
+    // adblock-rust request type ("script", "image", ...); empty for
+    // navigations and redirects.
+    std::string type;
+  };
+  static constexpr size_t kMaxLogEntries = 500;
+  // Any thread.
+  void AddLogViewer();
+  void RemoveLogViewer();
+  bool logging() const { return log_viewers_ > 0; }
+  // Any thread. Dropped unless logging().
+  void Log(LogAction action,
+           std::string url,
+           std::string page,
+           std::string type = std::string());
+  std::vector<LogEntry> GetLog() const;
+  void ClearLog();
+
   // For chrome://adblock.
   struct Status {
     Status();
@@ -127,6 +176,9 @@ class AdBlockService {
     // Names of the downloaded lists the engine uses; the others are the
     // compiled-in ones.
     std::vector<std::string> downloaded_lists;
+    // The optional lists that are on, and the size of the user's filters.
+    std::vector<std::string> optional_lists;
+    size_t custom_filters_bytes = 0;
   };
   // `callback` runs on task_runner().
   void GetStatus(base::OnceCallback<void(Status)> callback);
@@ -141,10 +193,18 @@ class AdBlockService {
   void SetLauncherOnSequence(Launcher launcher);
   void GetStatusOnSequence(base::OnceCallback<void(Status)> callback);
   void UseListsOnSequence(ListTexts lists, base::OnceClosure done);
+  void SetUserConfigOnSequence(std::vector<std::string> optional_lists,
+                               std::string custom_filters,
+                               base::OnceClosure done);
   bool CanStartEngine() const;
-  // Starts an engine process and gives it lists_; `lists_done` runs when it
-  // has swapped them in.
-  void StartEngine(base::OnceClosure lists_done);
+  // Whether the engine must be told anything: the process starts with the
+  // compiled-in lists and the default optional lists by itself.
+  bool NeedsConfig() const;
+  // Sends the whole configuration to the running engine.
+  void SendConfig(base::OnceClosure done);
+  // Starts an engine process and gives it the configuration; `config_done`
+  // runs when it has swapped it in.
+  void StartEngine(base::OnceClosure config_done);
   // The engine, started if needed; null when it cannot be started.
   mojom::AdblockEngine* Engine();
   void OnEngineGone();
@@ -155,9 +215,15 @@ class AdBlockService {
   // The lists of the last UseLists(), given to every new engine process;
   // nullopt: the compiled-in lists.
   std::optional<ListTexts> lists_;
+  // From the last SetUserConfig().
+  std::vector<std::string> optional_lists_;
+  std::string custom_filters_;
   int engine_starts_ = 0;
   std::atomic<bool> blocking_enabled_{true};
   std::atomic<int64_t> blocked_total_{0};
+  std::atomic<int> log_viewers_{0};
+  mutable base::Lock log_lock_;
+  base::circular_deque<LogEntry> log_ GUARDED_BY(log_lock_);
   SEQUENCE_CHECKER(sequence_checker_);
 };
 

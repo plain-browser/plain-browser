@@ -94,7 +94,7 @@ bool ListMatches(const ListEntry& entry, std::string_view text) {
   if (text.starts_with("\xEF\xBB\xBF")) {
     text.remove_prefix(3);
   }
-  return text.starts_with("[Adblock Plus");
+  return text.starts_with("[Adblock Plus") || text.starts_with("! Title:");
 }
 
 GURL ListUrl(const GURL& server, std::string_view name) {
@@ -130,12 +130,14 @@ bool VerifyManifestSignature(std::string_view manifest,
   return false;
 }
 
-std::vector<std::string> ChangedLists(const Manifest& stored,
-                                      const Manifest& wanted) {
+std::vector<std::string> ChangedLists(
+    const Manifest& stored,
+    const Manifest& wanted,
+    base::RepeatingCallback<bool(std::string_view)> in_use) {
   std::vector<std::string> changed;
   for (std::string_view name : kUpdatableLists) {
     auto want = wanted.find(std::string(name));
-    if (want == wanted.end()) {
+    if (want == wanted.end() || (in_use && !in_use.Run(name))) {
       continue;
     }
     auto have = stored.find(std::string(name));

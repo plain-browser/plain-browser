@@ -21,8 +21,10 @@ class AdblockUIConfig : public content::DefaultWebUIConfig<AdblockUI> {
 };
 
 // The state of the ad blocker: the global switch, requests blocked since
-// start-up, the engine process, the lists in use (downloaded or compiled in)
-// and the last update check, with a "Check now" button. Page and script are
+// start-up, the engine process, the lists in use (downloaded or compiled in,
+// on or off) and the last update check, with a "Check now" button; the user's
+// own filters (prefs::kCustomFilters); and a log of what the blocker did,
+// recorded only while the page is open (AdBlockService::Log). Page and script are
 // adblock_page.{html,js}, embedded at build time (no grit resources).
 class AdblockUI : public content::WebUIController {
  public:

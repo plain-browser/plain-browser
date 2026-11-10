@@ -137,6 +137,35 @@ Verified with `scripts/test-adblock-webui.ps1` (scheduled task `PBAdblockWebUI` 
 blocked on the test page, the engine process, the four lists, the settings rows, and the global switch turned off
 in Settings shows Off on the page and `plainbrowser.adblock.enabled = false` in Local State.
 
+## Optional lists, custom filters and the request log
+Added 2026-11-09, not yet built or run in a browser; unit tests and the Rust tests cover the logic.
+
+- **Optional lists** (`common/filter_list_names.h` `kOptionalLists`, Rust `OPTIONAL_LISTS`): EasyList Cookie List
+  (`easylistcookie`, on by default), Fanboy's Annoyance List (`fanboyannoyance`, off; contains the cookie list) and
+  uBlock filters (`ublockfilters`, off; GPLv3, in `lists/ublock/` with its own README.chromium for
+  chrome://credits). Compiled in like the default lists, each with a Local State bool
+  `plainbrowser.adblock.lists.<name>` (registered by `FilterListUpdater`, toggles under "Block ads and trackers" in
+  Settings, `patches/60-ui/0009`). uBlock filters contain rules that need uBO's own scriptlets; adblock-rust skips
+  the scriptlets we do not have (`resources/README.md`), and its `!#if` blocks parse.
+- **Custom filters**: Local State string `plainbrowser.adblock.custom_filters` (at most 1 MB), edited in the "My
+  filters" box on chrome://adblock. Built into the engine after the lists, so `@@` rules there undo list rules that
+  are not `$important`.
+- **Engine configuration**: `mojom::AdblockEngine::UseConfig(EngineConfig)` replaced `UseLists()`: downloaded lists,
+  the optional lists that are on and the custom filters. `AdBlockService` keeps the user part
+  (`SetUserConfig()`, pushed by `FilterListUpdater` from the prefs before the stored lists load) across engine
+  restarts; downloaded lists are still dropped after a crash. The engine process starts with the compiled-in lists
+  and the default optional lists, so with default settings nothing is sent and the engine is built once.
+- **Updates**: `kUpdatableLists` has all six names; the updater downloads an optional list only while it is on
+  (`ChangedLists(..., in_use)`), and checks two minutes after one is turned on that has no downloaded copy. The
+  mirror (`infra/filter-lists`) serves all six; uBO's lists have no `[Adblock Plus]` header, so `! Title:` is
+  accepted as the header on both sides.
+- **Request log** (chrome://adblock, "Request log"): `AdBlockService::Log()` records blocked and `$redirect`-replaced
+  requests (`AdblockFilterImpl`, with the request type and the page's top-level origin) and removed tracking
+  parameters and skipped redirectors (`TrackingParamsNavigationThrottle`), at most 500 entries, only while a
+  chrome://adblock page is open (`AddLogViewer()` in the page handler's constructor); it is emptied when the last
+  one closes. In memory only. Filter box and Clear button on the page.
+- Not done: an element picker ("hide this element" from the context menu), per-feature site toggles.
+
 ## Generic element hiding
 Status 2026-10-27: done, verified headless (`scripts/test-cosmetic-lists.ps1`, part 1).
 
@@ -204,8 +233,8 @@ load and after DOM changes (batched), and runs the class/id observer described a
 Status 2026-10-27: browser side and Worker done, verified with a local server (`scripts/test-cosmetic-lists.ps1`,
 parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed separately (`infra/filter-lists`).
 
-- **Server**: `infra/filter-lists`, a Cloudflare Worker. A cron fetches EasyList, EasyPrivacy and EasyList Polish
-  from their publishers every 6 hours, publishes a list only when it passes sanity checks (size, `[Adblock Plus]`
+- **Server**: `infra/filter-lists`, a Cloudflare Worker. A cron fetches EasyList, EasyPrivacy, EasyList Polish and
+  the three optional lists from their publishers every 6 hours, publishes a list only when it passes sanity checks (size, `[Adblock Plus]`
   header, at least 1000 rules, not shrunk by more than half) and serves `/v1/manifest.json` (SHA-256 and size per
   list) and `/v1/lists/<name>.txt`. No logs. Browsers never contact the publishers.
 - **Browser**: `FilterListUpdater` (UI thread), started from `ChromeBrowserMainParts::PostBrowserStart`
@@ -217,8 +246,8 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   both are empty every manifest is refused), downloads the lists whose hash changed, verifies size, SHA-256 and
   the header, writes them atomically and loads the store again. Requests: no cookies, cache bypassed,
   `X-Client: PlainBrowser/<major.minor.patch>`, a network traffic annotation `plainbrowser_filter_lists`.
-- **Engine swap**: `AdBlockService::UseLists()` sends the lists to the engine process, where
-  `AdBlockEngine::UseLists()` builds the new engine on the thread pool (about a second for
+- **Engine swap**: `AdBlockService::UseLists()` sends the lists to the engine process (`UseConfig()`, with the
+  optional lists and custom filters), where `AdBlockEngine::UseConfig()` builds the new engine on the thread pool (about a second for
   EasyList) while the old one keeps answering, then swaps it in on the engine sequence; a newer call wins over an
   older build still running. Lists that were not downloaded stay the compiled-in ones, and
   `plainbrowser-removeparam.txt` is never downloaded. The compiled-in lists remain the fallback for a fresh

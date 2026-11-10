@@ -99,6 +99,9 @@ TrackingParamsNavigationThrottle::Check() {
     if (std::optional<GURL> target =
             debounce::TargetFor(url, debounce::BuiltInRules());
         target && !shields->IsExcepted(shields::SiteFor(*target))) {
+      AdBlockService::GetInstance()->Log(
+          AdBlockService::LogAction::kRedirectSkipped, url.spec(),
+          target->spec());
       Reissue(*target);
       return CANCEL;
     }
@@ -135,6 +138,8 @@ void TrackingParamsNavigationThrottle::OnRewritten(const GURL& original,
     Resume();
     return;
   }
+  AdBlockService::GetInstance()->Log(AdBlockService::LogAction::kParamsRemoved,
+                                     original.spec(), rewritten.spec());
   // The clean URL has nothing left to strip, so the new navigation proceeds
   // through this throttle.
   Reissue(rewritten);

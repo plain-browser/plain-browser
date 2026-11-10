@@ -8,6 +8,7 @@
 #include "base/base64.h"
 #include "base/files/file_util.h"
 #include "base/files/scoped_temp_dir.h"
+#include "base/functional/bind.h"
 #include "base/strings/string_number_conversions.h"
 #include "crypto/hash.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -80,6 +81,9 @@ TEST(FilterListsTest, ListMatchesChecksSizeHashAndHeader) {
   EXPECT_FALSE(ListMatches(EntryFor(html), html));
   const std::string bom = std::string("\xEF\xBB\xBF") + kList;
   EXPECT_TRUE(ListMatches(EntryFor(bom), bom));
+  // uBlock Origin's lists start with their title instead.
+  const std::string ubo = "! Title: uBlock filters\n||ads.test^\n";
+  EXPECT_TRUE(ListMatches(EntryFor(ubo), ubo));
 }
 
 TEST(FilterListsTest, ManifestSignatureIsEd25519OverTheExactBytes) {
@@ -134,6 +138,26 @@ TEST(FilterListsTest, ChangedListsAreTheNewAndTheDifferentOnes) {
   EXPECT_TRUE(ChangedLists(wanted, wanted).empty());
   // A list the server stopped serving is not "changed": the stored one stays.
   EXPECT_TRUE(ChangedLists(wanted, Manifest{{"easylist", a}}).empty());
+  // Optional lists that are off are left out.
+  const Manifest with_optional = {
+      {"easylist", b}, {"easylistcookie", a}, {"ublockfilters", a}};
+  EXPECT_EQ((std::vector<std::string>{"easylist", "easylistcookie",
+                                      "ublockfilters"}),
+            ChangedLists(stored, with_optional));
+  EXPECT_EQ((std::vector<std::string>{"easylist", "easylistcookie"}),
+            ChangedLists(stored, with_optional,
+                         base::BindRepeating([](std::string_view name) {
+                           return name != "ublockfilters";
+                         })));
+}
+
+TEST(FilterListsTest, ManifestKeepsTheOptionalLists) {
+  const ListEntry a = EntryFor(kList);
+  const std::optional<Manifest> m = ParseManifest(SerializeManifest(
+      {{"easylist", a}, {"fanboyannoyance", a}, {"ublockfilters", a}}));
+  ASSERT_TRUE(m);
+  EXPECT_EQ(3u, m->size());
+  EXPECT_TRUE(m->contains("fanboyannoyance"));
 }
 
 TEST(FilterListsTest, StoreRoundTripAndVerification) {

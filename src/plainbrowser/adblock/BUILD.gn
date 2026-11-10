@@ -15,6 +15,15 @@ mojom("mojom") {
   ]
 }
 
+# Names of the compiled-in lists and the adblock prefs (header-only), shared by
+# the browser side, the engine and the tests.
+source_set("common") {
+  sources = [
+    "common/filter_list_names.h",
+    "common/pref_names.h",
+  ]
+}
+
 # adblock-rust behind a cxx bridge. Built by GN with Chromium's Rust toolchain
 # (never as a cargo staticlib: that would bring a second Rust std/allocator).
 # The adblock crate and its dependencies are vendored into
@@ -28,9 +37,12 @@ rust_static_library("ffi") {
   ]
   inputs = [
     "lists/easylist.txt",
+    "lists/easylistcookie.txt",
     "lists/easylistpolish.txt",
     "lists/easyprivacy.txt",
+    "lists/fanboyannoyance.txt",
     "lists/plainbrowser-removeparam.txt",
+    "lists/ublock/ublockfilters.txt",
     "resources/redirects/1x1.gif",
     "resources/redirects/2x2.png",
     "resources/redirects/chartbeat.js",
@@ -79,7 +91,10 @@ source_set("engine") {
     "engine/ad_block_engine.cc",
     "engine/ad_block_engine.h",
   ]
-  public_deps = [ ":ffi" ]
+  public_deps = [
+    ":common",
+    ":ffi",
+  ]
   deps = [
     "//base",
     "//url",
@@ -113,7 +128,10 @@ source_set("client") {
     "browser/ad_block_service.cc",
     "browser/ad_block_service.h",
   ]
-  public_deps = [ ":mojom" ]
+  public_deps = [
+    ":common",
+    ":mojom",
+  ]
   deps = [
     "//base",
     "//mojo/public/cpp/bindings",
@@ -157,9 +175,11 @@ source_set("updater") {
   sources = [
     "browser/filter_list_updater.cc",
     "browser/filter_list_updater.h",
-    "common/pref_names.h",
   ]
-  public_deps = [ ":lists" ]
+  public_deps = [
+    ":common",
+    ":lists",
+  ]
   deps = [
     ":client",
     "//base",
@@ -235,6 +255,7 @@ source_set("webui") {
   sources += get_target_outputs(":embed_adblock_page_js")
   deps = [
     ":client",
+    ":common",
     ":embed_adblock_page_html",
     ":embed_adblock_page_js",
     ":lists",
@@ -325,6 +346,7 @@ source_set("unit_tests") {
   ]
   deps = [
     ":client",
+    ":common",
     ":engine",
     ":engine_service",
     ":ffi",

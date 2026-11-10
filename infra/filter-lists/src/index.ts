@@ -1,5 +1,5 @@
 // Filter list mirror for Cloudflare Workers (lists.plain-browser.app).
-// A cron trigger fetches EasyList, EasyPrivacy and EasyList Polish from their publishers, checks that each is a
+// A cron trigger fetches EasyList, EasyPrivacy, EasyList Polish and the optional lists from their publishers, checks that each is a
 // plausible Adblock Plus list and stores it in KV with a manifest of SHA-256 hashes and sizes. The manifest is
 // signed with an Ed25519 key (secret SIGNING_KEY); the browser (//plainbrowser/adblock FilterListUpdater) checks
 // the signature with the public key compiled into it, reads the manifest once a day and downloads only lists
@@ -23,10 +23,14 @@ export interface Env {
 }
 
 // The names are the browser's (filter_lists::kUpdatableLists); the URLs are the publishers' (lists/NOTICE.md).
+// The last three are optional in the browser (kOptionalLists); it downloads them only while they are on.
 export const SOURCES: Record<string, string> = {
   easylist: "https://easylist.to/easylist/easylist.txt",
   easyprivacy: "https://easylist.to/easylist/easyprivacy.txt",
   easylistpolish: "https://easylist-downloads.adblockplus.org/easylistpolish.txt",
+  easylistcookie: "https://secure.fanboy.co.nz/fanboy-cookiemonster.txt",
+  fanboyannoyance: "https://easylist.to/easylist/fanboy-annoyance.txt",
+  ublockfilters: "https://ublockorigin.github.io/uAssets/filters/filters.txt",
 };
 
 // Bounds a real list is well inside (EasyList ~2 MB and ~70k rules, EasyList Polish ~1 MB); the browser accepts
@@ -90,7 +94,9 @@ export function countRules(list: string): number {
 export function rejectReason(list: string, previous?: Entry): string | null {
   const bytes = new TextEncoder().encode(list).byteLength;
   if (bytes < MIN_BYTES || bytes > MAX_BYTES) return `size ${bytes}`;
-  if (!list.replace(/^﻿/, "").startsWith("[Adblock Plus")) return "no [Adblock Plus] header";
+  // uBlock Origin's lists have no Adblock Plus header and start with their title (filter_lists::ListMatches).
+  const head = list.replace(/^﻿/, "");
+  if (!head.startsWith("[Adblock Plus") && !head.startsWith("! Title:")) return "no [Adblock Plus] or ! Title: header";
   const rules = countRules(list);
   if (rules < MIN_RULES) return `only ${rules} rules`;
   if (previous && rules < previous.rules * (1 - MAX_SHRINK)) return `shrank from ${previous.rules} to ${rules} rules`;
@@ -136,7 +142,9 @@ export async function refresh(env: Env, now = new Date()): Promise<Record<string
   const manifest: Manifest = published?.manifest ?? {
     format: 1,
     generated: "",
-    license: "GPLv3 or CC BY-SA 3.0, https://easylist.to/pages/licence.html",
+    license:
+      "EasyList lists: GPLv3 or CC BY-SA 3.0, https://easylist.to/pages/licence.html; uBlock filters: GPLv3, " +
+      "https://github.com/uBlockOrigin/uAssets",
     lists: {},
   };
   const report: Record<string, string> = {};

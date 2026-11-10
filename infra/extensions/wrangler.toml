@@ -1,0 +1,32 @@
+name = "plainbrowser-extensions"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# The zone plain-browser.app must be on Cloudflare. Each served extension's manifest has
+# "update_url": "https://ext.plain-browser.app/v1/updates.xml" (scripts/extensions.mjs UPDATE_URL).
+routes = [
+  { pattern = "ext.plain-browser.app", custom_domain = true }
+]
+
+# CRX files, catalog.json and updates.xml, uploaded by scripts/publish.mjs. Create the bucket once:
+#   npx wrangler r2 bucket create plainbrowser-extensions
+[[r2_buckets]]
+binding = "EXTENSIONS"
+bucket_name = "plainbrowser-extensions"
+
+# Do not keep request logs. Aggregate metrics in the dashboard are enough.
+[observability]
+enabled = false
+
+[observability.logs]
+enabled = false
+invocation_logs = false
+
+# Rate limit per client IP: 60 requests per 60 s. A browser checks for updates every few hours (one request for
+# all extensions) and downloads a CRX only when a version changes.
+# namespace_id: any unique integer in your account (Safe Browsing proxy 1001, filter lists 1002).
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1003"
+simple = { limit = 60, period = 60 }

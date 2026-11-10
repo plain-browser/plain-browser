@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "base/functional/bind.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
@@ -93,6 +94,15 @@ class AdBlockServiceTest : public testing::Test {
   void UseLists(AdBlockService::ListTexts lists) {
     base::test::TestFuture<void> done;
     service_->UseLists(std::move(lists), done.GetSequenceBoundCallback());
+    ASSERT_TRUE(done.Wait());
+  }
+
+  void SetUserConfig(std::vector<std::string> optional_lists,
+                     std::string custom_filters) {
+    base::test::TestFuture<void> done;
+    service_->SetUserConfig(std::move(optional_lists),
+                            std::move(custom_filters),
+                            done.GetSequenceBoundCallback());
     ASSERT_TRUE(done.Wait());
   }
 
@@ -190,6 +200,72 @@ TEST_F(AdBlockServiceTest, BlockingSwitchAndCounterStartOnAndAtZero) {
   service_->CountBlocked();
   service_->CountBlocked();
   EXPECT_EQ(2, service_->blocked_total());
+}
+
+// EasyList Cookie List (on by default) and a custom filter.
+constexpr char kConsentScript[] = "https://api.consentjs.datagrail.io/c.js";
+
+TEST_F(AdBlockServiceTest, UserConfigReachesARunningEngine) {
+  EXPECT_TRUE(ShouldBlock(kConsentScript));
+  EXPECT_EQ(1, Starts());
+  SetUserConfig({}, "||mine.test^\n");
+  EXPECT_FALSE(ShouldBlock(kConsentScript));
+  EXPECT_TRUE(ShouldBlock("https://mine.test/x.js"));
+  EXPECT_TRUE(ShouldBlock(kAdScript));
+  // Unknown list names are dropped; no new process for a settings change.
+  SetUserConfig({"easylistcookie", "nosuchlist"}, "");
+  EXPECT_TRUE(ShouldBlock(kConsentScript));
+  EXPECT_FALSE(ShouldBlock("https://mine.test/x.js"));
+  EXPECT_EQ(1, Starts());
+}
+
+TEST_F(AdBlockServiceTest, UserConfigIsKeptWhenTheEngineIsStartedAgain) {
+  SetUserConfig({"easylistcookie"}, "||mine.test^\n");
+  // A settings change does not start a process by itself.
+  EXPECT_EQ(0, Starts());
+  // UseLists() starts it and waits until the configuration is swapped in
+  // (a query right after a start may still meet the default engine).
+  UseLists({{"easylist", "[Adblock Plus 2.0]\n||fresh-ads.test^\n"}});
+  EXPECT_TRUE(ShouldBlock("https://mine.test/x.js"));
+  EXPECT_TRUE(ShouldBlock("https://fresh-ads.test/a.js"));
+  CrashEngine();
+  UseLists({});
+  EXPECT_EQ(2, Starts());
+  EXPECT_TRUE(ShouldBlock("https://mine.test/x.js"));
+  EXPECT_TRUE(ShouldBlock(kConsentScript));
+  base::test::TestFuture<AdBlockService::Status> status;
+  service_->GetStatus(status.GetSequenceBoundCallback());
+  EXPECT_EQ(std::vector<std::string>({"easylistcookie"}),
+            status.Get().optional_lists);
+  EXPECT_EQ(13u, status.Get().custom_filters_bytes);
+}
+
+TEST_F(AdBlockServiceTest, TheLogRecordsOnlyWhileSomeoneLooks) {
+  using Action = AdBlockService::LogAction;
+  service_->Log(Action::kBlocked, kAdScript, kPage, "script");
+  EXPECT_TRUE(service_->GetLog().empty());
+  service_->AddLogViewer();
+  service_->Log(Action::kBlocked, kAdScript, kPage, "script");
+  service_->Log(Action::kParamsRemoved, "https://a.test/?utm_source=x",
+                "https://a.test/");
+  std::vector<AdBlockService::LogEntry> log = service_->GetLog();
+  ASSERT_EQ(2u, log.size());
+  EXPECT_EQ(Action::kBlocked, log[0].action);
+  EXPECT_EQ(kAdScript, log[0].url);
+  EXPECT_EQ("script", log[0].type);
+  EXPECT_EQ(Action::kParamsRemoved, log[1].action);
+  // Bounded: the oldest entries go first.
+  for (size_t i = 0; i < AdBlockService::kMaxLogEntries; ++i) {
+    service_->Log(Action::kBlocked, "https://x.test/" + base::NumberToString(i),
+                  kPage, "image");
+  }
+  log = service_->GetLog();
+  ASSERT_EQ(AdBlockService::kMaxLogEntries, log.size());
+  EXPECT_EQ("https://x.test/0", log.front().url);
+  // The last viewer leaving empties it.
+  service_->RemoveLogViewer();
+  EXPECT_FALSE(service_->logging());
+  EXPECT_TRUE(service_->GetLog().empty());
 }
 
 TEST_F(AdBlockServiceTest, StopsStartingAnEngineThatKeepsGoingAway) {

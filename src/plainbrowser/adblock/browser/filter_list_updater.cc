@@ -16,6 +16,7 @@
 #include "net/http/http_status_code.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
 #include "plainbrowser/adblock/browser/ad_block_service.h"
+#include "plainbrowser/adblock/common/filter_list_names.h"
 #include "plainbrowser/adblock/common/pref_names.h"
 #include "plainbrowser/common/version.h"
 #include "services/network/public/cpp/resource_request.h"
@@ -47,8 +48,10 @@ constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
           sender: "Plain Browser filter list updater"
           description:
             "Downloads updates of the ad and tracker filter lists (EasyList, "
-            "EasyPrivacy, EasyList Polish) from lists.plain-browser.app, a "
-            "mirror run by the Plain Browser project."
+            "EasyPrivacy, EasyList Polish, and the optional EasyList Cookie "
+            "List, Fanboy's Annoyance List and uBlock filters when they are "
+            "on) from lists.plain-browser.app, a mirror run by the Plain "
+            "Browser project."
           trigger:
             "Once a day while the browser runs, a few minutes after start-up."
           data:
@@ -81,6 +84,10 @@ GURL ServerUrl() {
 // static
 void FilterListUpdater::RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
   registry->RegisterBooleanPref(prefs::kBlockingEnabled, true);
+  for (const OptionalList& list : kOptionalLists) {
+    registry->RegisterBooleanPref(list.pref, list.default_on);
+  }
+  registry->RegisterStringPref(prefs::kCustomFilters, std::string());
   registry->RegisterBooleanPref(prefs::kListUpdatesEnabled, true);
   registry->RegisterTimePref(prefs::kListUpdatesLastCheck, base::Time());
   registry->RegisterDoublePref(prefs::kListUpdatesLastSuccess, 0.0);
@@ -103,6 +110,45 @@ bool FilterListUpdater::CheckNow() {
 void FilterListUpdater::OnBlockingEnabledChanged() {
   AdBlockService::GetInstance()->SetBlockingEnabled(
       local_state_->GetBoolean(prefs::kBlockingEnabled));
+}
+
+bool FilterListUpdater::ListInUse(std::string_view name) const {
+  for (const OptionalList& list : kOptionalLists) {
+    if (list.name == name) {
+      return local_state_->GetBoolean(list.pref);
+    }
+  }
+  return true;
+}
+
+void FilterListUpdater::PushUserConfig() {
+  std::vector<std::string> optional_lists;
+  for (const OptionalList& list : kOptionalLists) {
+    if (local_state_->GetBoolean(list.pref)) {
+      optional_lists.emplace_back(list.name);
+    }
+  }
+  AdBlockService::GetInstance()->SetUserConfig(
+      std::move(optional_lists), local_state_->GetString(prefs::kCustomFilters));
+}
+
+void FilterListUpdater::OnUserConfigChanged() {
+  PushUserConfig();
+  if (!Enabled() || checking_) {
+    return;
+  }
+  // The compiled-in copy of a list just turned on may be weeks old: fetch the
+  // current one soon rather than at the next daily check.
+  for (const OptionalList& list : kOptionalLists) {
+    if (local_state_->GetBoolean(list.pref) &&
+        !stored_.contains(std::string(list.name)) &&
+        (!timer_.IsRunning() ||
+         timer_.desired_run_time() - base::TimeTicks::Now() >
+             kFirstCheckDelay)) {
+      ScheduleCheck(kFirstCheckDelay);
+      return;
+    }
+  }
 }
 
 // static
@@ -137,7 +183,17 @@ FilterListUpdater::FilterListUpdater(
       prefs::kBlockingEnabled,
       base::BindRepeating(&FilterListUpdater::OnBlockingEnabledChanged,
                           base::Unretained(this)));
+  for (const OptionalList& list : kOptionalLists) {
+    registrar_.Add(list.pref,
+                   base::BindRepeating(&FilterListUpdater::OnUserConfigChanged,
+                                       base::Unretained(this)));
+  }
+  registrar_.Add(prefs::kCustomFilters,
+                 base::BindRepeating(&FilterListUpdater::OnUserConfigChanged,
+                                     base::Unretained(this)));
   OnBlockingEnabledChanged();
+  // Before the stored lists are loaded, so the engine is built once with both.
+  PushUserConfig();
   if (!Enabled()) {
     // Lists stored before the user turned updates off are not used; remove
     // them if a previous run could not.
@@ -299,7 +355,10 @@ void FilterListUpdater::OnSignature(std::string manifest_json,
     return;
   }
   wanted_ = std::move(*manifest);
-  pending_ = filter_lists::ChangedLists(stored_, wanted_);
+  pending_ = filter_lists::ChangedLists(
+      stored_, wanted_,
+      base::BindRepeating(&FilterListUpdater::ListInUse,
+                          base::Unretained(this)));
   fetched_.clear();
   FetchNextList();
 }

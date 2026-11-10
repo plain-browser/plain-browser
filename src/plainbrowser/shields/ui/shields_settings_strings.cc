@@ -32,6 +32,18 @@ void AddSettingsStrings(content::WebUIDataSource* html_source) {
       {"plainBrowserAdblockStatus", IDS_SETTINGS_PLAINBROWSER_ADBLOCK_STATUS},
       {"plainBrowserAdblockStatusDesc",
        IDS_SETTINGS_PLAINBROWSER_ADBLOCK_STATUS_DESC},
+      {"plainBrowserListCookie", IDS_SETTINGS_PLAINBROWSER_LIST_COOKIE},
+      {"plainBrowserListCookieDesc",
+       IDS_SETTINGS_PLAINBROWSER_LIST_COOKIE_DESC},
+      {"plainBrowserListAnnoyance", IDS_SETTINGS_PLAINBROWSER_LIST_ANNOYANCE},
+      {"plainBrowserListAnnoyanceDesc",
+       IDS_SETTINGS_PLAINBROWSER_LIST_ANNOYANCE_DESC},
+      {"plainBrowserListUblock", IDS_SETTINGS_PLAINBROWSER_LIST_UBLOCK},
+      {"plainBrowserListUblockDesc",
+       IDS_SETTINGS_PLAINBROWSER_LIST_UBLOCK_DESC},
+      {"plainBrowserExtensions", IDS_SETTINGS_PLAINBROWSER_EXTENSIONS},
+      {"plainBrowserExtensionsDesc",
+       IDS_SETTINGS_PLAINBROWSER_EXTENSIONS_DESC},
   };
   html_source->AddLocalizedStrings(kStrings);
 

@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -27,8 +28,8 @@ class SimpleURLLoader;
 
 namespace plainbrowser::adblock {
 
-// Keeps EasyList, EasyPrivacy and EasyList Polish current between browser
-// releases. Once a day (pref prefs::kListUpdatesLastCheck) it fetches the
+// Keeps EasyList, EasyPrivacy, EasyList Polish and the optional lists that are
+// on current between browser releases. Once a day (pref prefs::kListUpdatesLastCheck) it fetches the
 // manifest from lists.plain-browser.app (filter_lists::kDefaultServerUrl) and
 // its Ed25519 signature, checks the signature against
 // filter_lists::kListSigningKeys, downloads the lists whose hash changed,
@@ -41,8 +42,10 @@ namespace plainbrowser::adblock {
 // chrome://settings/privacy) turns it off: no requests, the stored lists are
 // deleted and the engine goes back to the compiled-in lists.
 //
-// It also mirrors the global blocking switch (prefs::kBlockingEnabled) into
-// AdBlockService, being the owner of the adblock Local State prefs.
+// It also mirrors the global blocking switch (prefs::kBlockingEnabled), the
+// optional lists (kOptionalLists' prefs) and the user's own filters
+// (prefs::kCustomFilters) into AdBlockService, being the owner of the adblock
+// Local State prefs.
 //
 // UI thread. Started once from ChromeBrowserMainParts::PostBrowserStart
 // (patches/30-adblock/0006); lives until the process exits.
@@ -78,6 +81,14 @@ class FilterListUpdater {
   bool Enabled() const;
   void OnEnabledChanged();
   void OnBlockingEnabledChanged();
+  // Hands the optional lists that are on and the user's filters to
+  // AdBlockService.
+  void PushUserConfig();
+  // A user change of those: pushes them, and checks for updates soon when an
+  // optional list was turned on that has no downloaded copy yet.
+  void OnUserConfigChanged();
+  // Default lists always; optional ones while their pref is on.
+  bool ListInUse(std::string_view name) const;
   void LoadStore();
   void OnStoreRead(filter_lists::Store store);
 

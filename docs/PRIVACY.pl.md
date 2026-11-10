@@ -1,6 +1,6 @@
 # Polityka prywatności Plain Browser
 
-Ostatnia aktualizacja: 28 października 2026 · [English](PRIVACY.md)
+Ostatnia aktualizacja: 9 listopada 2026 · [English](PRIVACY.md)
 
 Plain Browser to przeglądarka zbudowana z Chromium z zestawem poprawek ungoogled-chromium. Ta polityka opisuje, co
 przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.2.1-beta.1 i jest aktualizowana przy każdym wydaniu, które to
@@ -11,9 +11,9 @@ zmienia.
 - Plain Browser **nie ma telemetrii, statystyk użycia ani raportów o awariach**, które trafiałyby do nas lub do
   kogokolwiek innego.
 - Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera**, który odbierałby z
-  przeglądarki dane o Tobie. Nie widzimy, co przeglądasz. Dwie nasze usługi, z którymi łączy się przeglądarka
-  (proxy Safe Browsing i serwer list filtrów, opisane niżej), nie prowadzą logów i nie dostają nic o odwiedzanych
-  stronach.
+  przeglądarki dane o Tobie. Nie widzimy, co przeglądasz. Nasze usługi, z którymi łączy się przeglądarka (proxy
+  Safe Browsing, serwer list filtrów i repozytorium rozszerzeń, opisane niżej), nie prowadzą logów i nie dostają
+  nic o odwiedzanych stronach.
 - **Nie łączy się z usługami Google.** Poprawki ungoogled-chromium usuwają je (logowanie Google, tłumaczenie,
   Chrome Web Store i inne). Jedynym wyjątkiem jest Safe Browsing przez nasze własne anonimizujące
   proxy, opisane niżej; można go wyłączyć.
@@ -40,9 +40,17 @@ Windows trzyma profil w prywatnej pamięci aplikacji i usuwa go przy odinstalowa
 Gdy otwierasz stronę, przeglądarka wysyła jej to, co potrzebne do załadowania, w tym Twój adres IP i standardowe
 nagłówki żądań. Tak działa sieć, a do tych danych stosuje się polityka prywatności danej strony.
 
+Przeglądarka informuje też każdą stronę, że nie zgadzasz się na sprzedaż ani udostępnianie Twoich danych, sygnałem
+**Global Privacy Control** (nagłówek `Sec-GPC: 1` i `navigator.globalPrivacyControl`). Według przepisów takich jak
+kalifornijska CCPA strony muszą go respektować; gdzie indziej jest prośbą. Jest domyślnie włączony; można go
+wyłączyć w Ustawieniach > Prywatność i bezpieczeństwo, na stronie plików cookie innych firm (przełącznik prośby do
+witryn o rezygnację z wykorzystania danych).
+
 Wbudowany bloker reklam działa w całości na Twoim urządzeniu. Listy filtrów (EasyList, EasyPrivacy, EasyList
-Polish) są dołączone do przeglądarki i, o ile nie wyłączysz aktualizacji, odświeżane z naszego serwera (następna
-sekcja). Bloker nikomu nie zgłasza, co blokuje.
+Polish, EasyList Cookie List, a po włączeniu także Fanboy's Annoyance List i uBlock filters) są dołączone do
+przeglądarki i, o ile nie wyłączysz aktualizacji, odświeżane z naszego serwera (następna sekcja). Bloker nikomu nie
+zgłasza, co blokuje. Jego dziennik żądań na chrome://adblock zapisuje tylko wtedy, gdy ta strona jest otwarta,
+jest przechowywany wyłącznie w pamięci i czyszczony po jej zamknięciu.
 
 ## Bezpieczny DNS
 
@@ -58,7 +66,8 @@ DNS”.
 Od wersji 0.1.3-alpha.1 przeglądarka odświeża listy filtrów między wydaniami:
 
 - Raz na dobę, kilka minut po uruchomieniu, pyta **nasz serwer lists.plain-browser.app** (Cloudflare Worker) o
-  krótki manifest z sumą kontrolną każdej listy i pobiera listę tylko wtedy, gdy się zmieniła. Nigdy nie łączy się
+  krótki manifest z sumą kontrolną każdej listy i pobiera listę tylko wtedy, gdy się zmieniła (a listę opcjonalną
+  tylko wtedy, gdy jest włączona). Nigdy nie łączy się
   z autorami list; to serwer pobiera listy od nich.
 - Żądania **nie zawierają plików cookie ani niczego o odwiedzanych stronach**, tylko numer wersji przeglądarki
   (`X-Client: PlainBrowser/<major.minor.patch>`, ten sam nagłówek, który dostaje proxy Safe Browsing). Przed
@@ -96,6 +105,18 @@ oferuje to bez przekazywania Google czegokolwiek o Tobie:
 
 Rozszerzenia, które instalujesz, mogą odczytywać i wysyłać dane zgodnie z nadanymi im uprawnieniami. Odpowiadają za
 to ich autorzy, a nie Plain Browser, i to oni mają własne polityki prywatności.
+
+Strona **chrome://recommended-extensions** oferuje uBlock Origin, AdGuard, NoScript i uMatrix, które udostępniamy
+na **ext.plain-browser.app** (Cloudflare Worker), bo Chrome Web Store nie jest częścią przeglądarki:
+
+- Nic nie jest pobierane, dopóki nie klikniesz Zainstaluj (lub Przełącz). Pobranie nie zawiera plików cookie,
+  tylko numer wersji przeglądarki (`X-Client`).
+- Po instalacji mechanizm aktualizacji rozszerzeń Chromium co kilka godzin sprawdza na ext.plain-browser.app, czy
+  jest nowa wersja, tak jak Chrome sprawdza Web Store. Zapytanie zawiera to, co Chromium umieszcza w każdym
+  sprawdzeniu aktualizacji: identyfikatory i wersje tych rozszerzeń, wersję przeglądarki, system operacyjny i jego
+  architekturę oraz język przeglądarki. Nie zawiera nic o odwiedzanych stronach. Po ich usunięciu sprawdzanie ustaje.
+- **Repozytorium nie prowadzi logów** i przechowuje tylko pliki rozszerzeń. Cloudflare widzi Twój adres IP, jak
+  przy każdej obsługiwanej przez siebie stronie.
 
 ## Microsoft Store
 

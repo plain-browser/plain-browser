@@ -142,6 +142,12 @@ Weryfikować na konkretnym tagu Chromium (`git log --grep="MV2"` w `extensions/`
 Ryzyko: jeśli Google usunie implementację blokującego `webRequest` także dla enterprise, koszt rośnie z „patch gatingu” do „utrzymania martwego podsystemu”. Brave zadeklarował, że będzie to robił – **portujemy ich patche** (brave-core jest MPL-2.0: `brave/patches/*.patch` i `brave/chromium_src/extensions/...`; nasze pliki pochodne z ich kodu zostają MPL). Ustalić kontakt/śledzenie ich PR-ów z labelem MV2.
 
 ### 8.2 Dystrybucja rozszerzeń MV2 (bez Chrome Web Store)
+
+> **Aktualizacja 2026-11-09:** zrobione bez serwera Omaha: `infra/extensions` (Worker + R2, `updates.xml` w formacie
+> gupdate), strona `chrome://recommended-extensions` zamiast `chrome://settings/extensions/mv2`, instalacja przez
+> `CrxInstaller` z oknem uprawnień i przypiętym ID, migracja z kopii z CWS (z ustawieniami `chrome.storage.local`).
+> Szczegóły: `docs/MV2.md`, sekcja „Distribution without the Chrome Web Store”. Pliki `.crx` z dowolnej strony
+> otwierają okno instalacji (domyślna wartość flagi ungoogled `extension-mime-request-handling`).
 - Własne repozytorium CRX na serwerze Omaha (sekcja 6): `update_url` → nasz host. Pakujemy uBO, uMatrix, NoScript, AdGuard z ich GitHub releases, podpisujemy **naszym** kluczem (więc ID różni się od CWS, jak u Brave).
 - UI: `chrome://settings/extensions/mv2` – lista kuratorowana z przełącznikami (jak Brave). Instalacja przez `ExtensionInstaller` z naszego CRX, flaga „from Plain Browser store” pozwala `webRequestBlocking` (traktujemy jak location policy w gatingu z 8.1 pkt 4).
 - Migracja: wykrywamy ID znanych rozszerzeń z CWS (uBO `cjpalhdlnbpafiamejdnhcphjbkeiagm` itd.), importujemy ustawienia (`chrome.storage.local` → nasz CRX) i podmieniamy – Brave to ma, dobra UX.

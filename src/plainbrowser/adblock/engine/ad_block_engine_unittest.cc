@@ -10,6 +10,7 @@
 #include "base/strings/string_util.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
+#include "plainbrowser/adblock/common/filter_list_names.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "url/gurl.h"
 
@@ -102,11 +103,26 @@ class AdBlockEngineTest : public testing::Test {
     return result.Take();
   }
 
-  // UseLists() and wait for the swap.
-  void UseLists(AdBlockEngine::ListTexts lists) {
+  // A config of these downloaded lists, the optional lists on by default and
+  // `custom` filters.
+  static AdBlockEngine::Config Config(AdBlockEngine::ListTexts lists,
+                                      std::string custom = std::string()) {
+    AdBlockEngine::Config config;
+    config.lists = std::move(lists);
+    config.optional_lists = DefaultOptionalLists();
+    config.custom_filters = std::move(custom);
+    return config;
+  }
+
+  // UseConfig() and wait for the swap.
+  void UseConfig(AdBlockEngine::Config config) {
     base::test::TestFuture<void> swapped;
-    engine_->UseLists(std::move(lists), swapped.GetCallback());
+    engine_->UseConfig(std::move(config), swapped.GetCallback());
     ASSERT_TRUE(swapped.Wait());
+  }
+
+  void UseLists(AdBlockEngine::ListTexts lists) {
+    UseConfig(Config(std::move(lists)));
   }
 
   base::test::TaskEnvironment task_environment_;
@@ -185,7 +201,7 @@ TEST_F(AdBlockEngineTest, GenericClassAndIdRulesForTheDocument) {
             GenericCss("https://techymedies.com/", {}, {"ad-top"}).find("#ad-top"));
 }
 
-TEST_F(AdBlockEngineTest, UseListsReplacesTheNamedListOnly) {
+TEST_F(AdBlockEngineTest, DownloadedListsReplaceTheNamedListOnly) {
   UseLists({{"easylist", "[Adblock Plus 2.0]\n||fresh-ads.test^\n"}});
   EXPECT_TRUE(ShouldBlock("https://fresh-ads.test/a.js", kPage, "script"));
   // EasyList's own host rule is gone with the replaced list...
@@ -202,15 +218,52 @@ TEST_F(AdBlockEngineTest, UseListsReplacesTheNamedListOnly) {
   EXPECT_FALSE(ShouldBlock("https://fresh-ads.test/a.js", kPage, "script"));
 }
 
-TEST_F(AdBlockEngineTest, TheLatestUseListsCallWins) {
+TEST_F(AdBlockEngineTest, TheLatestUseConfigCallWins) {
   base::test::TestFuture<void> first;
   base::test::TestFuture<void> second;
-  engine_->UseLists({{"easylist", "||first.test^\n"}}, first.GetCallback());
-  engine_->UseLists({{"easylist", "||second.test^\n"}}, second.GetCallback());
+  engine_->UseConfig(Config({{"easylist", "||first.test^\n"}}),
+                     first.GetCallback());
+  engine_->UseConfig(Config({{"easylist", "||second.test^\n"}}),
+                     second.GetCallback());
   ASSERT_TRUE(first.Wait());
   ASSERT_TRUE(second.Wait());
   EXPECT_TRUE(ShouldBlock("https://second.test/", kPage, "script"));
   EXPECT_FALSE(ShouldBlock("https://first.test/", kPage, "script"));
+}
+
+// EasyList Cookie List: ||api.consentjs.datagrail.io^ (on by default).
+constexpr char kConsentScript[] = "https://api.consentjs.datagrail.io/c.js";
+
+TEST_F(AdBlockEngineTest, TheCookieListIsOnByDefaultAndCanBeTurnedOff) {
+  EXPECT_TRUE(ShouldBlock(kConsentScript, kPage, "script"));
+  AdBlockEngine::Config off = Config({});
+  off.optional_lists.clear();
+  UseConfig(std::move(off));
+  EXPECT_FALSE(ShouldBlock(kConsentScript, kPage, "script"));
+  EXPECT_TRUE(ShouldBlock(kAdScript, kPage, "script"));
+}
+
+TEST_F(AdBlockEngineTest, OptionalListsAreAddedWhenOn) {
+  // uBlock filters: ||yollamedia.com^.
+  const char kUboOnly[] = "https://yollamedia.com/a.js";
+  EXPECT_FALSE(ShouldBlock(kUboOnly, kPage, "script"));
+  AdBlockEngine::Config config = Config({});
+  config.optional_lists.push_back("ublockfilters");
+  UseConfig(std::move(config));
+  EXPECT_TRUE(ShouldBlock(kUboOnly, kPage, "script"));
+  EXPECT_TRUE(ShouldBlock(kConsentScript, kPage, "script"));
+}
+
+TEST_F(AdBlockEngineTest, CustomFiltersBlockHideAndExcept) {
+  UseConfig(Config({}, "||mine.test^\nplain-browser.test##.my-banner\n"
+                       "@@||pagead2.googlesyndication.com^\n"));
+  EXPECT_TRUE(ShouldBlock("https://mine.test/x.js", kPage, "script"));
+  EXPECT_FALSE(ShouldBlock(kAdScript, kPage, "script"));
+  EXPECT_NE(std::string::npos, CosmeticCss(kPage).find(".my-banner"));
+  // Without them, back to the lists alone.
+  UseLists({});
+  EXPECT_FALSE(ShouldBlock("https://mine.test/x.js", kPage, "script"));
+  EXPECT_TRUE(ShouldBlock(kAdScript, kPage, "script"));
 }
 
 // EasyPrivacy: ||static.chartbeat.com/js/chartbeat.js$redirect=chartbeat.js,script

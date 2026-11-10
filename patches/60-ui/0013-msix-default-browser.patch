@@ -1,0 +1,49 @@
+From: Plain Browser
+Subject: [ui] Default browser from the MSIX package: check and set it by the package app's ID
+
+Category: 60-ui. Code lives in //plainbrowser/win (msix_default_browser.*); this patch only calls it. From the
+Microsoft Store the browser runs from an MSIX package: Windows registers its http/https handlers under generated
+"AppX..." ProgIDs and keeps the app's own registry writes in the package's private hive. Chromium's check compares
+the current default with the installer's ProgID (PlainBrowserHTML...), so chrome://settings always said "not
+default", and "Make default" opened Default apps for an application name Windows does not know. In a package,
+GetDefaultBrowser() now compares the http and https handlers' App User Model IDs with the package app's
+(<PackageFamilyName>!PlainBrowser), and SetAsDefaultBrowserUsingSystemSettings() opens
+ms-settings:defaultapps?registeredAUMID=<that ID>, the package app's page in Settings > Apps > Default apps
+(watching the UserChoice keys as before). Outside a package (portable build) both fall through to Chromium's code.
+---
+--- a/chrome/browser/shell_integration_win.cc
++++ b/chrome/browser/shell_integration_win.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/shell_integration_win.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/win/msix_default_browser.h"
+ 
+ #include <objbase.h>
+ 
+@@ -789,6 +793,11 @@
+ }
+ 
+ DefaultWebClientState GetDefaultBrowser() {
++  // Plain Browser: from the MSIX package, ask by the package app's ID.
++  if (std::optional<bool> is_default =
++          plainbrowser::win::IsPackageDefaultBrowser()) {
++    return *is_default ? IS_DEFAULT : NOT_DEFAULT;
++  }
+   return GetDefaultWebClientStateFromShellUtilDefaultState(
+       ShellUtil::GetChromeDefaultState());
+ }
+@@ -868,6 +877,10 @@
+   static constexpr std::wstring_view kSchemes[] = {L"http", L"https"};
+   OpenSystemSettingsHelper::Begin(kSchemes, std::move(on_finished_callback));
+ 
++  // Plain Browser: from the MSIX package, open the package app's page.
++  if (plainbrowser::win::ShowPackageDefaultAppsSettings()) {
++    return;
++  }
+   ShellUtil::ShowMakeChromeDefaultSystemUI(chrome_exe);
+ }
+ 

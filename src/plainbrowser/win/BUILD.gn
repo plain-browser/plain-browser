@@ -1,0 +1,19 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# Windows-only pieces of the browser process. Linked through
+# //plainbrowser:browser on Windows (chrome/browser:core depends on it).
+assert(is_win)
+
+# The default-browser check and the "Make default" button when the browser runs
+# from its MSIX package (Microsoft Store); hooked into
+# chrome/browser/shell_integration_win.cc by patches/60-ui/0013.
+source_set("default_browser") {
+  sources = [
+    "msix_default_browser.cc",
+    "msix_default_browser.h",
+  ]
+  deps = [ "//base" ]
+  libs = [
+    "shell32.lib",
+    "shlwapi.lib",
+  ]
+}

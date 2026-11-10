@@ -21,9 +21,10 @@ namespace plainbrowser::adblock {
 
 // Owner of the adblock-rust engine, in the adblock utility process
 // (AdBlockEngineService) and in unit tests. All methods except task_runner()
-// and UseLists() must run on task_runner(). The engine is built from the
+// and UseConfig() must run on task_runner(). The engine is built from the
 // compiled-in lists asynchronously; until it is ready, nothing is blocked.
-// UseLists() swaps in an engine built from downloaded lists. Lives as long as
+// UseConfig() swaps in an engine built from downloaded lists, the optional
+// lists the user turned on and the user's own filters. Lives as long as
 // its process; tests run the task environment until idle before destroying it.
 class AdBlockEngine {
  public:
@@ -37,15 +38,29 @@ class AdBlockEngine {
     return task_runner_;
   }
 
-  // Downloaded list texts by list name (default_list_names()).
+  // Downloaded list texts by list name (common/filter_list_names.h).
   using ListTexts = std::vector<std::pair<std::string, std::string>>;
 
-  // Any thread. Builds an engine from the default lists with the named ones
-  // replaced by `lists` (empty: the compiled-in lists only) on the thread pool,
-  // then swaps it in on task_runner(); queries keep using the old engine until
-  // then. A later call wins over an earlier one still building. `done` runs on
-  // task_runner() after the swap.
-  void UseLists(ListTexts lists, base::OnceClosure done = base::OnceClosure());
+  // What an engine is built from besides the default lists (mojom::EngineConfig).
+  struct Config {
+    Config();
+    Config(Config&&);
+    Config& operator=(Config&&);
+    ~Config();
+    // Downloaded lists replacing compiled-in ones of the same name.
+    ListTexts lists;
+    // The optional lists that are on (kOptionalLists names).
+    std::vector<std::string> optional_lists;
+    // The user's own filters.
+    std::string custom_filters;
+  };
+
+  // Any thread. Builds an engine from `config` on the thread pool, then swaps
+  // it in on task_runner(); queries keep using the old engine until then. A
+  // later call wins over an earlier one still building. `done` runs on
+  // task_runner() after the swap. Before the first call the engine is the one
+  // of the compiled-in lists with the default optional lists.
+  void UseConfig(Config config, base::OnceClosure done = base::OnceClosure());
 
   bool ShouldBlock(const GURL& url,
                    const GURL& source_url,
@@ -97,7 +112,7 @@ class AdBlockEngine {
 
   const scoped_refptr<base::SequencedTaskRunner> task_runner_;
   std::optional<rust::Box<AdblockEngine>> engine_;
-  // Incremented by every UseLists() call (any thread); an engine whose build
+  // Incremented by every UseConfig() call (any thread); an engine whose build
   // started before the latest call is dropped instead of swapped in.
   std::atomic<int> generation_{0};
   SEQUENCE_CHECKER(sequence_checker_);

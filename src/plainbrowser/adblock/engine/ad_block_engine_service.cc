@@ -34,16 +34,19 @@ AdBlockEngineService::AdBlockEngineService(
 
 AdBlockEngineService::~AdBlockEngineService() = default;
 
-void AdBlockEngineService::UseLists(std::vector<mojom::NamedListPtr> lists,
-                                    UseListsCallback callback) {
-  AdBlockEngine::ListTexts texts;
-  texts.reserve(lists.size());
-  for (mojom::NamedListPtr& list : lists) {
-    texts.emplace_back(std::move(list->name), std::move(list->text));
+void AdBlockEngineService::UseConfig(mojom::EngineConfigPtr config,
+                                     UseConfigCallback callback) {
+  AdBlockEngine::Config engine_config;
+  engine_config.lists.reserve(config->lists.size());
+  for (mojom::NamedListPtr& list : config->lists) {
+    engine_config.lists.emplace_back(std::move(list->name),
+                                     std::move(list->text));
   }
+  engine_config.optional_lists = std::move(config->optional_lists);
+  engine_config.custom_filters = std::move(config->custom_filters);
   // `done` runs on the engine sequence; answer on ours.
-  engine_->UseLists(std::move(texts),
-                    base::BindPostTaskToCurrentDefault(std::move(callback)));
+  engine_->UseConfig(std::move(engine_config),
+                     base::BindPostTaskToCurrentDefault(std::move(callback)));
 }
 
 void AdBlockEngineService::ShouldBlock(const GURL& url,

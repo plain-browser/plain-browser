@@ -1,6 +1,6 @@
 # Plain Browser privacy policy
 
-Last updated: 28 October 2026 · [Polski](PRIVACY.pl.md)
+Last updated: 9 November 2026 · [Polski](PRIVACY.pl.md)
 
 Plain Browser is a web browser built from Chromium with the ungoogled-chromium patch set. This policy says what the
 browser does with your data. It describes version 0.2.1-beta.1 and is updated whenever a release changes it.
@@ -9,8 +9,9 @@ browser does with your data. It describes version 0.2.1-beta.1 and is updated wh
 
 - Plain Browser has **no telemetry, no usage statistics and no crash reports** that are sent to us or anyone else.
 - It has **no account, sign-in or sync service**, and we run **no server** that receives data about you from the
-  browser. We cannot see what you browse. The two services of ours the browser talks to, the Safe Browsing proxy
-  and the filter list mirror (both below), keep no logs and get nothing about the pages you visit.
+  browser. We cannot see what you browse. The services of ours the browser talks to, the Safe Browsing proxy,
+  the filter list mirror and the extension repository (all below), keep no logs and get nothing about the pages
+  you visit.
 - It does **not contact Google services**. The ungoogled-chromium patches remove them (Google sign-in,
   translation, the Chrome Web Store and others). The one exception is Safe Browsing through our own
   anonymizing proxy, described below; you can turn it off.
@@ -37,9 +38,17 @@ Windows keeps the profile in the app's private storage and removes it on uninsta
 When you open a website, the browser sends it what is needed to load the page, including your IP address and
 standard request headers. That is how the web works, and the website's own privacy policy applies to it.
 
-The built-in ad blocker runs entirely on your device. Its filter lists (EasyList, EasyPrivacy, EasyList Polish) are
-bundled with the browser and, unless you turn updates off, kept current from our mirror (next section). The
-blocker does not report to anyone what it blocks.
+The browser also tells every website that you do not want your data sold or shared, with the **Global Privacy
+Control** signal (the `Sec-GPC: 1` request header and `navigator.globalPrivacyControl`). Under laws such as the
+CCPA in California, sites must honour it; elsewhere it is a request. It is on by default and can be turned off in
+Settings > Privacy and security > Third-party cookies and site data > "Send an opt-out request to sites regarding
+use of your data".
+
+The built-in ad blocker runs entirely on your device. Its filter lists (EasyList, EasyPrivacy, EasyList Polish, the
+EasyList Cookie List, and Fanboy's Annoyance List and uBlock filters if you turn them on) are bundled with the
+browser and, unless you turn updates off, kept current from our mirror (next section). The blocker does not report
+to anyone what it blocks. Its request log on chrome://adblock records only while that page is open, stays in
+memory and is cleared when the page closes.
 
 ## Secure DNS
 
@@ -54,7 +63,8 @@ off, or choose a provider, in Settings > Privacy and security > Security > "Use 
 From version 0.1.3-alpha.1, the browser keeps its filter lists current between releases:
 
 - Once a day, a few minutes after start-up, it asks **our mirror at lists.plain-browser.app** (a Cloudflare
-  Worker) for a short manifest with the hash of each list, and downloads a list only when it changed. It never
+  Worker) for a short manifest with the hash of each list, and downloads a list only when it changed (and an
+  optional list only while it is turned on). It never
   contacts the list publishers; the mirror fetches the lists from them.
 - The requests carry **no cookies and nothing about the sites you visit**, only the browser's version number
   (`X-Client: PlainBrowser/<major.minor.patch>`, the same header the Safe Browsing proxy gets). The browser checks
@@ -92,6 +102,18 @@ without Google learning anything about you:
 
 Extensions you install can read and send data according to the permissions you grant them. Their developers, not
 Plain Browser, are responsible for that data and for their own privacy policies.
+
+The page **chrome://recommended-extensions** offers uBlock Origin, AdGuard, NoScript and uMatrix, which we host at
+**ext.plain-browser.app** (a Cloudflare Worker) because the Chrome Web Store is not part of the browser:
+
+- Nothing is downloaded until you click Install (or Switch). The download carries no cookies, only the browser's
+  version (`X-Client`).
+- Once one of them is installed, Chromium's extension updater checks ext.plain-browser.app for a new version
+  of it every few hours, like Chrome checks the Web Store. That request contains what Chromium puts in every update
+  check: the IDs and versions of those extensions, the browser version, the operating system and its architecture,
+  and the browser language. It contains nothing about the sites you visit. If you remove them, the checks stop.
+- **The repository keeps no logs** and stores only the extension files. Cloudflare sees your IP address as for any
+  site it serves.
 
 ## Microsoft Store
 

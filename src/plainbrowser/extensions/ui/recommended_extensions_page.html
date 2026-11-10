@@ -1,0 +1,101 @@
+<!doctype html>
+<!-- Copyright Plain Browser contributors. MPL-2.0.
+     chrome://recommended-extensions (recommended_extensions_ui.cc). Texts come from strings.m.js;
+     recommended_extensions_page.js fills them in. -->
+<html dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<title></title>
+<style>
+  :root {
+    --bg: #fff; --fg: #202124; --muted: #5f6368; --line: #dadce0; --card: #fff;
+    --accent: #1a73e8; --ok: #188038; --warn: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #202124; --fg: #e8eaed; --muted: #9aa0a6; --line: #3c4043; --card: #292a2d;
+      --accent: #8ab4f8; --ok: #81c995; --warn: #f28b82;
+    }
+  }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; font-weight: 500; margin: 8px 0 20px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 16px; }
+  h2 { font-size: 14px; font-weight: 500; margin: 0; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; }
+  .row + .row { border-top: 1px solid var(--line); }
+  .label { flex: 1; }
+  .value { color: var(--muted); text-align: end; overflow-wrap: anywhere; }
+  .sub { color: var(--muted); margin-top: 2px; }
+  .on { color: var(--ok); font-weight: 500; }
+  .off, .warn { color: var(--warn); font-weight: 500; }
+  .mono { font-family: ui-monospace, monospace; font-size: 12px; }
+  .actions { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  button, a.button {
+    font: inherit; border: 1px solid var(--line); border-radius: 16px; padding: 6px 14px; background: none;
+    color: var(--accent); cursor: pointer; text-decoration: none;
+  }
+  button:disabled { color: var(--muted); cursor: default; }
+  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .intro { color: var(--muted); margin: -8px 0 20px; line-height: 1.5; }
+  .ext { padding: 14px 16px; }
+  .ext + .ext { border-top: 1px solid var(--line); }
+  .head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; }
+  .name { font-size: 14px; font-weight: 500; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .tag { color: var(--muted); font-size: 11px; border: 1px solid var(--line); border-radius: 8px; padding: 1px 6px; }
+  .desc { color: var(--muted); margin-top: 6px; line-height: 1.45; }
+  .error { color: var(--warn); margin-top: 6px; }
+  .links { display: flex; gap: 14px; margin-top: 8px; }
+  .links a { color: var(--accent); text-decoration: none; }
+  .banner { padding: 14px 16px; line-height: 1.45; }
+  .banner .actions { padding: 12px 0 0; border: 0; }
+  .note { color: var(--muted); padding: 12px 16px 0; }
+  textarea {
+    box-sizing: border-box; width: calc(100% - 32px); margin: 12px 16px 0; min-height: 140px; resize: vertical;
+    font: 12px ui-monospace, monospace; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 4px; padding: 8px;
+  }
+  .actions .status { align-self: center; color: var(--muted); }
+  input[type=search] {
+    font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 16px;
+    padding: 5px 12px; flex: 1; min-width: 0;
+  }
+  #log { max-height: 420px; overflow-y: auto; }
+  .entry { padding: 8px 16px; border-top: 1px solid var(--line); }
+  .entry .what { display: flex; gap: 8px; color: var(--muted); font-size: 12px; }
+  .entry .tag { font-weight: 500; }
+  .entry .tag.blocked, .entry .tag.redirected { color: var(--warn); }
+  .entry .tag.params, .entry .tag.debounced { color: var(--ok); }
+  .entry .url { font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; margin-top: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title"></h1>
+  <div class="intro" id="intro"></div>
+  <section id="banner" hidden>
+    <div class="banner">
+      <div id="bannerText"></div>
+      <div class="actions">
+        <button class="primary" id="turnOff"></button>
+        <button id="keepBoth"></button>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div id="list"></div>
+  </section>
+  <section>
+    <div class="banner">
+      <div id="other"></div>
+      <div class="actions">
+        <a class="button" id="manage" href="chrome://extensions"></a>
+      </div>
+    </div>
+  </section>
+</main>
+<script type="module" src="recommended_extensions_page.js"></script>
+</body>
+</html>

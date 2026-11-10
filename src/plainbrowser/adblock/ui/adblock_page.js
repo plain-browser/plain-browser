@@ -1,6 +1,6 @@
 // Copyright Plain Browser contributors. MPL-2.0.
-// chrome://adblock: the state of the ad blocker, from AdblockPageHandler
-// (adblock_ui.cc) through chrome.send. No innerHTML (the page runs under
+// chrome://adblock: the state of the ad blocker, the user's own filters and
+// the request log, from AdblockPageHandler (adblock_ui.cc) through chrome.send. No innerHTML (the page runs under
 // Trusted Types): every text goes through textContent.
 import {sendWithPromise} from 'chrome://resources/js/cr.js';
 import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
@@ -56,6 +56,9 @@ function render(s) {
 
   const lists = $('lists');
   lists.replaceChildren(...s.lists.map((l) => {
+    if (s.listsOff.includes(l.name)) {
+      return row(l.name, t('listOff'), '', 'mono');
+    }
     const sub = l.downloaded ?
         t('listDownloaded') + (l.sha256 ? ' · ' + l.sha256.slice(0, 12) : '') :
         t('listBundled');
@@ -82,8 +85,63 @@ function render(s) {
   check.textContent = t(s.checking ? 'checking' : 'checkNow');
 }
 
+const LOG_TAGS = {
+  blocked: 'logBlocked',
+  redirected: 'logRedirected',
+  params: 'logParams',
+  debounced: 'logDebounced',
+};
+
+function logEntry(e) {
+  const r = document.createElement('div');
+  r.className = 'entry';
+  const what = document.createElement('div');
+  what.className = 'what';
+  const tag = document.createElement('span');
+  tag.className = 'tag ' + e.action;
+  tag.textContent = t(LOG_TAGS[e.action] || 'logBlocked');
+  const time = document.createElement('span');
+  time.textContent = new Date(e.time).toLocaleTimeString(t('language') || undefined);
+  const page = document.createElement('span');
+  // Navigations: the page is the URL navigated to instead (shown as "→").
+  page.textContent = (e.action === 'params' || e.action === 'debounced' ? '→ ' : '') +
+      e.page + (e.type ? ' · ' + e.type : '');
+  what.append(tag, time, page);
+  const url = document.createElement('div');
+  url.className = 'url';
+  url.textContent = e.url;
+  r.append(what, url);
+  return r;
+}
+
+let lastLog = [];
+
+function renderLog() {
+  const filter = $('logFilter').value.trim().toLowerCase();
+  const shown = lastLog.filter((e) => !filter ||
+      (e.url + ' ' + e.page + ' ' + e.type).toLowerCase().includes(filter));
+  const log = $('log');
+  if (!shown.length) {
+    const empty = document.createElement('div');
+    empty.className = 'note';
+    empty.style.paddingBottom = '12px';
+    empty.textContent = t('logEmpty');
+    log.replaceChildren(empty);
+    return;
+  }
+  // Newest first.
+  log.replaceChildren(...shown.slice().reverse().map(logEntry));
+}
+
 async function refresh() {
   render(await sendWithPromise('getStatus'));
+  lastLog = await sendWithPromise('getLog');
+  renderLog();
+}
+
+async function saveCustom() {
+  const ok = await sendWithPromise('setCustomFilters', $('custom').value);
+  $('customStatus').textContent = t(ok ? 'saved' : 'saveFailed');
 }
 
 function init() {
@@ -92,9 +150,28 @@ function init() {
   for (const [id, key] of [['title', 'title'], ['blockingLabel', 'blocking'],
                            ['blockedLabel', 'blocked'], ['engineLabel', 'engine'],
                            ['listsLabel', 'lists'], ['updatesLabel', 'updates'],
-                           ['settings', 'settings']]) {
+                           ['settings', 'settings'], ['listsNote', 'listsNote'],
+                           ['listsSettings', 'settings'],
+                           ['customLabel', 'customFilters'],
+                           ['customDesc', 'customFiltersDesc'],
+                           ['saveCustom', 'save'], ['logLabel', 'log'],
+                           ['logDesc', 'logDesc'], ['clearLog', 'logClear']]) {
     $(id).textContent = t(key);
   }
+  $('logFilter').placeholder = t('logFilter');
+  $('logFilter').addEventListener('input', renderLog);
+  $('clearLog').addEventListener('click', async () => {
+    await sendWithPromise('clearLog');
+    lastLog = [];
+    renderLog();
+  });
+  sendWithPromise('getCustomFilters').then((text) => {
+    $('custom').value = text;
+  });
+  $('custom').addEventListener('input', () => {
+    $('customStatus').textContent = '';
+  });
+  $('saveCustom').addEventListener('click', saveCustom);
   $('checkNow').addEventListener('click', async () => {
     await sendWithPromise('checkNow');
     refresh();

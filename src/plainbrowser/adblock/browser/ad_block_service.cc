@@ -6,6 +6,7 @@
 #include "base/logging.h"
 #include "base/task/thread_pool.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
+#include "plainbrowser/adblock/common/filter_list_names.h"
 #include "url/gurl.h"
 
 namespace plainbrowser::adblock {
@@ -21,6 +22,15 @@ std::vector<mojom::NamedListPtr> ToMojo(const AdBlockService::ListTexts& lists) 
     out.push_back(mojom::NamedList::New(name, text));
   }
   return out;
+}
+
+bool IsKnownOptionalList(std::string_view name) {
+  for (const OptionalList& list : kOptionalLists) {
+    if (list.name == name) {
+      return true;
+    }
+  }
+  return false;
 }
 
 mojom::CosmeticResultPtr NoCosmetics() {
@@ -52,7 +62,8 @@ std::unique_ptr<AdBlockService> AdBlockService::CreateForTesting(
 AdBlockService::AdBlockService()
     : task_runner_(base::ThreadPool::CreateSequencedTaskRunner(
           {base::TaskPriority::USER_BLOCKING,
-           base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN})) {
+           base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN})),
+      optional_lists_(DefaultOptionalLists()) {
   DETACH_FROM_SEQUENCE(sequence_checker_);
 }
 
@@ -103,6 +114,8 @@ void AdBlockService::GetStatusOnSequence(
       status.downloaded_lists.push_back(name);
     }
   }
+  status.optional_lists = optional_lists_;
+  status.custom_filters_bytes = custom_filters_.size();
   std::move(callback).Run(std::move(status));
 }
 
@@ -126,11 +139,48 @@ void AdBlockService::UseListsOnSequence(ListTexts lists,
     lists_ = std::move(lists);
   }
   if (engine_.is_bound()) {
-    engine_->UseLists(
-        lists_ ? ToMojo(*lists_) : std::vector<mojom::NamedListPtr>(),
-        mojo::WrapCallbackWithDefaultInvokeIfNotRun(std::move(done)));
+    SendConfig(std::move(done));
   } else if (CanStartEngine()) {
     StartEngine(std::move(done));
+  } else {
+    std::move(done).Run();
+  }
+}
+
+void AdBlockService::SetUserConfig(std::vector<std::string> optional_lists,
+                                   std::string custom_filters,
+                                   base::OnceClosure done) {
+  if (!done) {
+    done = base::DoNothing();
+  }
+  task_runner_->PostTask(
+      FROM_HERE, base::BindOnce(&AdBlockService::SetUserConfigOnSequence,
+                                base::Unretained(this),
+                                std::move(optional_lists),
+                                std::move(custom_filters), std::move(done)));
+}
+
+void AdBlockService::SetUserConfigOnSequence(
+    std::vector<std::string> optional_lists,
+    std::string custom_filters,
+    base::OnceClosure done) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  std::erase_if(optional_lists, [](const std::string& name) {
+    return !IsKnownOptionalList(name);
+  });
+  if (custom_filters.size() > kMaxCustomFiltersBytes) {
+    custom_filters.clear();
+  }
+  if (optional_lists == optional_lists_ && custom_filters == custom_filters_) {
+    std::move(done).Run();
+    return;
+  }
+  optional_lists_ = std::move(optional_lists);
+  custom_filters_ = std::move(custom_filters);
+  // A process not started yet gets the configuration when it starts (on the
+  // first query), so a change of settings does not start one by itself.
+  if (engine_.is_bound()) {
+    SendConfig(std::move(done));
   } else {
     std::move(done).Run();
   }
@@ -140,21 +190,33 @@ bool AdBlockService::CanStartEngine() const {
   return launcher_ && engine_starts_ < kMaxEngineStarts;
 }
 
-void AdBlockService::StartEngine(base::OnceClosure lists_done) {
+bool AdBlockService::NeedsConfig() const {
+  return lists_ || optional_lists_ != DefaultOptionalLists() ||
+         !custom_filters_.empty();
+}
+
+void AdBlockService::SendConfig(base::OnceClosure done) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  engine_->UseConfig(
+      mojom::EngineConfig::New(
+          lists_ ? ToMojo(*lists_) : std::vector<mojom::NamedListPtr>(),
+          optional_lists_, custom_filters_),
+      mojo::WrapCallbackWithDefaultInvokeIfNotRun(std::move(done)));
+}
+
+void AdBlockService::StartEngine(base::OnceClosure config_done) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   ++engine_starts_;
   launcher_.Run(engine_.BindNewPipeAndPassReceiver());
   // Unretained: `engine_` is owned by this and never outlives it.
   engine_.set_disconnect_handler(
       base::BindOnce(&AdBlockService::OnEngineGone, base::Unretained(this)));
-  // The process builds its engine from the compiled-in lists by itself; only
-  // downloaded ones need sending.
-  if (lists_) {
-    engine_->UseLists(
-        ToMojo(*lists_),
-        mojo::WrapCallbackWithDefaultInvokeIfNotRun(std::move(lists_done)));
+  // The process builds its engine from the compiled-in lists and the default
+  // optional lists by itself; anything else needs sending.
+  if (NeedsConfig()) {
+    SendConfig(std::move(config_done));
   } else {
-    std::move(lists_done).Run();
+    std::move(config_done).Run();
   }
 }
 
@@ -270,6 +332,42 @@ void AdBlockService::RewrittenUrl(
   engine->RewrittenUrl(
       url, source_url, request_type,
       mojo::WrapCallbackWithDefaultInvokeIfNotRun(std::move(callback), GURL()));
+}
+
+void AdBlockService::AddLogViewer() {
+  ++log_viewers_;
+}
+
+void AdBlockService::RemoveLogViewer() {
+  if (--log_viewers_ <= 0) {
+    log_viewers_ = 0;
+    ClearLog();
+  }
+}
+
+void AdBlockService::Log(LogAction action,
+                         std::string url,
+                         std::string page,
+                         std::string type) {
+  if (!logging()) {
+    return;
+  }
+  base::AutoLock lock(log_lock_);
+  if (log_.size() >= kMaxLogEntries) {
+    log_.pop_front();
+  }
+  log_.push_back(LogEntry{base::Time::Now(), action, std::move(url),
+                          std::move(page), std::move(type)});
+}
+
+std::vector<AdBlockService::LogEntry> AdBlockService::GetLog() const {
+  base::AutoLock lock(log_lock_);
+  return std::vector<LogEntry>(log_.begin(), log_.end());
+}
+
+void AdBlockService::ClearLog() {
+  base::AutoLock lock(log_lock_);
+  log_.clear();
 }
 
 }  // namespace plainbrowser::adblock

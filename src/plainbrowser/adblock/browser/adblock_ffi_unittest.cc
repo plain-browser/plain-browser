@@ -2,7 +2,10 @@
 // The cxx bridge over adblock-rust as seen from C++ (rs/src/lib.rs). The Rust
 // side has its own tests; these check the types and semantics that cross.
 #include <string>
+#include <vector>
 
+#include "plainbrowser/adblock/browser/filter_lists.h"
+#include "plainbrowser/adblock/common/filter_list_names.h"
 #include "plainbrowser/adblock/rs/src/lib.rs.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/rust/cxx/v1/cxx.h"
@@ -90,6 +93,37 @@ TEST(AdblockFfiTest, UnparsableUrlIsNotBlocked) {
   EXPECT_FALSE(Check(engine, "not a url", "", "script").matched);
   EXPECT_FALSE(Check(engine, "https://ads.example.com/x.js", "", "script")
                    .rewritten_url.size() > 0);
+}
+
+TEST(AdblockFfiTest, ListNamesMatchTheBrowserSide) {
+  // The Rust bridge's lists, the browser's names and the updater's list must
+  // agree, or a pref or a download would silently do nothing.
+  std::vector<std::string> rust_defaults;
+  for (const rust::String& n : default_list_names()) {
+    rust_defaults.emplace_back(n);
+  }
+  std::vector<std::string> rust_optional;
+  for (const rust::String& n : optional_list_names()) {
+    rust_optional.emplace_back(n);
+  }
+  std::vector<std::string> rust_default_on;
+  for (const rust::String& n : default_optional_list_names()) {
+    rust_default_on.emplace_back(n);
+  }
+  std::vector<std::string> defaults(kDefaultLists.begin(), kDefaultLists.end());
+  defaults.push_back("plainbrowser-removeparam");
+  EXPECT_EQ(defaults, rust_defaults);
+  std::vector<std::string> optional;
+  for (const OptionalList& list : kOptionalLists) {
+    optional.emplace_back(list.name);
+  }
+  EXPECT_EQ(optional, rust_optional);
+  EXPECT_EQ(DefaultOptionalLists(), rust_default_on);
+  std::vector<std::string> updatable(filter_lists::kUpdatableLists.begin(),
+                                     filter_lists::kUpdatableLists.end());
+  std::vector<std::string> expected(kDefaultLists.begin(), kDefaultLists.end());
+  expected.insert(expected.end(), optional.begin(), optional.end());
+  EXPECT_EQ(expected, updatable);
 }
 
 }  // namespace

@@ -53,7 +53,10 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | Generic cosmetic filtering (class/id rules for the names a page has) | Done (`scripts/test-cosmetic-lists.ps1`; `docs/ADBLOCK.md`, "Generic element hiding") |
 | Filter list updates between releases: daily from our mirror `lists.plain-browser.app` (`infra/filter-lists`), Ed25519-signed manifest, hashes per list, switch in Settings | Browser side done and tested against a local server; the Worker needs deploying and the public key setting (`infra/filter-lists/README.md`) |
 | `$redirect` stand-ins, scriptlets, procedural filters (own resources, MPL-2.0) | Done (`scripts/test-cosmetic-lists.ps1`; `docs/ADBLOCK.md`) |
-| Curated MV2 extension repository | Not started (`docs/ARCHITECTURE.md`, section 8.2) |
+| Optional filter lists (EasyList Cookie List on by default, Fanboy's Annoyance List, uBlock filters), own filters and a request log on `chrome://adblock` | Written 2026-11-09, unit and Rust tests; not yet built (`docs/ADBLOCK.md`, "Optional lists, custom filters and the request log") |
+| Curated extension repository: `chrome://recommended-extensions` (uBlock Origin, AdGuard, NoScript, uMatrix from `ext.plain-browser.app`, switch from a Chrome Web Store copy with its settings), `.crx` files open the install dialog | Written 2026-11-09: browser side not yet built, `infra/extensions` tested and its build run against the real releases, Worker not deployed (`docs/MV2.md`) |
+| Global Privacy Control (`Sec-GPC: 1`, `navigator.globalPrivacyControl`) on by default, toggle in Settings | Patch written 2026-11-09 (`patches/90-defaults/0001`), dry-run OK, not yet built |
+| Default browser from the Microsoft Store package: status in Settings and "Make default" opening the package's Default apps page | Patch written 2026-11-09 (`patches/60-ui/0013`, `src/plainbrowser/win`), dry-run OK, not yet built |
 
 Tests: `scripts/test-*.ps1` run headless on the build VM; C++ unit tests in `docs/TESTING.md`.
 Not yet tested: the UI on real pages beyond the test pages, Store installation on a clean machine.
@@ -63,7 +66,8 @@ Not yet tested: the UI on real pages beyond the test pages, Store installation o
 Privacy features and the project-security plan are in [docs/ROADMAP.md](docs/ROADMAP.md); vulnerability reporting in [SECURITY.md](SECURITY.md).
 
 1. Microsoft Store submission of the MSIX; first public beta through the Store.
-2. Curated MV2 extension repository (uBlock Origin and similar); tracking-redirect bypass; Blink-level fingerprint noise.
+2. Build and test the 2026-11-09 changes; deploy `ext.plain-browser.app` and the optional lists on the mirror;
+   Blink-level fingerprint noise.
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Changes: [CHANGELOG.md](CHANGELOG.md). Manual GitHub and Store setup
 steps: [docs/GITHUB_SETUP.md](docs/GITHUB_SETUP.md) (Polish).

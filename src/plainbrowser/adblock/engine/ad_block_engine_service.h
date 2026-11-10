@@ -31,8 +31,8 @@ class AdBlockEngineService : public mojom::AdblockEngine {
   AdBlockEngineService& operator=(const AdBlockEngineService&) = delete;
 
   // mojom::AdblockEngine:
-  void UseLists(std::vector<mojom::NamedListPtr> lists,
-                UseListsCallback callback) override;
+  void UseConfig(mojom::EngineConfigPtr config,
+                 UseConfigCallback callback) override;
   void ShouldBlock(const GURL& url,
                    const GURL& source_url,
                    const std::string& request_type,

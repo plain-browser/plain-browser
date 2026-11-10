@@ -14,6 +14,7 @@
 #include "plainbrowser/shields/common/site_util.h"
 #include "third_party/blink/public/common/tokens/tokens.h"
 #include "url/gurl.h"
+#include "url/origin.h"
 
 namespace plainbrowser::adblock {
 namespace {
@@ -28,6 +29,13 @@ bool IsExceptedPage(const GURL& top_level_url) {
   return !AdBlockService::GetInstance()->blocking_enabled() ||
          shields::ShieldsService::GetInstance()->IsExcepted(
              shields::SiteFor(top_level_url));
+}
+
+// How the request log names the page a request belongs to: its top-level
+// origin (no path or query, which may be private).
+std::string PageFor(const GURL& top_level_url) {
+  return top_level_url.is_valid() ? url::Origin::Create(top_level_url).Serialize()
+                                  : std::string();
 }
 
 // Receiver context: the renderer process id.
@@ -61,9 +69,16 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
         url, source_url, request_type,
         base::BindOnce(
             [](int process_id, std::optional<blink::LocalFrameToken> frame_token,
+               GURL url, GURL top_level_url, std::string request_type,
                ShouldBlockRequestCallback callback, bool block) {
               if (block) {
-                AdBlockService::GetInstance()->CountBlocked();
+                AdBlockService* service = AdBlockService::GetInstance();
+                service->CountBlocked();
+                if (service->logging()) {
+                  service->Log(AdBlockService::LogAction::kBlocked,
+                               url.spec(), PageFor(top_level_url),
+                               request_type);
+                }
               }
               if (block && frame_token) {
                 shields::BlockedRequestsCounter::CountBlocked(process_id,
@@ -71,7 +86,8 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
               }
               std::move(callback).Run(block);
             },
-            receivers_.current_context(), frame_token, std::move(callback)));
+            receivers_.current_context(), frame_token, url, top_level_url,
+            request_type, std::move(callback)));
   }
 
   void GetCosmeticCss(const GURL& url,
@@ -124,9 +140,15 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
         url, source_url,
         base::BindOnce(
             [](int process_id, std::optional<blink::LocalFrameToken> frame_token,
-               GetRedirectCallback callback, const std::string& data_url) {
+               GURL url, GURL top_level_url, GetRedirectCallback callback,
+               const std::string& data_url) {
               if (!data_url.empty()) {
-                AdBlockService::GetInstance()->CountBlocked();
+                AdBlockService* service = AdBlockService::GetInstance();
+                service->CountBlocked();
+                if (service->logging()) {
+                  service->Log(AdBlockService::LogAction::kRedirected,
+                               url.spec(), PageFor(top_level_url));
+                }
               }
               if (!data_url.empty() && frame_token) {
                 shields::BlockedRequestsCounter::CountBlocked(process_id,
@@ -134,7 +156,8 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
               }
               std::move(callback).Run(data_url);
             },
-            receivers_.current_context(), frame_token, std::move(callback)));
+            receivers_.current_context(), frame_token, url, top_level_url,
+            std::move(callback)));
   }
 
   void GetGenericCosmeticCss(const GURL& url,

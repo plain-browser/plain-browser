@@ -22,7 +22,7 @@
 <translation id="2695417193754801563">Wpisz witrynę, na przykład example.com</translation>
 <translation id="7140235993367976388">Włącz ponownie ochronę dla <ph name="SITE" /></translation>
 <translation id="7814110254042078847">Aktualizuj listy filtrów codziennie</translation>
-<translation id="7372708730951011360">Pobiera nowe wersje EasyList, EasyPrivacy i EasyList Polish z lists.plain-browser.app. Żądanie nie zawiera plików cookie ani niczego o odwiedzanych stronach. Po wyłączeniu używane są listy z dnia wydania przeglądarki.</translation>
+<translation id="765175208110084570">Pobiera nowe wersje EasyList, EasyPrivacy, EasyList Polish i list włączonych powyżej z lists.plain-browser.app. Żądanie nie zawiera plików cookie ani niczego o odwiedzanych stronach. Po wyłączeniu używane są listy z dnia wydania przeglądarki.</translation>
 <translation id="4447472862672033345">Blokuj reklamy i elementy śledzące</translation>
 <translation id="5627923160287742480">Korzysta z list EasyList, EasyPrivacy i EasyList Polish na wszystkich stronach poza wymienionymi niżej. Usuwanie parametrów śledzących z linków działa nadal.</translation>
 <translation id="7203308747385151463">Ostatnie sprawdzenie list: <ph name="TIME" /></translation>
@@ -49,9 +49,54 @@
 <translation id="2258591756126042219">Sprawdzanie…</translation>
 <translation id="8176333615161936429">Ustawienia</translation>
 <translation id="1059992045765968998">Oparta na Chromium <ph name="CHROMIUM_VERSION" /> i ungoogled-chromium <ph name="UNGOOGLED_VERSION" /></translation>
-<translation id="5731486129568110378">Blokowanie reklam: adblock-rust <ph name="ADBLOCK_VERSION" /> z listami filtrów EasyList, EasyPrivacy i EasyList Polish</translation>
+<translation id="6276914901180342648">Blokowanie reklam: adblock-rust <ph name="ADBLOCK_VERSION" /> z listami filtrów EasyList, EasyPrivacy i EasyList Polish oraz opcjonalnie EasyList Cookie List, Fanboy's Annoyance List i uBlock filters</translation>
 <translation id="3764789922346718224">Bezpieczne przeglądanie przez proxy Plain Browser</translation>
 <translation id="2282871240808545722">Sprawdza odwiedzane strony w lokalnej kopii listy Google Safe Browsing. Aktualizacje listy idą przez sb.plain-browser.app, więc Google nie widzi Twojego adresu IP ani odwiedzanych stron.</translation>
 <translation id="4113285378367417551">Chroni przed stronami, pobieranymi plikami i rozszerzeniami, o których wiadomo, że są niebezpieczne. Sprawdzanie odbywa się w liście zapisanej na Twoim urządzeniu; aktualizacje listy idą przez proxy Plain Browser, więc Google nie widzi Twojego adresu IP ani odwiedzanych stron.</translation>
 <translation id="7145105833746463623">Nie chroni przed niebezpiecznymi stronami, pobieranymi plikami ani rozszerzeniami. Przeglądarka nie wysyła wtedy żadnych żądań Bezpiecznego przeglądania.</translation>
+<translation id="3014839928591948893">Ukrywaj banery zgody na pliki cookie</translation>
+<translation id="5448051424413123712">Używa listy EasyList Cookie List. Ukrycie banera nie akceptuje ani nie odrzuca plików cookie; pliki cookie innych firm i tak pozostają zablokowane.</translation>
+<translation id="165039196690473565">Blokuj elementy irytujące</translation>
+<translation id="6236800420889449753">Używa listy Fanboy's Annoyance List: wyskakujące okienka, prośby o zapis do newslettera i o powiadomienia, przyciski mediów społecznościowych i banery cookie. Może ukryć coś, czego potrzebują niektóre strony.</translation>
+<translation id="5878792354718601832">Używaj filtrów uBlock</translation>
+<translation id="2841785305420134566">Dodaje własną listę uBlock Origin, która wyłapuje więcej reklam i elementów śledzących. Część jej reguł wymaga samego uBlock Origin i jest pomijana.</translation>
+<translation id="9183677069987945187">Polecane rozszerzenia</translation>
+<translation id="742381309192239181">uBlock Origin, AdGuard, NoScript i uMatrix, instalowane i aktualizowane przez Plain Browser</translation>
+<translation id="5956302341139390512">Banery cookie, elementy irytujące i filtry uBlock włącza się i wyłącza w Ustawieniach.</translation>
+<translation id="3811627340506092408">Moje filtry</translation>
+<translation id="8595482019578114552">Własne reguły w składni Adblock Plus lub uBlock Origin, jedna w wierszu. Działają oprócz list; reguła zaczynająca się od @@ zezwala na to, co blokuje lista.</translation>
+<translation id="1955467578350760295">Zapisz</translation>
+<translation id="217130848514592703">Zapisano. Filtry zaczną działać za chwilę.</translation>
+<translation id="3422806511953694379">Nie zapisano: tekst jest za długi (najwyżej 1 MB).</translation>
+<translation id="7890748505327403723">Dziennik żądań</translation>
+<translation id="2240840760931479807">Co bloker zrobił w dowolnej karcie, gdy ta strona jest otwarta, od najnowszych. Przechowywany tylko w pamięci i czyszczony po zamknięciu strony.</translation>
+<translation id="91822384114738763">Na razie nic. Wczytaj stronę w innej karcie.</translation>
+<translation id="2343002560135867433">Filtruj po adresie</translation>
+<translation id="4605939848565560485">Wyczyść</translation>
+<translation id="2675763716987484984">Zablokowano</translation>
+<translation id="8029496662359177651">Podmieniono</translation>
+<translation id="3602814153219339524">Usunięto parametry</translation>
+<translation id="422719653428027673">Pominięto przekierowanie</translation>
+<translation id="7525627774898412756">Rozszerzenia, które Plain Browser udostępnia i aktualizuje, bo Chrome Web Store nie jest częścią tej przeglądarki. Każde to wydanie autora, niezmienione poza tym, skąd pobiera aktualizacje.</translation>
+<translation id="8122962936394258542">Zainstaluj</translation>
+<translation id="5229936127817457063">Instalowanie…</translation>
+<translation id="4126605170642698281">Zainstalowane</translation>
+<translation id="7816175115292842806">Zainstalowane, wyłączone</translation>
+<translation id="7317574540299844403">Zainstalowane z Chrome Web Store, który tutaj go już nie aktualizuje.</translation>
+<translation id="9154913973144491487">Przełącz</translation>
+<translation id="5389716665491759789">Przełącz instaluje kopię Plain Browser, przejmuje ustawienia i usuwa starą.</translation>
+<translation id="7182581833361504953">Nierozwijane</translation>
+<translation id="3317893725122710373">Manifest V3</translation>
+<translation id="6531921734909666485">Kod źródłowy</translation>
+<translation id="7595025823475821933">Zarządzaj rozszerzeniami</translation>
+<translation id="866238298842746326"><ph name="NAME" /> też blokuje reklamy. Gdy wbudowany bloker jest również włączony, każde żądanie jest filtrowane dwa razy. Wyłączyć wbudowany bloker? Usuwanie parametrów śledzących pozostanie włączone.</translation>
+<translation id="2404425292321051486">Wyłącz wbudowany bloker</translation>
+<translation id="923819524560008105">Zostaw oba</translation>
+<translation id="7055538184307125368">Wbudowany bloker reklam jest wyłączony.</translation>
+<translation id="8492420082959381587">Inne rozszerzenia można zainstalować z pliku .crx: otwórz go i potwierdź okno dialogowe. Rozszerzenia Manifest V2 nadal działają w Plain Browser.</translation>
+<translation id="4894827201304571864">Nie udało się pobrać. Sprawdź połączenie i spróbuj ponownie.</translation>
+<translation id="865140396727925358">Blokowanie reklam i elementów śledzących z pełną kontrolą: własne listy, wybieranie elementów, dziennik żądań i reguły dla witryn.</translation>
+<translation id="6698716151471216779">Bloker reklam z własnymi listami filtrów, także regionalnymi, i trybem ochrony przed śledzeniem.</translation>
+<translation id="6157317252121055591">Uruchamia JavaScript tylko na zaufanych stronach, z ochroną przed atakami cross-site scripting.</translation>
+<translation id="3496963251766846974">Macierz tego, co każda strona może wczytać: skrypty, ramki, pliki cookie i inne, dla każdej domeny. Dla zaawansowanych.</translation>
 </translationbundle>

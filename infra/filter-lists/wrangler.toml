@@ -27,7 +27,7 @@ enabled = false
 enabled = false
 invocation_logs = false
 
-# Rate limit per client IP: 30 requests per 60 s. A browser makes at most 4 a day (manifest and 3 lists).
+# Rate limit per client IP: 30 requests per 60 s. A browser makes at most 8 a day (manifest, signature and up to 6 lists).
 # namespace_id: any unique integer in your account (the Safe Browsing proxy uses 1001).
 [[unsafe.bindings]]
 name = "RATE_LIMITER"

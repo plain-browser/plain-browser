@@ -1,0 +1,52 @@
+From: Plain Browser
+Subject: [ui] Extensions without the Chrome Web Store: chrome://recommended-extensions and .crx files
+
+Category: 60-ui (MV2 distribution, ARCHITECTURE.md 8.2). Code lives in //plainbrowser/extensions; this patch only
+wires it in. ChromeWebUIConfigs registers chrome://recommended-extensions: uBlock Origin, AdGuard, NoScript and
+uMatrix, repacked by infra/extensions with an update_url pointing at ext.plain-browser.app and signed with our keys,
+installed through CrxInstaller with the normal install dialog and the extension ID pinned; a copy from the Chrome
+Web Store can be switched to ours with its settings. ChromeBrowserMainParts::PostBrowserStart calls
+ApplyDefaultSwitches(), which makes ungoogled-chromium's --extension-mime-request-handling default to
+"always-prompt-for-install" (a .crx from any site shows the install dialog instead of "cannot be added from this
+website"); a value chosen in chrome://flags still wins. Both hunks sit next to our own lines of 30-adblock/0006 and
+60-ui/0011.
+---
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -7,6 +7,7 @@
+ // Plain Browser: own includes (patches/series), kept together up here so that
+ // changes to the upstream include list below never touch this hunk.
+ #include "plainbrowser/adblock/browser/filter_list_updater.h"
++#include "plainbrowser/extensions/browser/switches.h"
+ 
+ #include <memory>
+ #include <string>
+@@ -1738,6 +1739,8 @@
+   plainbrowser::adblock::FilterListUpdater::Start(
+       browser_process_->local_state(),
+       browser_process_->shared_url_loader_factory(), user_data_dir_);
++  // Plain Browser: a .crx file opens the install dialog by default.
++  plainbrowser::extensions::ApplyDefaultSwitches();
+ 
+ #if BUILDFLAG(ENABLE_PROCESS_SINGLETON)
+   // Allow ProcessSingleton to process messages.
+--- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -7,6 +7,7 @@
+ // Plain Browser: own includes (patches/series), kept together up here so that
+ // changes to the upstream include list below never touch this hunk.
+ #include "plainbrowser/adblock/ui/adblock_ui.h"
++#include "plainbrowser/extensions/ui/recommended_extensions_ui.h"
+ 
+ #include "build/android_buildflags.h"
+ #include "build/branding_buildflags.h"
+@@ -276,6 +277,9 @@
+   auto& map = content::WebUIConfigMap::GetInstance();
+   // Plain Browser: chrome://adblock (patches/60-ui/0011).
+   map.AddWebUIConfig(std::make_unique<plainbrowser::adblock::AdblockUIConfig>());
++  // Plain Browser: chrome://recommended-extensions (patches/60-ui/0014).
++  map.AddWebUIConfig(std::make_unique<
++                     plainbrowser::extensions::RecommendedExtensionsUIConfig>());
+   map.AddWebUIConfig(std::make_unique<AccessibilityUIConfig>());
+   map.AddWebUIConfig(std::make_unique<AutofillInternalsUIConfig>());
+   map.AddWebUIConfig(std::make_unique<BluetoothInternalsUIConfig>());

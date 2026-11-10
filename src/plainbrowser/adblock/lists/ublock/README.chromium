@@ -1,0 +1,9 @@
+Name: uBlock filters
+URL: https://github.com/uBlockOrigin/uAssets
+Version: 2026-11-09
+License: GPL-3.0
+License File: //plainbrowser/adblock/lists/ublock/LICENSE
+Shipped: yes
+Security Critical: no
+
+Description: uBlock Origin's own filter list ("uBlock filters", https://ublockorigin.github.io/uAssets/filters/filters.txt), bundled unmodified as data and used by the built-in ad blocker when the user turns it on (Settings > Privacy and security > Use uBlock filters). Copyright the uBlock Origin and uAssets contributors. Kept in its own directory because, unlike the EasyList lists, it is under GPLv3 only.

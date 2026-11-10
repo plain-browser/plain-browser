@@ -1,6 +1,7 @@
 # Filter list mirror (Cloudflare Worker)
 
-Serves current EasyList, EasyPrivacy and EasyList Polish to Plain Browser at `lists.plain-browser.app`, so the
+Serves current EasyList, EasyPrivacy, EasyList Polish and the optional lists (EasyList Cookie List, Fanboy's
+Annoyance List, uBlock filters) to Plain Browser at `lists.plain-browser.app`, so the
 built-in ad blocker gets list updates between browser releases without the browser contacting the list
 publishers. The browser side is `//plainbrowser/adblock` (`FilterListUpdater`, `filter_lists`); see
 `docs/ADBLOCK.md`, "Filter list updates".
@@ -8,7 +9,7 @@ publishers. The browser side is `//plainbrowser/adblock` (`FilterListUpdater`, `
 How it works:
 - A cron trigger (every 6 hours, `wrangler.toml`) fetches each list from its publisher (`SOURCES` in
   `src/index.ts`, the same URLs as `src/plainbrowser/adblock/lists/NOTICE.md`).
-- A list is published only if it looks like a real one: 10 KiB to 16 MiB, an `[Adblock Plus ...]` header, at least
+- A list is published only if it looks like a real one: 10 KiB to 16 MiB, an `[Adblock Plus ...]` header (or `! Title:` for uBlock filters), at least
   1000 rules, and not less than half the rules of the version already published. Otherwise the published version
   stays (the cron report says why).
 - Published lists go to KV (`list:<name>`), then the manifest with each list's SHA-256, size in bytes, rule count,
@@ -32,7 +33,7 @@ browser sends no cookies.
 |---|---|
 | `GET /v1/manifest.json.sig` | base64 Ed25519 signature of the exact bytes of `manifest.json` |
 | `GET /v1/manifest.json` | `{"format": 1, "generated": "...", "license": "...", "lists": {"easylist": {"sha256", "size", "rules", "updated", "source"}, ...}}`, `Cache-Control: public, max-age=300`; 503 before the first cron run |
-| `GET /v1/lists/<name>.txt` | the list, `ETag: "<sha256>"`; `<name>` is `easylist`, `easyprivacy` or `easylistpolish` |
+| `GET /v1/lists/<name>.txt` | the list, `ETag: "<sha256>"`; `<name>` is `easylist`, `easyprivacy`, `easylistpolish`, `easylistcookie`, `fanboyannoyance` or `ublockfilters` |
 
 `HEAD` works too; any other path is 404, other methods 405, a missing or foreign `X-Client` 403 (a filter against
 scanners, not authentication), more than 30 requests a minute from one IP 429.

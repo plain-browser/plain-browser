@@ -6,10 +6,21 @@ import "sandbox/policy/mojom/sandbox.mojom";
 import "url/mojom/url.mojom";
 
 // A downloaded filter list replacing the compiled-in list of the same name
-// ("easylist", "easyprivacy", "easylistpolish").
+// ("easylist", "easyprivacy", "easylistpolish", or one of the optional lists).
 struct NamedList {
   string name;
   mojo_base.mojom.BigString text;
+};
+
+// What the engine is built from besides the compiled-in default lists.
+struct EngineConfig {
+  // Downloaded lists replacing compiled-in ones of the same name.
+  array<NamedList> lists;
+  // The optional lists that are on ("easylistcookie", "fanboyannoyance",
+  // "ublockfilters"); a downloaded optional list counts only when named here.
+  array<string> optional_lists;
+  // The user's own filters (chrome://adblock); empty for none.
+  mojo_base.mojom.BigString custom_filters;
 };
 
 struct CosmeticResult {
@@ -27,10 +38,11 @@ struct CosmeticResult {
 // process the same way and starts a new one.
 [ServiceSandbox=sandbox.mojom.Sandbox.kService]
 interface AdblockEngine {
-  // Replaces the engine with one built from the compiled-in lists, the named
-  // ones replaced by `lists` (empty: compiled-in only). Queries are answered by
-  // the old engine until the reply.
-  UseLists(array<NamedList> lists) => ();
+  // Replaces the engine with one built from `config`. Until the first call the
+  // process uses an engine of the compiled-in lists with the optional lists
+  // that are on by default. Queries are answered by the old engine until the
+  // reply.
+  UseConfig(EngineConfig config) => ();
 
   ShouldBlock(url.mojom.Url url, url.mojom.Url source_url, string request_type)
       => (bool block);

@@ -3,6 +3,40 @@
 All notable changes to Plain Browser. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow the product version in `versions.toml`; the Chromium base is given in brackets.
 
+## [Unreleased]
+
+Written 2026-11-09 and checked with `scripts/check-patches.py` (all patches apply to 157.0.8103.38-1.1), the Rust
+tests and the Node tests; not yet compiled or run in a browser.
+
+### Added
+- Global Privacy Control on by default: the `Sec-GPC: 1` header and `navigator.globalPrivacyControl`, with
+  Chromium's own toggle under Settings > Privacy and security > Third-party cookies and site data
+  (`90-defaults/0001`: features `UniversalOptOut`, `UniversalOptOutSettings`, Blink `GlobalPrivacyControlApi`, the
+  pref `universal_optout.enabled` and forced eligibility so the toggle stays visible).
+- Optional filter lists under "Block ads and trackers": EasyList Cookie List (cookie consent banners, on by
+  default), Fanboy's Annoyance List and uBlock filters (off). Bundled, updated from the mirror only while on; the
+  mirror serves them too (`infra/filter-lists`). uBlock filters (GPLv3) are listed in chrome://credits.
+- chrome://adblock: "My filters" (own rules in Adblock Plus / uBlock Origin syntax, Local State
+  `plainbrowser.adblock.custom_filters`) and a request log (blocked and replaced requests, removed tracking
+  parameters, skipped redirectors), recorded only while the page is open and kept in memory only.
+- chrome://recommended-extensions (`60-ui/0014`, `//plainbrowser/extensions`): uBlock Origin, AdGuard, NoScript
+  and uMatrix from `ext.plain-browser.app` (new `infra/extensions`: CRX3 repacking with an `update_url`, one key
+  per extension, Worker on R2, weekly workflow), installed with the normal permission dialog and the ID pinned,
+  updated by Chromium's extension updater; a Chrome Web Store copy can be switched to ours with its settings; an
+  offer to turn the built-in blocker off while uBlock Origin or AdGuard runs. Linked from Settings.
+- Opening a `.crx` file shows the install dialog by default (ungoogled's `extension-mime-request-handling` flag
+  defaults to "Always prompt for install"; chrome://flags still wins).
+- Microsoft Store package: Settings shows whether Plain Browser is the default browser, and "Make default" opens
+  its page in Windows' Default apps (`60-ui/0013`, `//plainbrowser/win`). Before, the package was always reported
+  "not default" and the button opened a page for an unknown app.
+
+### Changed
+- The engine process is configured with `UseConfig(EngineConfig)` (downloaded lists, optional lists, own filters)
+  instead of `UseLists()`; the user's choices survive an engine restart, downloaded lists are still dropped after a
+  crash.
+- `filter_lists::ListMatches` and the mirror accept `! Title:` as a list header (uBlock Origin's lists have no
+  `[Adblock Plus]` line).
+
 ## [0.2.0-beta.7] - 2026-11-09 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
 
 ### Changed

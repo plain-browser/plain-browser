@@ -156,7 +156,12 @@ std::string AdBlockEngine::GenericCosmeticCss(
       rust::Str(url.spec()), rust_classes, rust_ids));
 }
 
-void AdBlockEngine::UseLists(ListTexts lists, base::OnceClosure done) {
+AdBlockEngine::Config::Config() = default;
+AdBlockEngine::Config::Config(Config&&) = default;
+AdBlockEngine::Config& AdBlockEngine::Config::operator=(Config&&) = default;
+AdBlockEngine::Config::~Config() = default;
+
+void AdBlockEngine::UseConfig(Config config, base::OnceClosure done) {
   const int generation = ++generation_;
   // Building parses every list (about a second for EasyList): off the engine
   // sequence, so queries are answered by the old engine meanwhile. Unretained:
@@ -164,21 +169,28 @@ void AdBlockEngine::UseLists(ListTexts lists, base::OnceClosure done) {
   base::ThreadPool::PostTask(
       FROM_HERE, {base::TaskPriority::BEST_EFFORT},
       base::BindOnce(
-          [](AdBlockEngine* service, int generation, ListTexts lists,
+          [](AdBlockEngine* service, int generation, Config config,
              base::OnceClosure done) {
-            rust::Vec<ListText> texts;
-            texts.reserve(lists.size());
-            for (auto& [name, text] : lists) {
-              texts.push_back(ListText{rust::String(name), rust::String(text)});
+            EngineConfig rust_config;
+            rust_config.lists.reserve(config.lists.size());
+            for (auto& [name, text] : config.lists) {
+              rust_config.lists.push_back(
+                  ListText{rust::String(name), rust::String(text)});
             }
-            rust::Box<AdblockEngine> engine = new_engine_with_lists(texts);
+            rust_config.optional_lists.reserve(config.optional_lists.size());
+            for (const std::string& name : config.optional_lists) {
+              rust_config.optional_lists.push_back(rust::String(name));
+            }
+            rust_config.custom_filters = rust::String(config.custom_filters);
+            rust::Box<AdblockEngine> engine =
+                new_engine_with_config(rust_config);
             service->task_runner_->PostTask(
                 FROM_HERE,
                 base::BindOnce(&AdBlockEngine::SwapEngine,
                                base::Unretained(service), generation,
                                std::move(engine), std::move(done)));
           },
-          base::Unretained(this), generation, std::move(lists),
+          base::Unretained(this), generation, std::move(config),
           std::move(done)));
 }
 
@@ -188,7 +200,7 @@ void AdBlockEngine::SwapEngine(int generation,
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (generation == generation_) {
     engine_.emplace(std::move(engine));
-    VLOG(1) << "Plain Browser adblock engine replaced (lists updated)";
+    VLOG(1) << "Plain Browser adblock engine replaced (lists or filters changed)";
   }
   if (done) {
     std::move(done).Run();

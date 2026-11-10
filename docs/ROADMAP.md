@@ -1,6 +1,6 @@
 # Roadmap: privacy features and project security
 
-Status 2026-10-26. Effort figures are estimates from the work done so far, not measurements.
+Status 2026-11-09. Effort figures are estimates from the work done so far, not measurements.
 
 ## Privacy features
 
@@ -10,7 +10,7 @@ Status 2026-10-26. Effort figures are estimates from the work done so far, not m
 | Bypass tracking redirects ("debouncing") | `browser/debounce_rules.cc`, in `TrackingParamsNavigationThrottle` | done | **done** 2026-10-28: own rule list (Google, Facebook, YouTube, Outlook Safe Links, Bing, ...), verified headless (`scripts/test-privacy.ps1`); [ADBLOCK.md](ADBLOCK.md), "Debouncing" |
 | Safe Browsing (local hash database) through our proxy, no Google contact from the client | `patches/70-safebrowsing`, `patches/upstream-revert.list`, `infra/safebrowsing-proxy` | done | **built and verified end to end** 2026-10-26: the list update goes to `sb.plain-browser.app` with `X-Client` and gets HTTP 200 (public lists only: malware, phishing, unwanted software, download allowlist) |
 | Fingerprint randomization with compatibility exceptions (for example online banking) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **done**, verified headless on the build VM; JS logic unit-tested in Node |
-| Secure defaults (HTTPS-First, secure DNS) | `patches/90-defaults/0001`, `patches/upstream-revert.list` (`doh-changes.patch`, 2 hunks) | small | **done** 2026-10-28: HTTPS-First balanced on by default (feature `HttpsFirstBalancedModeAutoEnable`, the behaviour checked with the flag on the current build: an HTTP-only site gets the warning); secure DNS automatic mode (not yet checked in a build). Already default through ungoogled: third-party cookies blocked (so bounce tracking mitigation runs), hyperlink auditing and preloading off. Not done: Global Privacy Control (Chromium 156 has it only as Google's location-targeted `UniversalOptOut` experiment) |
+| Secure defaults (HTTPS-First, secure DNS) | `patches/90-defaults/0001`, `patches/upstream-revert.list` (`doh-changes.patch`, 2 hunks) | small | **done** 2026-10-28: HTTPS-First balanced on by default (feature `HttpsFirstBalancedModeAutoEnable`, the behaviour checked with the flag on the current build: an HTTP-only site gets the warning); secure DNS automatic mode (not yet checked in a build). Already default through ungoogled: third-party cookies blocked (so bounce tracking mitigation runs), hyperlink auditing and preloading off. Global Privacy Control: on by default since 2026-11-09 (`patches/90-defaults/0001`; Chromium 157 has the header, the API and a settings toggle behind three features). WebRTC: ungoogled already sets `disable_non_proxied_udp` (no local or public IP leaks over UDP outside a proxy) |
 | Opt-in crash reports | was `src/plainbrowser/crash`, `patches/95-crash`, `infra/crash-reports` | medium | **dropped** 2026-10-28: Crashpad stays off as in ungoogled-chromium (no dumps, no uploads). A working implementation (own consent pref, Cloudflare Worker + R2, built and unit-tested) is in commit b72feb8, reverted |
 
 ### Tracking parameters and redirects

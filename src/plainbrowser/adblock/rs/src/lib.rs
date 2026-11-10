@@ -31,10 +31,23 @@ mod ffi {
         procedural_selectors: Vec<String>,
     }
 
-    /// The text of one of the default lists, by name (see `DEFAULT_LISTS`), replacing the compiled-in copy.
+    #[derive(Clone)]
+    /// The text of one of the compiled-in lists, by name (see `DEFAULT_LISTS` and `OPTIONAL_LISTS`), replacing
+    /// the compiled-in copy (a downloaded update).
     struct ListText {
         name: String,
         text: String,
+    }
+
+    /// What an engine is built from besides the default lists.
+    struct EngineConfig {
+        /// Downloaded lists replacing compiled-in ones of the same name. Unknown names are ignored, and so is a
+        /// downloaded optional list that is not in `optional_lists`.
+        lists: Vec<ListText>,
+        /// The optional lists the user turned on (names from `OPTIONAL_LISTS`; unknown names are ignored).
+        optional_lists: Vec<String>,
+        /// The user's own filters (chrome://adblock), in list syntax; may be empty.
+        custom_filters: String,
     }
 
     extern "Rust" {
@@ -42,11 +55,16 @@ mod ffi {
         fn new_engine(rules: &str) -> Box<AdblockEngine>;
         /// Engine built from the filter lists compiled into the binary.
         fn new_default_engine() -> Box<AdblockEngine>;
-        /// Engine built from the default lists, with each list named in `lists` taken from there instead of
-        /// the compiled-in copy (downloaded updates). Unknown names are ignored.
-        fn new_engine_with_lists(lists: &Vec<ListText>) -> Box<AdblockEngine>;
+        /// Engine built from the default lists, the optional lists `config` turns on and the user's filters,
+        /// each list taken from `config.lists` when it has one of that name.
+        fn new_engine_with_config(config: &EngineConfig) -> Box<AdblockEngine>;
         /// Names of the default lists, in build order.
         fn default_list_names() -> Vec<String>;
+        /// Names of the optional lists, in build order.
+        fn optional_list_names() -> Vec<String>;
+        /// The optional lists `new_default_engine` includes (on until the user turns them off). The browser's
+        /// preference defaults must name the same ones (adblock_ffi_unittest.cc checks).
+        fn default_optional_list_names() -> Vec<String>;
         /// Replaces the rules with a blob made by `serialize`. Returns false (leaving the engine
         /// unchanged) when the blob is invalid. No `Result` here: Chromium builds without C++
         /// exceptions and cxx turns `Result` into `throw`.
@@ -107,20 +125,56 @@ const DEFAULT_LISTS: [(&str, &str); 4] = [
     ("plainbrowser-removeparam", include_str!("../../lists/plainbrowser-removeparam.txt")),
 ];
 
+/// Lists the user can turn on or off (Settings > Privacy and security), compiled in like the default ones and
+/// updated the same way. `true`: on until the user turns it off.
+/// - easylistcookie: EasyList Cookie List, cookie consent banners.
+/// - fanboyannoyance: Fanboy's Annoyance List (pop-ups, newsletter and notification prompts, social widgets; it
+///   contains the cookie list too).
+/// - ublockfilters: uBlock filters, uBlock Origin's own list (GPLv3, ../../lists/ublock/).
+const OPTIONAL_LISTS: [(&str, &str, bool); 3] = [
+    ("easylistcookie", include_str!("../../lists/easylistcookie.txt"), true),
+    ("fanboyannoyance", include_str!("../../lists/fanboyannoyance.txt"), false),
+    ("ublockfilters", include_str!("../../lists/ublock/ublockfilters.txt"), false),
+];
+
+/// Upper bound on the user's own filters: a typing mistake must not cost a big build, and real custom lists are
+/// far smaller.
+const MAX_CUSTOM_FILTERS_BYTES: usize = 1024 * 1024;
+
 fn new_default_engine() -> Box<AdblockEngine> {
-    new_engine_with_lists(&Vec::new())
+    new_engine_with_config(&ffi::EngineConfig {
+        lists: Vec::new(),
+        optional_lists: default_optional_list_names(),
+        custom_filters: String::new(),
+    })
 }
 
-fn new_engine_with_lists(lists: &Vec<ffi::ListText>) -> Box<AdblockEngine> {
-    let texts: Vec<&str> = DEFAULT_LISTS
-        .iter()
-        .map(|(name, builtin)| lists.iter().find(|l| l.name == *name).map_or(*builtin, |l| l.text.as_str()))
-        .collect();
-    AdblockEngine::build(texts.iter().copied())
+fn new_engine_with_config(config: &ffi::EngineConfig) -> Box<AdblockEngine> {
+    let pick = |name: &str, builtin: &'static str| -> String {
+        config.lists.iter().find(|l| l.name == name).map_or(builtin, |l| l.text.as_str()).to_string()
+    };
+    let mut texts: Vec<String> = DEFAULT_LISTS.iter().map(|(name, builtin)| pick(name, builtin)).collect();
+    for (name, builtin, _) in OPTIONAL_LISTS.iter() {
+        if config.optional_lists.iter().any(|n| n == name) {
+            texts.push(pick(name, builtin));
+        }
+    }
+    if !config.custom_filters.is_empty() && config.custom_filters.len() <= MAX_CUSTOM_FILTERS_BYTES {
+        texts.push(config.custom_filters.clone());
+    }
+    AdblockEngine::build(texts.iter().map(String::as_str))
 }
 
 fn default_list_names() -> Vec<String> {
     DEFAULT_LISTS.iter().map(|(name, _)| name.to_string()).collect()
+}
+
+fn optional_list_names() -> Vec<String> {
+    OPTIONAL_LISTS.iter().map(|(name, _, _)| name.to_string()).collect()
+}
+
+fn default_optional_list_names() -> Vec<String> {
+    OPTIONAL_LISTS.iter().filter(|(_, _, on)| *on).map(|(name, _, _)| name.to_string()).collect()
 }
 
 fn new_engine(rules: &str) -> Box<AdblockEngine> {
@@ -334,6 +388,14 @@ mod tests {
         assert!(e.generic_cosmetic_css("https://quiet.example/", &strings(&["ad-box"]), &strings(&["top-ad"])).is_empty());
     }
 
+    fn config(lists: Vec<ffi::ListText>, optional: &[&str], custom: &str) -> ffi::EngineConfig {
+        ffi::EngineConfig { lists, optional_lists: strings(optional), custom_filters: custom.to_string() }
+    }
+
+    fn new_engine_with_lists(lists: &Vec<ffi::ListText>) -> Box<AdblockEngine> {
+        new_engine_with_config(&config(lists.clone(), &[], ""))
+    }
+
     #[test]
     fn downloaded_lists_replace_the_builtin_ones() {
         assert_eq!(default_list_names(), strings(&["easylist", "easyprivacy", "easylistpolish", "plainbrowser-removeparam"]));
@@ -347,6 +409,65 @@ mod tests {
         assert_eq!(r.rewritten_url, "https://example.com/p?q=1");
         // Unknown names are ignored.
         let e = new_engine_with_lists(&vec![ffi::ListText { name: "other".into(), text: "||x.example^".into() }]);
+        assert!(!e.check_network_request("https://x.example/", "https://site.com", "script").matched);
+    }
+
+    // A consent manager only the EasyList Cookie List blocks (also in Fanboy's list, which contains it).
+    const COOKIE_SCRIPT: &str = "https://api.consentjs.datagrail.io/consent.js";
+
+    #[test]
+    fn optional_lists_are_used_only_when_on() {
+        assert_eq!(optional_list_names(), strings(&["easylistcookie", "fanboyannoyance", "ublockfilters"]));
+        assert_eq!(default_optional_list_names(), strings(&["easylistcookie"]));
+        let site = "https://news.example/";
+        let off = new_engine_with_config(&config(vec![], &[], ""));
+        assert!(!off.check_network_request(COOKIE_SCRIPT, site, "script").matched);
+        let on = new_engine_with_config(&config(vec![], &["easylistcookie"], ""));
+        assert!(on.check_network_request(COOKIE_SCRIPT, site, "script").matched);
+        // The default engine has the cookie list on.
+        assert!(new_default_engine().check_network_request(COOKIE_SCRIPT, site, "script").matched);
+        // Unknown names are ignored.
+        let e = new_engine_with_config(&config(vec![], &["nosuchlist"], ""));
+        assert!(!e.check_network_request(COOKIE_SCRIPT, site, "script").matched);
+    }
+
+    #[test]
+    fn a_downloaded_optional_list_counts_only_when_on() {
+        let lists = vec![ffi::ListText { name: "ublockfilters".into(), text: "||fresh-ubo.example^\n".into() }];
+        let off = new_engine_with_config(&config(lists.clone(), &[], ""));
+        assert!(!off.check_network_request("https://fresh-ubo.example/a.js", "https://site.com", "script").matched);
+        let on = new_engine_with_config(&config(lists, &["ublockfilters"], ""));
+        assert!(on.check_network_request("https://fresh-ubo.example/a.js", "https://site.com", "script").matched);
+    }
+
+    #[test]
+    fn bundled_optional_lists_parse() {
+        // Each bundled optional list yields rules that block or hide something on its own.
+        let e = new_engine_with_config(&config(vec![], &["fanboyannoyance", "ublockfilters"], ""));
+        assert!(e.check_network_request(COOKIE_SCRIPT, "https://news.example/", "script").matched);
+        // Fanboy's own part: a social widget host, third-party only.
+        assert!(e.check_network_request("https://24smi.org/w.js", "https://news.example/", "script").matched);
+        // The cookie list's generic hide rules (consent banner ids).
+        let css = new_default_engine().generic_cosmetic_css("https://news.example/", &strings(&[]), &strings(&["AcceptCookie"]));
+        assert!(css.contains("#AcceptCookie"), "{css}");
+        // uBlock filters, with its `!#if` blocks: a plain host rule.
+        assert!(e.check_network_request("https://yollamedia.com/a.js", "https://news.example/", "script").matched);
+        assert!(!new_default_engine().check_network_request("https://yollamedia.com/a.js", "https://news.example/", "script").matched);
+    }
+
+    #[test]
+    fn custom_filters_add_to_the_lists() {
+        let e = new_engine_with_config(&config(vec![], &[], "||mine.example^\nexample.org##.my-banner\n"));
+        assert!(e.check_network_request("https://mine.example/x.js", "https://site.com", "script").matched);
+        assert!(e.cosmetic_resources("https://example.org/").css.contains(".my-banner"));
+        // The default lists are still there.
+        assert!(e.check_network_request("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", "https://site.com", "script").matched);
+        // An exception in the custom filters wins over a list's block rule.
+        let e = new_engine_with_config(&config(vec![], &[], "@@||pagead2.googlesyndication.com^\n"));
+        assert!(!e.check_network_request("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", "https://site.com", "script").matched);
+        // Oversized custom filters are ignored rather than built.
+        let huge = "||x.example^\n".repeat(MAX_CUSTOM_FILTERS_BYTES / 10);
+        let e = new_engine_with_config(&config(vec![], &[], &huge));
         assert!(!e.check_network_request("https://x.example/", "https://site.com", "script").matched);
     }
 

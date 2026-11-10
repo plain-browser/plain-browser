@@ -13,6 +13,7 @@
 
 #include "base/containers/span.h"
 #include "base/files/file_path.h"
+#include "base/functional/callback.h"
 
 class GURL;
 
@@ -22,10 +23,12 @@ class GURL;
 namespace plainbrowser::adblock::filter_lists {
 
 // Lists the updater may replace, by the names AdBlockService::UseLists() and
-// the Rust bridge use. plainbrowser-removeparam is ours and ships with the
-// browser only.
-inline constexpr std::array<std::string_view, 3> kUpdatableLists = {
-    "easylist", "easyprivacy", "easylistpolish"};
+// the Rust bridge use: the default lists, then the optional ones
+// (common/filter_list_names.h). plainbrowser-removeparam is ours and ships
+// with the browser only.
+inline constexpr std::array<std::string_view, 6> kUpdatableLists = {
+    "easylist",       "easyprivacy",     "easylistpolish",
+    "easylistcookie", "fanboyannoyance", "ublockfilters"};
 
 // Where the manifest and the lists are served from (the Worker). Tests point
 // the browser elsewhere with --plainbrowser-filter-lists-url.
@@ -70,7 +73,8 @@ std::optional<Manifest> ParseManifest(std::string_view json);
 std::string SerializeManifest(const Manifest& manifest);
 
 // True when `text` is the list `entry` describes (size and SHA-256) and looks
-// like an Adblock Plus list (first line "[Adblock Plus ...]").
+// like a filter list: first line "[Adblock Plus ...]", or "! Title: ..." (uBlock
+// Origin's lists have no Adblock Plus header).
 bool ListMatches(const ListEntry& entry, std::string_view text);
 
 // True when `signature_base64` (base64 of 64 bytes) is a valid Ed25519
@@ -87,9 +91,13 @@ GURL ManifestUrl(const GURL& server);
 GURL ManifestSignatureUrl(const GURL& server);
 
 // The lists names in `wanted` whose entry differs from `stored`'s (new or
-// changed), in kUpdatableLists order.
-std::vector<std::string> ChangedLists(const Manifest& stored,
-                                      const Manifest& wanted);
+// changed), in kUpdatableLists order. With `in_use`, only names it returns true
+// for (optional lists that are off are not downloaded).
+std::vector<std::string> ChangedLists(
+    const Manifest& stored,
+    const Manifest& wanted,
+    base::RepeatingCallback<bool(std::string_view)> in_use =
+        base::RepeatingCallback<bool(std::string_view)>());
 
 // The verified content of a store directory.
 struct Store {

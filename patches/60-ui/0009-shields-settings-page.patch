@@ -11,7 +11,9 @@ settings::AddLocalizedStrings. The same element holds the toggle for daily filte
 plainbrowser.adblock.list_updates.enabled, 30-adblock/0006), also allowlisted; settingsPrivate finds Local State
 prefs by itself. Above the list, the global "Block ads and trackers" toggle (plainbrowser.adblock.enabled); below
 the update toggle, when the lists were last checked (plainbrowser.adblock.list_updates.last_success) and a link to
-chrome://adblock (60-ui/0011).
+chrome://adblock (60-ui/0011). Under the blocking toggle, the optional filter lists (EasyList Cookie List, Fanboy's
+Annoyance List, uBlock filters: plainbrowser.adblock.lists.*, Local State, allowlisted); at the end a link to
+chrome://recommended-extensions (60-ui/0014).
 ---
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
@@ -27,7 +29,7 @@ chrome://adblock (60-ui/0011).
  
  #include <memory>
  
-@@ -442,6 +447,18 @@
+@@ -442,6 +447,26 @@
        settings_api::PrefType::kString;
  #endif
  
@@ -42,6 +44,14 @@ chrome://adblock (60-ui/0011).
 +      settings_api::PrefType::kBoolean;
 +  (*s_allowlist)[plainbrowser::adblock::prefs::kListUpdatesLastSuccess] =
 +      settings_api::PrefType::kNumber;
++  // Plain Browser: the optional filter lists (cookie banners, annoyances,
++  // uBlock filters).
++  (*s_allowlist)[plainbrowser::adblock::prefs::kCookieListEnabled] =
++      settings_api::PrefType::kBoolean;
++  (*s_allowlist)[plainbrowser::adblock::prefs::kAnnoyanceListEnabled] =
++      settings_api::PrefType::kBoolean;
++  (*s_allowlist)[plainbrowser::adblock::prefs::kUblockFiltersEnabled] =
++      settings_api::PrefType::kBoolean;
 +
    // Privacy Guide
    (*s_allowlist)[::prefs::kPrivacyGuideViewed] =
@@ -58,11 +68,26 @@ chrome://adblock (60-ui/0011).
      "privacy_page/security/fingerprint_progress_arc.ts",
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.html
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,86 @@
 +<settings-toggle-button id="blocking"
 +    pref-key="plainbrowser.adblock.enabled"
 +    label="$i18n{plainBrowserBlocking}"
 +    sub-label="$i18n{plainBrowserBlockingDesc}">
++</settings-toggle-button>
++<settings-toggle-button id="cookieList"
++    pref-key="plainbrowser.adblock.lists.easylistcookie"
++    label="$i18n{plainBrowserListCookie}"
++    sub-label="$i18n{plainBrowserListCookieDesc}">
++</settings-toggle-button>
++<settings-toggle-button id="annoyanceList"
++    pref-key="plainbrowser.adblock.lists.fanboyannoyance"
++    label="$i18n{plainBrowserListAnnoyance}"
++    sub-label="$i18n{plainBrowserListAnnoyanceDesc}">
++</settings-toggle-button>
++<settings-toggle-button id="ublockList"
++    pref-key="plainbrowser.adblock.lists.ublockfilters"
++    label="$i18n{plainBrowserListUblock}"
++    sub-label="$i18n{plainBrowserListUblockDesc}">
 +</settings-toggle-button>
 +<div class="settings-box two-line">
 +  <div class="start settings-box-text">
@@ -103,6 +128,10 @@ chrome://adblock (60-ui/0011).
 +    sub-label="$i18n{plainBrowserAdblockStatusDesc}" external
 +    @click="${this.onStatusClick_}">
 +</cr-link-row>
++<cr-link-row id="extensions" class="hr" label="$i18n{plainBrowserExtensions}"
++    sub-label="$i18n{plainBrowserExtensionsDesc}" external
++    @click="${this.onExtensionsClick_}">
++</cr-link-row>
 +${this.showDialog_ ? html`
 +  <cr-dialog id="dialog" close-text="$i18n{close}" show-on-attach
 +      @close="${this.onDialogClose_}">
@@ -128,7 +157,7 @@ chrome://adblock (60-ui/0011).
 +` : ''}
 --- /dev/null
 +++ b/chrome/browser/resources/settings/privacy_page/plainbrowser_shields_exceptions.ts
-@@ -0,0 +1,197 @@
+@@ -0,0 +1,204 @@
 +// Copyright Plain Browser contributors. MPL-2.0.
 +
 +/**
@@ -143,7 +172,9 @@ chrome://adblock (60-ui/0011).
 + * plainbrowser.adblock.enabled); below it, the toggle for daily filter list
 + * updates (plainbrowser.adblock.list_updates.enabled, FilterListUpdater), when
 + * the lists were last checked (plainbrowser.adblock.list_updates.last_success,
-+ * ms since the epoch) and a link to chrome://adblock.
++ * ms since the epoch) and a link to chrome://adblock. Under the blocking
++ * toggle, the optional filter lists (plainbrowser.adblock.lists.*); at the end
++ * a link to chrome://recommended-extensions.
 + *
 + * A Lit element, like the privacy page around it: the settings prefs live in
 + * PrefService (one cache, observed by key).
@@ -269,6 +300,11 @@ chrome://adblock (60-ui/0011).
 +
 +  protected onStatusClick_() {
 +    OpenWindowProxyImpl.getInstance().openUrl('chrome://adblock');
++  }
++
++  protected onExtensionsClick_() {
++    OpenWindowProxyImpl.getInstance().openUrl(
++        'chrome://recommended-extensions');
 +  }
 +
 +  protected removeLabel_(site: string): string {

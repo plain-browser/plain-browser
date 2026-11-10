@@ -1,0 +1,73 @@
+From: Plain Browser
+Subject: [defaults] Global Privacy Control on by default, with its settings toggle
+
+Category: 90-defaults. Chromium 157 implements Global Privacy Control (the Sec-GPC: 1 request header and
+navigator.globalPrivacyControl) behind three features and a profile pref: universal_optout's kUniversalOptOut and
+kUniversalOptOutSettings copy the pref universal_optout.enabled into RendererPreferences
+(chrome/browser/renderer_preferences_util.cc), and Blink's GlobalPrivacyControlApi exposes the API and lets the
+header be sent. Google ships them off and plans a location-targeted rollout. Plain Browser turns the three on, the
+pref on for every profile, and makes every profile "eligible" (feature param force_eligible), which is what keeps
+the toggle "Send an opt-out request to sites regarding use of your data" (Settings > Privacy and security >
+Third-party cookies and site data, "Site requests") visible after a user turns it
+off. The eligibility history the service keeps comes from the variations country, which ungoogled-chromium never
+fetches, so it stays empty. Verified upstream by chrome/browser/chrome_global_privacy_control_browsertest.cc
+("AllEnabledPrefOn": header and API on navigations and subresources).
+---
+--- a/components/universal_optout/features.cc
++++ b/components/universal_optout/features.cc
+@@ -19,14 +19,16 @@
+ 
+ namespace universal_optout::features {
+ 
+-BASE_FEATURE(kUniversalOptOut, base::FEATURE_DISABLED_BY_DEFAULT);
++// Plain Browser: on by default with kUniversalOptOutSettings, so the Global
++// Privacy Control signal and its settings toggle work (patches/90-defaults).
++BASE_FEATURE(kUniversalOptOut, base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kUniversalOptOutExtension, base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+ BASE_FEATURE(kUniversalOptOutExtensionSilent,
+              base::FEATURE_DISABLED_BY_DEFAULT);
+ 
+-BASE_FEATURE(kUniversalOptOutSettings, base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kUniversalOptOutSettings, base::FEATURE_ENABLED_BY_DEFAULT);
+ 
+ const base::FeatureParam<bool> kUniversalOptOutExtensionSilentControllerOnly{
+     &kUniversalOptOutExtensionSilent, "controller-only", false};
+@@ -59,8 +61,10 @@
+ const base::FeatureParam<std::string> kTargetLocations{&kUniversalOptOut,
+                                                        "target_locations", ""};
+ 
++// Plain Browser: every profile is eligible, so the settings toggle stays
++// visible after the user turns the signal off (no location targeting).
+ const base::FeatureParam<bool> kForceEligible{&kUniversalOptOut,
+-                                              "force_eligible", false};
++                                              "force_eligible", true};
+ 
+ const base::FeatureParam<base::TimeDelta> kEligibilityWindow{
+     &kUniversalOptOut, "eligibility_window", base::Days(30)};
+--- a/components/universal_optout/prefs.cc
++++ b/components/universal_optout/prefs.cc
+@@ -12,7 +12,8 @@
+ void RegisterProfilePrefs(PrefRegistrySimple* registry) {
+   registry->RegisterDictionaryPref(prefs::kUniversalOptOutEligibilityHistory);
+   registry->RegisterBooleanPref(prefs::kUniversalOptOutEligible, false);
+-  registry->RegisterBooleanPref(prefs::kUniversalOptOutEnabled, false);
++  // Plain Browser: send the Global Privacy Control signal by default.
++  registry->RegisterBooleanPref(prefs::kUniversalOptOutEnabled, true);
+ }
+ 
+ }  // namespace universal_optout::prefs
+--- a/third_party/blink/renderer/platform/runtime_enabled_features.json5
++++ b/third_party/blink/renderer/platform/runtime_enabled_features.json5
+@@ -3634,8 +3634,9 @@
+     },
+     {
+       // Gates the navigator.globalPrivacyControl JavaScript API.
++      // Plain Browser: stable (on by default), patches/90-defaults.
+       name: "GlobalPrivacyControlApi",
+-      status: "experimental",
++      status: "stable",
+     },
+     {
+       name: "GlobalPrivacyControlForce",

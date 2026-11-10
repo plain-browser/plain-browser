@@ -28,7 +28,8 @@ function mockPublishers(bodies: Record<string, string | number>) {
   globalThis.fetch = (async (url: string) => {
     fetched.push(url);
     const name = Object.keys(SOURCES).find((n) => SOURCES[n] === url)!;
-    const b = bodies[name];
+    // Lists a test does not name are not there.
+    const b = bodies[name] ?? 404;
     if (typeof b === "number") return new Response("error", { status: b });
     return new Response(b, { status: 200, headers: { "Set-Cookie": "x=y" } });
   }) as typeof fetch;
@@ -38,6 +39,7 @@ function mockPublishers(bodies: Record<string, string | number>) {
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const signedOf = (kv: FakeKv) => JSON.parse(kv.data.get("signed-manifest")!) as { manifest: string; signature: string };
 const manifestOf = (kv: FakeKv) => JSON.parse(signedOf(kv).manifest) as Manifest;
+const m_size = (kv: FakeKv, name: string) => manifestOf(kv).lists[name].size;
 
 // A signing key for the tests, as the Worker gets it (base64 PKCS#8), and its public half for checking.
 const keys = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"])) as CryptoKeyPair;
@@ -48,10 +50,27 @@ const signing = (kv: FakeKv): Env => ({ LISTS: kv, SIGNING_KEY });
 
 test("refresh publishes valid lists with hash, size and rule count; list before manifest", async () => {
   const kv = new FakeKv();
-  const bodies = { easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") };
+  const bodies = {
+    easylist: list("a"),
+    easyprivacy: list("p"),
+    easylistpolish: list("pl"),
+    easylistcookie: list("c"),
+    fanboyannoyance: list("f"),
+    // uBlock Origin's lists start with their title, not an Adblock Plus header.
+    ublockfilters: list("u").replace("[Adblock Plus 2.0]\n", ""),
+  };
   mockPublishers(bodies);
   const report = await refresh(signing(kv), new Date("2026-10-27T12:00:00Z"));
-  assert.deepEqual(report, { easylist: "published", easyprivacy: "published", easylistpolish: "published" });
+  assert.deepEqual(report, {
+    easylist: "published",
+    easyprivacy: "published",
+    easylistpolish: "published",
+    easylistcookie: "published",
+    fanboyannoyance: "published",
+    ublockfilters: "published",
+  });
+  assert.ok(bodies.ublockfilters.startsWith("! Title:"));
+  assert.equal(m_size(kv, "ublockfilters"), Buffer.byteLength(bodies.ublockfilters));
   const m = manifestOf(kv);
   assert.equal(m.format, 1);
   assert.equal(m.generated, "2026-10-27T12:00:00.000Z");
@@ -87,7 +106,7 @@ test("refresh keeps the published version when a source fails or looks wrong", a
   });
   const report = await refresh(signing(kv));
   assert.equal(report.easylist, "kept: HTTP 503");
-  assert.equal(report.easyprivacy, "kept: no [Adblock Plus] header");
+  assert.equal(report.easyprivacy, "kept: no [Adblock Plus] or ! Title: header");
   assert.match(report.easylistpolish, /^kept: (only|shrank)/);
   assert.deepEqual(kv.puts, []); // nothing written, manifest untouched
   assert.deepEqual(manifestOf(kv), before);
@@ -100,7 +119,11 @@ test("refresh writes only what changed", async () => {
   kv.puts = [];
   mockPublishers({ easylist: list("a"), easyprivacy: list("p-new"), easylistpolish: list("pl") });
   const report = await refresh(signing(kv));
-  assert.deepEqual(report, { easylist: "unchanged", easyprivacy: "published", easylistpolish: "unchanged" });
+  assert.deepEqual(
+    { easylist: report.easylist, easyprivacy: report.easyprivacy, easylistpolish: report.easylistpolish },
+    { easylist: "unchanged", easyprivacy: "published", easylistpolish: "unchanged" },
+  );
+  assert.equal(report.ublockfilters, "kept: HTTP 404");
   assert.deepEqual(kv.puts, ["list:easyprivacy", "signed-manifest"]);
   // Nothing new and the same key: nothing written at all.
   kv.puts = [];

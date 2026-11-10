@@ -1,0 +1,88 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+# Extensions without the Chrome Web Store: the curated repository
+# (ext.plain-browser.app, infra/extensions) and its page
+# chrome://recommended-extensions, and .crx files opening the install dialog.
+# Linked through //plainbrowser:browser; wired into Chromium by
+# patches/60-ui/0014. Depends on //chrome/browser/extensions, which does not
+# depend on chrome/browser:core (the target that depends on us), so there is
+# no cycle.
+assert(!is_android)
+
+source_set("browser") {
+  sources = [
+    "browser/catalog.cc",
+    "browser/catalog.h",
+    "browser/curated_installer.cc",
+    "browser/curated_installer.h",
+    "browser/switches.cc",
+    "browser/switches.h",
+  ]
+  deps = [
+    "//base",
+    "//chrome/app:generated_resources",
+    "//chrome/browser/extensions",
+    "//chrome/browser/profiles:profile",
+    "//content/public/browser",
+    "//extensions/browser",
+    "//extensions/browser:crx_installer",
+    "//extensions/common",
+    "//net",
+    "//net/traffic_annotation",
+    "//plainbrowser/common:version",
+    "//services/network/public/cpp",
+    "//services/network/public/mojom",
+    "//ui/base",
+    "//ui/gfx",
+    "//url",
+  ]
+}
+
+action("embed_page_html") {
+  script = "//plainbrowser/fingerprint/renderer/embed_text.py"
+  sources = [ "ui/recommended_extensions_page.html" ]
+  outputs = [ "$target_gen_dir/recommended_extensions_page_html.cc" ]
+  args = [
+    rebase_path(sources[0], root_build_dir),
+    rebase_path(outputs[0], root_build_dir),
+    "kRecommendedExtensionsPageHtml",
+    "plainbrowser::extensions",
+  ]
+}
+
+action("embed_page_js") {
+  script = "//plainbrowser/fingerprint/renderer/embed_text.py"
+  sources = [ "ui/recommended_extensions_page.js" ]
+  outputs = [ "$target_gen_dir/recommended_extensions_page_js.cc" ]
+  args = [
+    rebase_path(sources[0], root_build_dir),
+    rebase_path(outputs[0], root_build_dir),
+    "kRecommendedExtensionsPageJs",
+    "plainbrowser::extensions",
+  ]
+}
+
+# chrome://recommended-extensions (registered by patches/60-ui/0014).
+source_set("webui") {
+  sources = [
+    "ui/recommended_extensions_ui.cc",
+    "ui/recommended_extensions_ui.h",
+  ]
+  sources += get_target_outputs(":embed_page_html")
+  sources += get_target_outputs(":embed_page_js")
+  deps = [
+    ":browser",
+    ":embed_page_html",
+    ":embed_page_js",
+    "//base",
+    "//chrome/app:generated_resources",
+    "//chrome/browser/profiles:profile",
+    "//components/prefs",
+    "//content/public/browser",
+    "//content/public/common",
+    "//extensions/browser",
+    "//extensions/common",
+    "//plainbrowser/adblock:common",
+    "//plainbrowser/adblock:updater",
+    "//ui/base",
+  ]
+}

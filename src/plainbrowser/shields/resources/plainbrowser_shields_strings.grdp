@@ -76,7 +76,7 @@
     Update filter lists daily
   </message>
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_UPDATES_DESC" desc="Description under the filter list update toggle: where the lists come from and what is sent.">
-    Downloads new versions of EasyList, EasyPrivacy and EasyList Polish from lists.plain-browser.app. The request carries no cookies and nothing about the sites you visit. When off, the lists the browser was released with are used.
+    Downloads new versions of EasyList, EasyPrivacy, EasyList Polish and the lists turned on above from lists.plain-browser.app. The request carries no cookies and nothing about the sites you visit. When off, the lists the browser was released with are used.
   </message>
 
   <!-- Global switch, last check and the status page link (settings). -->
@@ -97,6 +97,30 @@
   </message>
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ADBLOCK_STATUS_DESC" desc="Description of the settings row that opens the ad blocker status page.">
     Filter lists in use, the filter engine and blocked requests
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_COOKIE" desc="Label of a settings toggle under Block ads and trackers: use the EasyList Cookie List.">
+    Hide cookie consent banners
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_COOKIE_DESC" desc="Description under the cookie banner toggle.">
+    Uses the EasyList Cookie List. Hiding a banner does not accept or reject cookies; third-party cookies stay blocked either way.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_ANNOYANCE" desc="Label of a settings toggle under Block ads and trackers: use Fanboy's Annoyance List.">
+    Block annoyances
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_ANNOYANCE_DESC" desc="Description under the annoyances toggle.">
+    Uses Fanboy's Annoyance List: pop-ups, newsletter and notification prompts, social media buttons and cookie banners. May hide things some sites need.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_UBLOCK" desc="Label of a settings toggle under Block ads and trackers: use uBlock Origin's own filter list.">
+    Use uBlock filters
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_LIST_UBLOCK_DESC" desc="Description under the uBlock filters toggle.">
+    Adds uBlock Origin's own list, which catches more ads and trackers. Some of its rules need uBlock Origin itself and are skipped.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_EXTENSIONS" desc="Label of a settings row that opens the page of extensions Plain Browser hosts.">
+    Recommended extensions
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_EXTENSIONS_DESC" desc="Description of the settings row that opens the recommended extensions page.">
+    uBlock Origin, AdGuard, NoScript and uMatrix, installed and updated from Plain Browser
   </message>
 
   <!-- chrome://adblock -->
@@ -157,13 +181,132 @@
   <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_SETTINGS" desc="Link on chrome://adblock to the browser's privacy settings.">
     Settings
   </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LIST_OFF" desc="Under a filter list name on chrome://adblock: an optional list the user has not turned on.">
+    Off
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LISTS_NOTE" desc="Note under the filter lists on chrome://adblock: where the optional lists are turned on.">
+    Cookie banners, annoyances and uBlock filters are turned on or off in Settings.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_CUSTOM_FILTERS" desc="Section heading on chrome://adblock: the user's own filter rules.">
+    My filters
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_CUSTOM_FILTERS_DESC" desc="Explanation above the text box for the user's own filter rules on chrome://adblock.">
+    Your own rules in Adblock Plus or uBlock Origin syntax, one per line. They apply on top of the lists; a rule starting with @@ allows what a list blocks.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_SAVE" desc="Button on chrome://adblock that saves the user's own filter rules.">
+    Save
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_SAVED" desc="Shown on chrome://adblock after the user's own filter rules were saved.">
+    Saved. The filters apply in a moment.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_SAVE_FAILED" desc="Shown on chrome://adblock when the user's own filter rules could not be saved.">
+    Not saved: the text is too long (at most 1 MB).
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG" desc="Section heading on chrome://adblock: a list of requests the blocker acted on.">
+    Request log
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_DESC" desc="Explanation of the request log on chrome://adblock: what it records and for how long.">
+    What the blocker did in any tab while this page is open, newest first. Kept in memory only and cleared when you close the page.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_EMPTY" desc="Shown on chrome://adblock when the request log has no entries.">
+    Nothing yet. Load a page in another tab.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_FILTER" desc="Placeholder of the search box that filters the request log on chrome://adblock.">
+    Filter by address
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_CLEAR" desc="Button on chrome://adblock that empties the request log.">
+    Clear
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_BLOCKED" desc="Label of a request log entry: a network request was blocked.">
+    Blocked
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_REDIRECTED" desc="Label of a request log entry: a request was answered with a harmless stand-in resource.">
+    Replaced
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_PARAMS" desc="Label of a request log entry: tracking parameters were removed from a link.">
+    Parameters removed
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_ADBLOCK_LOG_DEBOUNCED" desc="Label of a request log entry: a tracking redirect page was skipped.">
+    Redirect skipped
+  </message>
+
+  <!-- chrome://recommended-extensions (//plainbrowser/extensions). -->
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_TITLE" desc="Title of chrome://recommended-extensions.">
+    Recommended extensions
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_INTRO" desc="Introduction on chrome://recommended-extensions.">
+    Extensions that Plain Browser hosts and keeps up to date, since the Chrome Web Store is not part of this browser. Each one is the developer's release, unchanged except for where it gets its updates from.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_INSTALL" desc="Button that installs an extension on chrome://recommended-extensions.">
+    Install
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_INSTALLING" desc="Disabled button text while an extension is being downloaded or installed.">
+    Installing…
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_ENABLED" desc="State of an installed extension on chrome://recommended-extensions.">
+    Installed
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_DISABLED" desc="State of an installed but turned-off extension on chrome://recommended-extensions.">
+    Installed, turned off
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_FROM_STORE" desc="Note under an extension that was installed from the Chrome Web Store.">
+    Installed from the Chrome Web Store, which no longer updates it here.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_SWITCH" desc="Button that replaces a Chrome Web Store copy of an extension with Plain Browser's.">
+    Switch
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_SWITCH_DESC" desc="Explains the Switch button on chrome://recommended-extensions.">
+    Switch installs Plain Browser's copy, takes over its settings and removes the old one.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_UNMAINTAINED" desc="Tag on an extension whose developer stopped working on it.">
+    No longer developed
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_MANIFEST_V3" desc="Tag on an extension built on Manifest V3 rather than V2.">
+    Manifest V3
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_SOURCE" desc="Link to an extension's source code and project page.">
+    Source code
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_MANAGE" desc="Link from chrome://recommended-extensions to chrome://extensions.">
+    Manage extensions
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_BOTH_BLOCKERS" desc="Shown when an ad blocking extension runs next to the built-in ad blocker. NAME is the extension.">
+    <ph name="NAME">$1<ex>uBlock Origin</ex></ph> blocks ads too. With the built-in blocker also on, every request is filtered twice. Turn the built-in blocker off? Removing tracking parameters stays on.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_TURN_OFF_BUILT_IN" desc="Button that turns off the built-in ad blocker.">
+    Turn off built-in blocker
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_KEEP_BOTH" desc="Button that keeps both the extension and the built-in ad blocker on.">
+    Keep both
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_BUILT_IN_OFF" desc="Added to the introduction when the built-in ad blocker is off.">
+    The built-in ad blocker is off.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_OTHER" desc="Text above the link to chrome://extensions.">
+    Other extensions can be installed from a .crx file: open it and confirm the dialog. Manifest V2 extensions keep working in Plain Browser.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_DOWNLOAD_FAILED" desc="Error under an extension when its download failed.">
+    Download failed. Check your connection and try again.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_UBLOCK_DESC" desc="Description of uBlock Origin on chrome://recommended-extensions.">
+    Ad and tracker blocker with full control: its own lists, an element picker, a request logger and per-site rules.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_ADGUARD_DESC" desc="Description of AdGuard on chrome://recommended-extensions.">
+    Ad blocker with its own filter lists, including regional ones, and a stealth mode against tracking.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_NOSCRIPT_DESC" desc="Description of NoScript on chrome://recommended-extensions.">
+    Runs JavaScript only on sites you trust, with protection against cross-site scripting.
+  </message>
+  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_UMATRIX_DESC" desc="Description of uMatrix on chrome://recommended-extensions.">
+    A matrix of what each site may load: scripts, frames, cookies and more, per domain. For advanced users.
+  </message>
 
   <!-- About page (chrome://settings/help). -->
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ABOUT_BASE" desc="Line on the About page: which Chromium and ungoogled-chromium versions this browser is built from.">
     Based on Chromium <ph name="CHROMIUM_VERSION">$1<ex>157.0.8103.38</ex></ph> and ungoogled-chromium <ph name="UNGOOGLED_VERSION">$2<ex>157.0.8103.38-1.1</ex></ph>
   </message>
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_ABOUT_COMPONENTS" desc="Line on the About page: the ad blocking component and the filter lists built into this browser.">
-    Ad blocking: adblock-rust <ph name="ADBLOCK_VERSION">$1<ex>0.13.3</ex></ph> with the EasyList, EasyPrivacy and EasyList Polish filter lists
+    Ad blocking: adblock-rust <ph name="ADBLOCK_VERSION">$1<ex>0.13.3</ex></ph> with the EasyList, EasyPrivacy and EasyList Polish filter lists, and optionally the EasyList Cookie List, Fanboy's Annoyance List and uBlock filters
   </message>
 
   <!-- Safe Browsing through the Plain Browser proxy (patches/70-safebrowsing/0005,

@@ -29,6 +29,22 @@ inline constexpr char kListUpdatesLastCheck[] =
 inline constexpr char kListUpdatesLastSuccess[] =
     "plainbrowser.adblock.list_updates.last_success";
 
+// Local State, bool: the optional filter lists (common/filter_list_names.h,
+// kOptionalLists), toggled on chrome://settings/privacy. The cookie list is on
+// by default, the other two off.
+inline constexpr char kCookieListEnabled[] =
+    "plainbrowser.adblock.lists.easylistcookie";
+inline constexpr char kAnnoyanceListEnabled[] =
+    "plainbrowser.adblock.lists.fanboyannoyance";
+inline constexpr char kUblockFiltersEnabled[] =
+    "plainbrowser.adblock.lists.ublockfilters";
+
+// Local State, string, default empty: the user's own filters in Adblock Plus /
+// uBlock Origin syntax, one per line, edited on chrome://adblock. Added to the
+// engine with the lists: an exception (@@...) here undoes a list's block rule
+// unless that rule is $important. At most kMaxCustomFiltersBytes.
+inline constexpr char kCustomFilters[] = "plainbrowser.adblock.custom_filters";
+
 }  // namespace plainbrowser::adblock::prefs
 
 #endif  // PLAINBROWSER_ADBLOCK_COMMON_PREF_NAMES_H_

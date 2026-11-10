@@ -9,11 +9,16 @@ group("browser") {
     "//plainbrowser/adblock:browser",
     "//plainbrowser/adblock:updater",
     "//plainbrowser/adblock:webui",
+    "//plainbrowser/extensions:browser",
+    "//plainbrowser/extensions:webui",
     "//plainbrowser/fingerprint:browser",
     "//plainbrowser/safebrowsing:ui",
     "//plainbrowser/shields:browser",
     "//plainbrowser/shields:ui",
   ]
+  if (is_win) {
+    public_deps += [ "//plainbrowser/win:default_browser" ]
+  }
 }
 
 # The adblock engine's sandboxed utility process (chrome/utility).
