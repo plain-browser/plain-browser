@@ -319,7 +319,7 @@
     Checks the sites you visit against a local copy of Google's Safe Browsing list. The list updates go through sb.plain-browser.app, so Google does not see your IP address or the sites you visit.
   </message>
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_STANDARD_DESC" desc="Description for safe browsing standard protection mode (replaces Chromium's)">
-    Protects against sites, downloads, and extensions that are known to be dangerous. The check runs against a list stored on your device; the list updates go through the Plain Browser proxy, so Google does not see your IP address or the sites you visit.
+    Protects against sites, downloads, and extensions that are known to be dangerous. The check runs against a list stored on your device; the list updates go through the Plain Browser proxy, so Google does not see your IP address or the sites you visit. The list is Google's Safe Browsing data; its accuracy and reliability cannot be guaranteed.
   </message>
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_SAFEBROWSING_NONE_DESC" desc="Description for safe browsing no protection mode (replaces Chromium's)">
     Does not protect you against dangerous websites, downloads, and extensions. The browser then makes no Safe Browsing requests at all.

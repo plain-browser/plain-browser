@@ -9,10 +9,10 @@
                        vendored crates' BUILD.gn files)
    Afterwards `build.py --ci` finds BUILD.gn and the Rust toolchain in place, skips its setup and goes on with
    args.gn, gn gen, bindgen and ninja (scripts\ci\build-stage.ps1). Same order as docs/ARCHITECTURE.md section 2.
-   Usage: pwsh -File scripts\ci\prepare-tree.ps1 [-Work C:\pb] [-Profile alpha|official] #>
+   Usage: pwsh -File scripts\ci\prepare-tree.ps1 [-Work C:\pb] [-Profile release|alpha|official] #>
 param(
   [string]$Work = "C:\pb",
-  [ValidateSet("alpha", "official")][string]$Profile = "alpha"
+  [ValidateSet("release", "alpha", "official")][string]$Profile = "release"
 )
 . "$PSScriptRoot\common.ps1"
 $repo = Get-RepoRoot
@@ -30,11 +30,13 @@ if (-not (Test-Path "$ucw\build.py")) {
   Run git clone --recurse-submodules --shallow-submodules --depth 1 --branch $tag https://github.com/ungoogled-software/ungoogled-chromium-windows.git $ucw
 }
 # Profile flags, appended to the upstream GN flags (same block as scripts\build.ps1; the marker keeps it idempotent).
-# alpha: no official build, PGO, ThinLTO or PCH. official: upstream's flags unchanged (ThinLTO + PGO).
+# release: official build (is_official_build=true), no PGO, ThinLTO or PCH. alpha: the same with is_official_build=false.
+# official: upstream's flags unchanged (ThinLTO + PGO).
 $flags = "$ucw\flags.windows.gn"
 $content = (Get-Content $flags -Raw) -replace '(?s)\r?\n# PLAINBROWSER-OVERRIDE-BEGIN.*?# PLAINBROWSER-OVERRIDE-END\r?\n', ''
-if ($Profile -eq "alpha") {
-  $content += "`n# PLAINBROWSER-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`ngenerate_about_credits=true`n# PLAINBROWSER-OVERRIDE-END`n"
+if ($Profile -ne "official") {
+  $official = if ($Profile -eq "release") { "true" } else { "false" }
+  $content += "`n# PLAINBROWSER-OVERRIDE-BEGIN`nis_official_build=$official`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`ngenerate_about_credits=true`n# PLAINBROWSER-OVERRIDE-END`n"
 }
 Set-Content $flags -Value $content -NoNewline
 Write-Host "flags.windows.gn:"; Get-Content $flags | ForEach-Object { "    $_" }

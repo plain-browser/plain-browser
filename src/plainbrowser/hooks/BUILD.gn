@@ -1,0 +1,45 @@
+# Copyright Plain Browser contributors. MPL-2.0.
+#
+# The only targets Chromium's own code calls into (patches/20-hooks): the
+# hook files include every feature's entry points, so features and Chromium
+# patches stay independent of each other.
+
+source_set("browser") {
+  sources = [
+    "browser_hooks.cc",
+    "browser_hooks.h",
+  ]
+  public_deps = [ "//base" ]
+  deps = [
+    "//components/prefs",
+    "//components/user_prefs",
+    "//content/public/browser",
+    "//plainbrowser/adblock:browser",
+    "//plainbrowser/adblock:updater",
+    "//plainbrowser/adblock:webui",
+    "//plainbrowser/extensions:browser",
+    "//plainbrowser/extensions:webui",
+    "//plainbrowser/fingerprint:browser",
+    "//plainbrowser/shields:browser",
+    "//plainbrowser/shields:prefs",
+    "//services/network/public/cpp",
+    "//services/service_manager/public/cpp",
+  ]
+}
+
+source_set("renderer") {
+  sources = [
+    "renderer_hooks.cc",
+    "renderer_hooks.h",
+  ]
+  deps = [
+    "//base",
+    "//content/public/renderer",
+    "//mojo/public/cpp/bindings",
+    "//plainbrowser/adblock:renderer",
+    "//plainbrowser/fingerprint:renderer",
+    "//plainbrowser/shields:renderer",
+    "//third_party/blink/public:blink",
+    "//url",
+  ]
+}

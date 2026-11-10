@@ -1,0 +1,69 @@
+From: Plain Browser
+Subject: [hooks] ChromeContentRendererClient: one hook per extension point
+
+Category: 20-hooks. All renderer-side features hook into ChromeContentRendererClient through the four functions of
+//plainbrowser/hooks/renderer_hooks.h; a new feature adds itself in that file (src/plainbrowser/hooks) and never
+changes this patch. The hooks: ExposeInterfacesToBrowser (our mojo receivers), OnRenderFrameCreated (per-frame
+agents: cosmetic filter, fingerprint), MaybeReplaceRequestUrl (WillSendRequest: $redirect stand-ins, after the
+extensions check so an extension that blocks the request still wins), WrapURLLoaderThrottleProvider (our throttles
+in front of chrome's, Clone() included so workers are covered).
+---
+--- a/chrome/renderer/chrome_content_renderer_client.cc
++++ b/chrome/renderer/chrome_content_renderer_client.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/renderer/chrome_content_renderer_client.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/hooks/renderer_hooks.h"
+ 
+ #include <functional>
+ #include <memory>
+@@ -647,6 +651,8 @@
+   // definition of |ExposeChromeRendererInterfacesToBrowser()| to ensure
+   // security review coverage.
+   ExposeChromeRendererInterfacesToBrowser(this, binders);
++  // Plain Browser: our interfaces for the browser (patches/20-hooks).
++  plainbrowser::hooks::ExposeInterfacesToBrowser(binders);
+ }
+ 
+ void ChromeContentRendererClient::RenderFrameCreated(
+@@ -656,6 +662,8 @@
+   service_manager::BinderRegistry* registry = render_frame_observer->registry();
+ 
+   new prerender::NoStatePrefetchRenderFrameObserver(render_frame);
++  // Plain Browser: our per-frame agents (patches/20-hooks).
++  plainbrowser::hooks::OnRenderFrameCreated(render_frame);
+ 
+   auto content_settings_delegate =
+       std::make_unique<ChromeContentSettingsAgentDelegate>(render_frame);
+@@ -1356,6 +1364,12 @@
+     return;
+ #endif
+ 
++  // Plain Browser: may replace the URL of a blocked request (patches/20-hooks).
++  if (plainbrowser::hooks::MaybeReplaceRequestUrl(
++          frame, GURL(target_url), initiator_origin, new_url)) {
++    return;
++  }
++
+   if (!target_url.ProtocolIs(chrome::kChromeSearchScheme)) {
+     return;
+   }
+@@ -1658,8 +1672,12 @@
+ std::unique_ptr<blink::URLLoaderThrottleProvider>
+ ChromeContentRendererClient::CreateURLLoaderThrottleProvider(
+     blink::URLLoaderThrottleProviderType provider_type) {
+-  return URLLoaderThrottleProviderImpl::Create(provider_type, this,
+-                                               browser_interface_broker_.get());
++  // Plain Browser: our throttles go in front of chrome's for every subresource
++  // request (patches/20-hooks).
++  return plainbrowser::hooks::WrapURLLoaderThrottleProvider(
++      URLLoaderThrottleProviderImpl::Create(provider_type, this,
++                                            browser_interface_broker_.get()),
++      browser_interface_broker_.get());
+ }
+ 
+ blink::WebFrame* ChromeContentRendererClient::FindFrame(

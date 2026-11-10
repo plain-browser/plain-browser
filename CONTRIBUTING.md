@@ -8,8 +8,9 @@ first; the design rules below follow from them.
 
 - **As little as possible in Chromium files, as much as possible in `src/plainbrowser`.** A patch costs work on
   every Chromium release; a file under `//plainbrowser` keeps compiling until an API it uses changes.
-- **One patch, one category.** `patches/series` lists the order; directory names (`30-adblock`, `80-fingerprint`, ...)
-  are the categories. Every patch starts with a header that says what it does and why, so a rebase can decide what
+- **One patch, one category.** `patches/series` lists the order; directory names (`20-hooks`, `30-adblock`, ...)
+  are the categories. A new feature does not get a patch on the files every feature hooks into: add it to
+  `src/plainbrowser/hooks/*_hooks.cc` (see `patches/20-hooks`). Every patch starts with a header that says what it does and why, so a rebase can decide what
   to drop. No Google hostnames in hunks (see the comment at the top of `patches/series`).
 - **No new network calls without a documented reason.** The browser talks only to the servers listed in
   [docs/PRIVACY.md](docs/PRIVACY.md). A change that adds a request needs a privacy-policy update in the same PR.

@@ -6,7 +6,7 @@ Plain Browser is a fork of [ungoogled-chromium](https://github.com/ungoogled-sof
 
 ## Goals
 
-- **Free of Google.** No Google account, sync, Safe Browsing or telemetry calls: everything ungoogled-chromium strips stays stripped, and our own services (updates, extension repository) run on our own infrastructure.
+- **Free of Google.** No Google account, sync or telemetry calls, and the browser never contacts Google directly: everything ungoogled-chromium strips stays stripped. The one Google data source, Safe Browsing's public lists, is fetched through our own proxy (`infra/safebrowsing-proxy`) that removes everything that identifies you, and can be turned off; the other services (filter lists, extension repository) run on our own infrastructure.
 - **Ad and tracker blocking built in.** adblock-rust runs inside the browser's network stack instead of in an extension, so blocking works without webRequest APIs and does not depend on the extension platform. Default lists: EasyList, EasyPrivacy and EasyList Polish.
 - **Manifest V2 stays alive.** Chrome 139 and later disabled MV2 and the Web Store dropped it. Plain Browser keeps MV2 extensions and blocking `webRequest` working so tools like uBlock Origin keep their full power.
 - **Small, rebase-friendly patch set.** Our code lives in one directory (`src/plainbrowser`) and a short list of patches on top of ungoogled-chromium, so we can follow every Chromium release.
@@ -54,7 +54,7 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | Filter list updates between releases: daily from our mirror `lists.plain-browser.app` (`infra/filter-lists`), Ed25519-signed manifest, hashes per list, switch in Settings | Browser side done and tested against a local server; the Worker needs deploying and the public key setting (`infra/filter-lists/README.md`) |
 | `$redirect` stand-ins, scriptlets, procedural filters (own resources, MPL-2.0) | Done (`scripts/test-cosmetic-lists.ps1`; `docs/ADBLOCK.md`) |
 | Optional filter lists (EasyList Cookie List on by default, Fanboy's Annoyance List, uBlock filters), own filters and a request log on `chrome://adblock` | Written 2026-11-09, unit and Rust tests; not yet built (`docs/ADBLOCK.md`, "Optional lists, custom filters and the request log") |
-| Curated extension repository: `chrome://recommended-extensions` (uBlock Origin, AdGuard, NoScript, uMatrix from `ext.plain-browser.app`, switch from a Chrome Web Store copy with its settings), `.crx` files open the install dialog | Written 2026-11-09: browser side not yet built, `infra/extensions` tested and its build run against the real releases, Worker not deployed (`docs/MV2.md`) |
+| Curated extension repository: `chrome://recommended-extensions` (uBlock Origin, AdGuard, NoScript, uMatrix from `ext.plain-browser.app`, switch from a Chrome Web Store copy with its settings) | Written 2026-11-09: browser side not yet built, `infra/extensions` tested and its build run against the real releases, Worker not deployed (`docs/MV2.md`) |
 | Global Privacy Control (`Sec-GPC: 1`, `navigator.globalPrivacyControl`) on by default, toggle in Settings | Patch written 2026-11-09 (`patches/90-defaults/0001`), dry-run OK, not yet built |
 | Default browser from the Microsoft Store package: status in Settings and "Make default" opening the package's Default apps page | Patch written 2026-11-09 (`patches/60-ui/0013`, `src/plainbrowser/win`), dry-run OK, not yet built |
 

@@ -48,10 +48,10 @@ namespace plainbrowser::adblock {
 // Local State prefs.
 //
 // UI thread. Started once from ChromeBrowserMainParts::PostBrowserStart
-// (patches/30-adblock/0006); lives until the process exits.
+// (patches/20-hooks); lives until the process exits.
 class FilterListUpdater {
  public:
-  // Called from RegisterLocalState (patches/30-adblock/0006).
+  // Called from RegisterLocalState (patches/20-hooks).
   static void RegisterLocalStatePrefs(PrefRegistrySimple* registry);
 
   static void Start(PrefService* local_state,

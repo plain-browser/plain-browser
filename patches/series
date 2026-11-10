@@ -6,6 +6,9 @@
 # Two scripts also edit the Chromium tree and are NOT listed here (keep this list in sync with them):
 #   scripts/apply-branding.py     product name in *_chromium_strings*.grd(p) + .xtb and chrome/app/theme/chromium/BRANDING
 #   scripts/post-gnrt-fixups.ps1  windows-rs import libs in third_party/rust/windows_*_msvc BUILD.gn after gnrt
+# Rule: a new feature does not get a patch for the files every feature hooks into (ChromeContentRendererClient,
+# ChromeContentBrowserClient, ChromeBrowserMainParts, browser_prefs.cc, chrome_web_ui_configs.cc). Those have one call
+# each into //plainbrowser/hooks (20-hooks); add the feature to src/plainbrowser/hooks/*_hooks.cc.
 # Rule: no Google hostnames in hunks. ungoogled's domain substitution rewrites them after patching, so a hunk
 # that contains one applies in one flow (prepare.py, before substitution) and fails in the other
 # (apply-plainbrowser.ps1, after). Add our own constant next to the upstream one instead.
@@ -17,35 +20,26 @@
 # hunks: entries of upstream-revert.list drop.
 00-build/0001-gn-deps.patch
 10-branding/0001-install-modes.patch
+20-hooks/0001-renderer-hooks.patch
+20-hooks/0002-browser-client-hooks.patch
+20-hooks/0003-browser-startup-hooks.patch
 30-adblock/0000-crate-config.patch
-30-adblock/0002-browser-expose-filter.patch
-30-adblock/0003-renderer-request-throttle.patch
-30-adblock/0004-renderer-cosmetic-agent.patch
-30-adblock/0005-browser-navigation-throttle.patch
-30-adblock/0006-list-updates.patch
-30-adblock/0007-redirect-resources.patch
 30-adblock/0008-utility-engine-service.patch
 40-mv2/0001-mv2-not-deprecated.patch
 50-credits/0001-licenses-additional-paths.patch
 60-ui/0001-first-run-no-ungoogled-page.patch
 60-ui/0002-no-web-store-app.patch
 60-ui/0004-no-web-store-shortcut.patch
-60-ui/0005-shields-prefs.patch
 60-ui/0006-shields-toolbar-button.patch
-60-ui/0007-shields-renderer-config.patch
 60-ui/0008-shields-strings.patch
 60-ui/0009-shields-settings-page.patch
 60-ui/0010-msix-taskbar-icon.patch
-60-ui/0011-adblock-webui.patch
 60-ui/0012-about-page-components.patch
 60-ui/0013-msix-default-browser.patch
-60-ui/0014-recommended-extensions.patch
 70-safebrowsing/0001-proxy-and-client-header.patch
 70-safebrowsing/0002-no-signin-pref-includes.patch
 70-safebrowsing/0003-public-lists-only.patch
 70-safebrowsing/0004-public-phishing-list.patch
 70-safebrowsing/0005-settings-ui.patch
 70-safebrowsing/0006-public-phishing-severity.patch
-80-fingerprint/0001-renderer-agent.patch
-80-fingerprint/0002-browser-renderer-switches.patch
 90-defaults/0001-global-privacy-control.patch

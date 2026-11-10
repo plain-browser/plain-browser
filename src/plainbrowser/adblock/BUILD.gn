@@ -169,7 +169,7 @@ source_set("lists") {
 }
 
 # Daily list updates from lists.plain-browser.app. Started from
-# ChromeBrowserMainParts and registered in Local State (patches/30-adblock/0006);
+# ChromeBrowserMainParts and registered in Local State (patches/20-hooks);
 # needs only the network service client library, not //content.
 source_set("updater") {
   sources = [
@@ -220,7 +220,7 @@ source_set("browser") {
   ]
 }
 
-# chrome://adblock (registered by patches/60-ui/0011). The page and its script
+# chrome://adblock (registered by patches/20-hooks). The page and its script
 # are embedded as C++ constants, like cosmetic_script.js.
 action("embed_adblock_page_html") {
   script = "//plainbrowser/fingerprint/renderer/embed_text.py"

@@ -3,7 +3,8 @@
 import("//testing/test.gni")
 
 # Chromium targets depend on //plainbrowser:browser, :renderer and :utility
-# (patches/00-build/0001-gn-deps.patch); each feature adds itself here.
+# (patches/00-build/0001-gn-deps.patch); each feature adds itself here. Chromium's own code
+# calls only //plainbrowser/hooks (patches/20-hooks).
 group("browser") {
   public_deps = [
     "//plainbrowser/adblock:browser",
@@ -12,6 +13,7 @@ group("browser") {
     "//plainbrowser/extensions:browser",
     "//plainbrowser/extensions:webui",
     "//plainbrowser/fingerprint:browser",
+    "//plainbrowser/hooks:browser",
     "//plainbrowser/safebrowsing:ui",
     "//plainbrowser/shields:browser",
     "//plainbrowser/shields:ui",
@@ -30,6 +32,7 @@ group("renderer") {
   public_deps = [
     "//plainbrowser/adblock:renderer",
     "//plainbrowser/fingerprint:renderer",
+    "//plainbrowser/hooks:renderer",
     "//plainbrowser/shields:renderer",
   ]
 }

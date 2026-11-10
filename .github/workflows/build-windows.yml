@@ -3,7 +3,7 @@ name: build-windows
 # A Chromium build takes far longer than the 6-hour job limit, so the build runs the way ungoogled-chromium-windows'
 # own CI does: `build.py --ci` compiles for 3.5 hours and exits 124, the job zips the tree and uploads it as an
 # artifact, and the next job downloads it and resumes; a stage that finishes packages the browser instead.
-# Stages that are no longer needed are skipped (no runner is started). Alpha builds need about 6 stages; the
+# Stages that are no longer needed are skipped (no runner is started). Release and alpha builds need about 6 stages; the
 # official profile (ThinLTO + PGO) is not expected to fit in 10, see docs/CI.md.
 # Manual runs and version tags only, never pull_request: the tree is built from the pushed revision with network
 # access, and a tag run creates a draft release for sign-release.yml to sign.
@@ -11,10 +11,10 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "Build profile: alpha (default; no official build, PGO or LTO) or official (upstream flags, many more stages)"
+        description: "Build profile: release (default; official build without PGO and LTO), alpha (the same, not an official build; development) or official (upstream flags, many more stages)"
         type: choice
-        options: [alpha, official]
-        default: alpha
+        options: [release, alpha, official]
+        default: release
       resume_run:
         description: "Resume from the tree-(resume_stage - 1) artifact of this earlier run id (skips prepare and the stages before resume_stage). Empty: normal build"
         type: string
@@ -35,7 +35,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PROFILE: ${{ inputs.profile || 'alpha' }}
+  PROFILE: ${{ inputs.profile || 'release' }}
   # Same absolute path on every runner of a run: args.gn and the ninja logs in the handed-over tree contain it.
   PB_WORK: C:\pb
 
@@ -125,6 +125,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -136,6 +138,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 2
         if: steps.stage.outputs.finished != 'true'
@@ -180,6 +187,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -189,6 +198,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 3
         if: steps.stage.outputs.finished != 'true'
@@ -233,6 +247,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -242,6 +258,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 4
         if: steps.stage.outputs.finished != 'true'
@@ -286,6 +307,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -295,6 +318,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 5
         if: steps.stage.outputs.finished != 'true'
@@ -343,6 +371,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -357,6 +387,11 @@ jobs:
         run: python -I scripts/ci/hotfix-tree.py --work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 6
         if: steps.stage.outputs.finished != 'true'
@@ -406,6 +441,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -420,6 +457,11 @@ jobs:
         run: python -I scripts/ci/hotfix-tree.py --work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 7
         if: steps.stage.outputs.finished != 'true'
@@ -467,6 +509,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -478,6 +522,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 8
         if: steps.stage.outputs.finished != 'true'
@@ -522,6 +571,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -531,6 +582,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 9
         if: steps.stage.outputs.finished != 'true'
@@ -575,6 +631,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -584,6 +642,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 10
         if: steps.stage.outputs.finished != 'true'
@@ -628,6 +691,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install tools
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -637,6 +702,11 @@ jobs:
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
+        env:
+          SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
+          SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 11
         if: steps.stage.outputs.finished != 'true'

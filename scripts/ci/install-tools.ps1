@@ -48,6 +48,28 @@ if (-not (Get-ChildItem "$env:ProgramFiles\Python3*\python.exe" -ErrorAction Sil
 # 4. Chromium paths exceed 260 characters; the image lifts the limit for the OS, Git needs its own switch.
 Run git config --system core.longpaths true
 
+# 5. sccache, only when a cache is configured (SCCACHE_BUCKET, see docs/BUILD_CACHE.md): the compile cache that turns a
+#    version bump from a full build into the few thousand objects whose inputs changed. Pinned release, checksum
+#    verified; the path goes to GITHUB_PATH for the steps that follow.
+if ($env:SCCACHE_BUCKET) {
+  Write-Step "sccache 0.19.0"
+  $sccacheDir = Join-Path $Work "tools\sccache"
+  $zip = Join-Path $Work "sccache.zip"
+  Invoke-WebRequest -Uri "https://github.com/mozilla/sccache/releases/download/v0.19.0/sccache-v0.19.0-x86_64-pc-windows-msvc.zip" -OutFile $zip
+  $sum = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($sum -ne "28be8c61f6b2c89b9eb2869f6af7f78e6f992e78a8abae0ce855fcc129cbeac1") { throw "sccache.zip checksum mismatch: $sum" }
+  New-Item -ItemType Directory -Force $sccacheDir | Out-Null
+  Expand-Archive $zip -DestinationPath $sccacheDir -Force
+  Remove-Item $zip -Force
+  $bin = Join-Path $sccacheDir "sccache-v0.19.0-x86_64-pc-windows-msvc"
+  if (-not (Test-Path "$bin\sccache.exe")) { throw "sccache.exe not found in the archive" }
+  if ($env:GITHUB_PATH) { Add-Content -Path $env:GITHUB_PATH -Value $bin }
+  $env:PATH = "$bin;$env:PATH"
+  Run sccache --version
+} else {
+  Write-Host "SCCACHE_BUCKET not set: building without a compile cache"
+}
+
 Write-Step "Verification"
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 Write-Host "VS: $(& $vswhere -latest -products * -property installationPath)"

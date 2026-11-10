@@ -2,12 +2,15 @@
    (patches/, patches/upstream-revert.list, src/plainbrowser, adblock crates, branding), signed and packaged.
    Self-elevates (the upstream build must run as administrator in a VS developer environment).
    Profiles:
-     alpha    (default) is_official_build=false, no PGO/LTO, no PCH (PCH breaks with clang modules). Fits 32 GB RAM. Not for releases.
+     release  (default) is_official_build=true, no PGO/LTO, no PCH (PCH breaks with clang modules). The profile releases are
+              built with: official-build code paths (zero-initialised stack variables, abort-on-panic Rust, release
+              linker settings) without the hours of ThinLTO + PGO. Fits 32 GB RAM.
+     alpha    is_official_build=false, no PGO/LTO, no PCH. Development builds; not for releases.
      official upstream flags (ThinLTO + PGO). Needs ~64 GB RAM and many hours.
-   Usage: powershell -ExecutionPolicy Bypass -File scripts\build.ps1 [-Profile alpha|official] [-Work C:\dw-build] [-Jobs 12]
+   Usage: powershell -ExecutionPolicy Bypass -File scripts\build.ps1 [-Profile release|alpha|official] [-Work C:\dw-build] [-Jobs 12]
    Log:   <Work>\build.log #>
 param(
-  [ValidateSet("alpha","official")][string]$Profile = "alpha",
+  [ValidateSet("release","alpha","official")][string]$Profile = "release",
   [string]$Work = "C:\dw-build",
   [int]$Jobs = 0
 )
@@ -57,8 +60,9 @@ try {
   # Local flag overrides (work copy only; marker keeps this idempotent).
   $flags = "$ucw\flags.windows.gn"
   $content = (Get-Content $flags -Raw) -replace '(?s)\r?\n# PLAINBROWSER-OVERRIDE-BEGIN.*?# PLAINBROWSER-OVERRIDE-END\r?\n',''
-  if ($Profile -eq "alpha") {
-    $content += "`n# PLAINBROWSER-OVERRIDE-BEGIN`nis_official_build=false`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`ngenerate_about_credits=true`n# PLAINBROWSER-OVERRIDE-END`n"
+  if ($Profile -ne "official") {
+    $official = if ($Profile -eq "release") { "true" } else { "false" }
+    $content += "`n# PLAINBROWSER-OVERRIDE-BEGIN`nis_official_build=$official`nchrome_pgo_phase=0`nuse_thin_lto=false`nenable_precompiled_headers=false`ngenerate_about_credits=true`n# PLAINBROWSER-OVERRIDE-END`n"
   }
   Set-Content $flags -Value $content -NoNewline
 

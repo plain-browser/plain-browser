@@ -26,7 +26,7 @@ class AdblockThrottleFactory;
 // front of the throttles it creates for every subresource request. Chrome's
 // provider is not touched: ChromeContentRendererClient::
 // CreateURLLoaderThrottleProvider returns Wrap(URLLoaderThrottleProviderImpl::
-// Create(...)) (patches/30-adblock/0003). Clone() wraps the clone, so worker
+// Create(...)) (patches/20-hooks). Clone() wraps the clone, so worker
 // threads and background resource fetch get the throttle too.
 class AdblockThrottleProvider : public blink::URLLoaderThrottleProvider {
  public:

@@ -1,7 +1,7 @@
 From: Plain Browser
 Subject: [adblock] Run the adblock engine in a sandboxed utility process
 
-Category: 30-adblock. Filter lists come from the network (lists.plain-browser.app, 30-adblock/0006), so the
+Category: 30-adblock. Filter lists come from the network (lists.plain-browser.app, filter_list_updater), so the
 adblock-rust engine that parses them runs outside the browser process: mojom::AdblockEngine
 (//plainbrowser/adblock/common/adblock_engine.mojom, [ServiceSandbox=kService]) is served by
 AdBlockEngineService in a utility process, which AdBlockService in the browser starts with

@@ -19,18 +19,30 @@ tests and the Node tests; not yet compiled or run in a browser.
 - chrome://adblock: "My filters" (own rules in Adblock Plus / uBlock Origin syntax, Local State
   `plainbrowser.adblock.custom_filters`) and a request log (blocked and replaced requests, removed tracking
   parameters, skipped redirectors), recorded only while the page is open and kept in memory only.
-- chrome://recommended-extensions (`60-ui/0014`, `//plainbrowser/extensions`): uBlock Origin, AdGuard, NoScript
+- chrome://recommended-extensions (`//plainbrowser/extensions`, registered by `20-hooks/0003`): uBlock Origin, AdGuard, NoScript
   and uMatrix from `ext.plain-browser.app` (new `infra/extensions`: CRX3 repacking with an `update_url`, one key
   per extension, Worker on R2, weekly workflow), installed with the normal permission dialog and the ID pinned,
   updated by Chromium's extension updater; a Chrome Web Store copy can be switched to ours with its settings; an
   offer to turn the built-in blocker off while uBlock Origin or AdGuard runs. Linked from Settings.
-- Opening a `.crx` file shows the install dialog by default (ungoogled's `extension-mime-request-handling` flag
-  defaults to "Always prompt for install"; chrome://flags still wins).
 - Microsoft Store package: Settings shows whether Plain Browser is the default browser, and "Make default" opens
   its page in Windows' Default apps (`60-ui/0013`, `//plainbrowser/win`). Before, the package was always reported
   "not default" and the button opened a page for an unknown app.
 
 ### Changed
+- Patches: every hook into a file all features share (`ChromeContentRendererClient`, `ChromeContentBrowserClient`,
+  `ChromeBrowserMainParts`, `browser_prefs.cc`, `chrome_web_ui_configs.cc`) is now one call into the new
+  `//plainbrowser/hooks`. `patches/20-hooks` (3 patches, about 40 lines) replaces 12 patches (`30-adblock/0002..0007`,
+  `60-ui/0005`, `0007`, `0011`, `0014`, `80-fingerprint/0001..0002`); a new feature is added in
+  `src/plainbrowser/hooks/*_hooks.cc` and needs no patch on those files. Same behaviour. An already-built tree needs
+  a fresh `prepare` (the old patches are applied there).
+- Release builds use the new `release` profile (`is_official_build=true`, still no PGO or LTO) instead of `alpha`;
+  `build-windows` defaults to it (`docs/CI.md`). Not built yet: if it fails to compile only there, run the workflow
+  with `profile` = `alpha` and fix the official-only error.
+- A `.crx` from an arbitrary site no longer opens the install dialog (it was the default for a few days in this
+  unreleased version, never shipped): extensions come from chrome://recommended-extensions, or the developer-mode
+  drag and drop, or the chrome://flags entry "Handling of extension MIME type requests".
+- Optional compile cache for CI (sccache on a Cloudflare R2 bucket, `docs/BUILD_CACHE.md`); off until
+  `SCCACHE_BUCKET` is set.
 - The engine process is configured with `UseConfig(EngineConfig)` (downloaded lists, optional lists, own filters)
   instead of `UseLists()`; the user's choices survive an engine restart, downloaded lists are still dropped after a
   crash.

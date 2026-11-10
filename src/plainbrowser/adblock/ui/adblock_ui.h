@@ -13,7 +13,7 @@ inline constexpr char kAdblockHost[] = "adblock";
 class AdblockUI;
 
 // chrome://adblock, registered in chrome/browser/ui/webui/chrome_web_ui_configs.cc
-// (patches/60-ui/0011).
+// (patches/20-hooks).
 class AdblockUIConfig : public content::DefaultWebUIConfig<AdblockUI> {
  public:
   AdblockUIConfig()

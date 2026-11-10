@@ -60,8 +60,8 @@ The hand-over zips use 7-Zip's `-mx=1` rather than upstream's `-mx=3`: a few per
 
 ### Triggers and inputs
 
-- `workflow_dispatch` with `profile` = `alpha` (default) or `official`.
-- `push` of a tag `v*`: alpha profile, and the `release` job creates a **draft** release. `sign-release.yml` then
+- `workflow_dispatch` with `profile` = `release` (default), `alpha` or `official`.
+- `push` of a tag `v*`: release profile, and the `release` job creates a **draft** release. `sign-release.yml` then
   takes the assets from that release, recomputes `SHA256SUMS.txt` and adds the cosign bundles; it expects nothing
   but the files on the release, so a draft is enough. Review the draft and the Store submission before publishing.
 - `workflow_dispatch` with `resume_run` = a run id and `resume_stage` = 5, 6 or 7: skips `prepare` and the stages before
@@ -85,19 +85,31 @@ The release is created with the preinstalled `gh` CLI and `GITHUB_TOKEN`, not a 
 
 ### Profiles
 
-- **alpha** (default): `is_official_build=false`, `chrome_pgo_phase=0`, `use_thin_lto=false`,
-  `enable_precompiled_headers=false`, `generate_about_credits=true`, appended to upstream's `flags.windows.gn` the same
-  way `scripts/build.ps1` does. No PGO profile use, no LTO: links fit in 16 GB and `-j 4` works. This is what the
-  VM builds and what the Store receives today.
+- **release** (default, since 2026-11-10, not yet built): `is_official_build=true`, `chrome_pgo_phase=0`,
+  `use_thin_lto=false`, `enable_precompiled_headers=false`, `generate_about_credits=true`, appended to upstream's
+  `flags.windows.gn` the same way `scripts/build.ps1` does. Official-build code paths without LTO and PGO: stack
+  variables are zero-initialised (`init_stack_vars_zero`), Rust panics abort at once, the release linker settings
+  apply, and these are the settings Chromium's own stable channel is built and fuzzed with, minus the optimisation.
+  CFG is on in every profile (`win_enable_cfg_guards = !is_debug`). No LTO: links fit in 16 GB and `-j 4` works.
+  If the first run fails to compile only here, fall back to `alpha` with the `profile` input and find the
+  official-only error.
+- **alpha**: the same with `is_official_build=false`. This is what the Store received up to 0.2.0-beta.7 and what the
+  VM builds for development; not for releases.
 - **official**: upstream's flags unchanged (`is_official_build=true`, `chrome_pgo_phase=2`, ThinLTO), `-j 2` like
   upstream. Upstream needs up to 16 stages of 3.5 h for it; `build-windows.yml` has 10, so expect `complete` to fail
   unless stages are added (copy a `build-N` block, bump the numbers, extend the `needs` lists). The PGO profile
   (`chrome_pgo_phase=2`) is downloaded by `clone.py -p win64` in `prepare` either way; the cost is in the LTO link and
-  the longer compile, not the download. Keep alpha until there is a reason to pay for official.
+  the longer compile, not the download. Keep `release` until there is a reason to pay for official.
+
+### Compile cache (optional)
+With the repository variable `SCCACHE_BUCKET` set, the build stages compile through sccache with a Cloudflare R2 bucket as
+the cache, shared by all stages and runs; setup and limits in [BUILD_CACHE.md](BUILD_CACHE.md), "Status 2026-11-10".
+It is what should bring a security release (a few hundred changed files) from a full build to a fraction of it; the time
+table below is for a cold cache.
 
 ### Expected time and cost
 
-| | alpha | official |
+| | release, alpha | official |
 |---|---|---|
 | `prepare` | 1.5 to 2 h (Chromium clone and downloads dominate; gnrt builds for about 10 min) | same |
 | ninja total | the VM needs about 5.5 h of ninja on 12 vCPU; on 4 slower cores expect 16 to 22 h, i.e. 5 to 7 slices | upstream: up to 16 slices |

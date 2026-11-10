@@ -126,7 +126,7 @@ Expected on a current build: `[WITH_UBO]` with `manifest_version 2`, `state ENAB
 
 ## Distribution without the Chrome Web Store (2026-11-09, not yet built)
 
-- **chrome://recommended-extensions** (`src/plainbrowser/extensions`, registered by `patches/60-ui/0014`, linked
+- **chrome://recommended-extensions** (`src/plainbrowser/extensions`, registered by `patches/20-hooks`, linked
   from Settings > Privacy and security > "Recommended extensions"): uBlock Origin, AdGuard (both MV2), NoScript
   (MV3 upstream now) and uMatrix (MV2, archived upstream in 2021, marked "No longer developed"). Install downloads
   `https://ext.plain-browser.app/v1/crx/<slug>.crx` and hands it to `CrxInstaller` with the normal install dialog,
@@ -150,11 +150,13 @@ Expected on a current build: `[WITH_UBO]` with `manifest_version 2`, `state ENAB
 - **Two blockers at once**: while uBO or AdGuard (ours or the store copy) is enabled and the built-in blocker is on,
   the page offers "Turn off built-in blocker" (Local State `plainbrowser.adblock.enabled`; tracking-parameter
   stripping stays) or "Keep both".
-- **.crx files**: `ApplyDefaultSwitches()` (`ChromeBrowserMainParts::PostBrowserStart`) makes ungoogled's
-  `--extension-mime-request-handling` default to `always-prompt-for-install`: opening a .crx from any site shows the
-  install dialog instead of "cannot be added from this website". Nothing installs without the user's click; a
-  value chosen in chrome://flags wins. Off-store CRX3 files need no Web Store publisher proof in that mode, and the
-  install verifier is off in Chromium-branded builds (`extensions/browser/install_verifier.cc`).
+- **.crx files from other sites**: not accepted by default (Chromium's "cannot be added from this website"). Until
+  2026-11-10 the browser made ungoogled's `--extension-mime-request-handling` default to `always-prompt-for-install`,
+  so a .crx from any site opened the install dialog; that was dropped: with the install verifier off in
+  Chromium-branded builds (`extensions/browser/install_verifier.cc`) and no malware list for extensions, a page could
+  talk a user into a one-click install of anything. Our own page does not need the switch (it calls `CrxInstaller`
+  itself). Someone who wants another extension still has the developer-mode drag and drop on chrome://extensions or
+  the flag "Handling of extension MIME type requests" in chrome://flags.
 - Not verified yet: an actual install, update and switch in a built browser (the Worker is not deployed either);
   `scripts/test-mv2.ps1` still loads uBO unpacked.
 

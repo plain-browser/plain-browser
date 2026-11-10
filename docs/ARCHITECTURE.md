@@ -28,6 +28,12 @@ Chromium (tag upstream, np. 150.0.7871.x)
 
 Zasada nr 1: **jak najmniej edycji w plikach Chromium, jak najwięcej w `src/plainbrowser/`**. Patch w drzewie Chromium to koszt przy każdym rebase (co 4 tygodnie). Plik w `//plainbrowser` kompiluje się dalej, póki nie zmieni się API, którego używa.
 
+Zasada nr 1a (od 2026-11-10): **nowa funkcja nie dostaje własnego patcha na wspólne pliki Chromium**. Pliki, w które
+wpina się każda funkcja (`chrome_content_renderer_client.cc`, `chrome_content_browser_client*.cc`,
+`chrome_browser_main.cc`, `browser_prefs.cc`, `chrome_web_ui_configs.cc`), mają po jednym wywołaniu do
+`//plainbrowser/hooks` (`patches/20-hooks`, 3 patche, ~40 linii); nowa funkcja dopisuje się w `hooks/*_hooks.cc`.
+Patch dotyka wtedy Chromium tylko tam, gdzie funkcja musi zmienić jego kod (np. strona ustawień, pasek narzędzi).
+
 Zasada nr 2: każdy patch należy do jednej kategorii i ma nagłówek z uzasadnieniem, żeby bot rebase'u i człowiek wiedzieli, co wolno wyrzucić.
 
 ```
@@ -35,13 +41,12 @@ patches/
   series                 # kolejność nakładania (format quilt, kompatybilny z utils/patches.py ungoogled)
   00-build/              # //plainbrowser w deps chrome/browser i chrome/renderer (jedyne wpięcie GN)
   10-branding/           # nazwa, ikony, install_static, instalator
-  20-updater/            # podmiana URL-i update_client / crx na nasz serwer (jeszcze nie ma)
+  20-hooks/              # po jednym wywołaniu na punkt rozszerzenia Chromium, do //plainbrowser/hooks (renderer, klient przeglądarki, start przeglądarki)
   30-adblock/            # hooki: throttle, cosmetic injection, throttle nawigacji (removeparam)
   40-mv2/                # odwrócenie usunięcia MV2 (port z brave-core)
   50-credits/            # chrome://credits
   60-ui/                 # pierwsze uruchomienie, Web Store
   70-safebrowsing/       # Safe Browsing przez nasze proxy, nagłówek X-Client
-  80-fingerprint/        # wpięcie agenta fingerprintu i przekazanie klucza sesji do rendererów
 ```
 
 `patches/upstream-revert.list` wymienia patche ungoogled, których NIE nakładamy (w całości albo wybrane hunki,
@@ -147,7 +152,7 @@ Ryzyko: jeśli Google usunie implementację blokującego `webRequest` także dla
 > gupdate), strona `chrome://recommended-extensions` zamiast `chrome://settings/extensions/mv2`, instalacja przez
 > `CrxInstaller` z oknem uprawnień i przypiętym ID, migracja z kopii z CWS (z ustawieniami `chrome.storage.local`).
 > Szczegóły: `docs/MV2.md`, sekcja „Distribution without the Chrome Web Store”. Pliki `.crx` z dowolnej strony
-> otwierają okno instalacji (domyślna wartość flagi ungoogled `extension-mime-request-handling`).
+> nie otwierają okna instalacji (od 2026-11-10; wcześniej domyślnie tak, patrz MV2.md).
 - Własne repozytorium CRX na serwerze Omaha (sekcja 6): `update_url` → nasz host. Pakujemy uBO, uMatrix, NoScript, AdGuard z ich GitHub releases, podpisujemy **naszym** kluczem (więc ID różni się od CWS, jak u Brave).
 - UI: `chrome://settings/extensions/mv2` – lista kuratorowana z przełącznikami (jak Brave). Instalacja przez `ExtensionInstaller` z naszego CRX, flaga „from Plain Browser store” pozwala `webRequestBlocking` (traktujemy jak location policy w gatingu z 8.1 pkt 4).
 - Migracja: wykrywamy ID znanych rozszerzeń z CWS (uBO `cjpalhdlnbpafiamejdnhcphjbkeiagm` itd.), importujemy ustawienia (`chrome.storage.local` → nasz CRX) i podmieniamy – Brave to ma, dobra UX.

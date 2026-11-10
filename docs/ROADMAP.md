@@ -6,7 +6,7 @@ Status 2026-11-09. Effort figures are estimates from the work done so far, not m
 
 | Feature | Plan | Effort | Status |
 |---|---|---|---|
-| Strip tracking parameters from links (`utm_*`, `fbclid`, ...) | `TrackingParamsNavigationThrottle`, `lists/plainbrowser-removeparam.txt`, `patches/30-adblock/0005` | done for navigations | **done**, verified headless on the build VM (`scripts/test-privacy.ps1`) |
+| Strip tracking parameters from links (`utm_*`, `fbclid`, ...) | `TrackingParamsNavigationThrottle`, `lists/plainbrowser-removeparam.txt`, `patches/20-hooks` | done for navigations | **done**, verified headless on the build VM (`scripts/test-privacy.ps1`) |
 | Bypass tracking redirects ("debouncing") | `browser/debounce_rules.cc`, in `TrackingParamsNavigationThrottle` | done | **done** 2026-10-28: own rule list (Google, Facebook, YouTube, Outlook Safe Links, Bing, ...), verified headless (`scripts/test-privacy.ps1`); [ADBLOCK.md](ADBLOCK.md), "Debouncing" |
 | Safe Browsing (local hash database) through our proxy, no Google contact from the client | `patches/70-safebrowsing`, `patches/upstream-revert.list`, `infra/safebrowsing-proxy` | done | **built and verified end to end** 2026-10-26: the list update goes to `sb.plain-browser.app` with `X-Client` and gets HTTP 200 (public lists only: malware, phishing, unwanted software, download allowlist) |
 | Fingerprint randomization with compatibility exceptions (for example online banking) | `src/plainbrowser/fingerprint`, `patches/80-fingerprint`, [FINGERPRINT.md](FINGERPRINT.md) | first slice done | **done**, verified headless on the build VM; JS logic unit-tested in Node |
@@ -48,6 +48,20 @@ Settings > You and Google > Google services has an on/off toggle "Safe Browsing 
 shows Standard (default) / No protection only: the Enhanced protection row is hidden (its real-time lookups are not
 something our proxy supports and the policy promises standard protection only) and the descriptions say where
 requests go, in English and Polish. Verified with `scripts/test-safebrowsing-settings.ps1`.
+
+### Safe Browsing: terms of use (checked 2026-11-10)
+Google's terms (developers.google.com/safe-browsing/terms, `v4/usage-limits`) allow the Safe Browsing API only for
+"non-commercial use ... not for sale or revenue generating purposes", unless there is a separate agreement; the
+commercial product is Web Risk (paid). Plain Browser is free and open source, so it fits today. Three consequences:
+1. **Any revenue** (paid tier, ads, a search-engine deal, a commercial sponsor) means either Web Risk, a separate
+   agreement, or dropping the proxy; decide before it happens. The alternative that needs no agreement is phishing
+   and malware lists in the adblock engine (needs `$document` blocking, see "Request filtering" below).
+2. **Notice**: the terms require, before a user starts using the service and in each warning, a notice that the
+   reliability and accuracy cannot be guaranteed. Done in the Settings text (2026-11-10, EN and PL); the warning page
+   itself is Chromium's, unchanged. Not yet checked against the wording the terms ask for by someone who owns the
+   decision.
+3. The proxy is a technical convenience for privacy, not a licence workaround; the terms do not mention proxies, so
+   ask Google before relying on it for anything beyond the current free use.
 
 ## Project security
 

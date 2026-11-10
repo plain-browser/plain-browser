@@ -17,7 +17,7 @@ namespace plainbrowser::adblock {
 // $redirect rules: a request a rule would block is answered with one of our
 // stand-in resources (rs/src/resources.rs) instead, so a page that waits for,
 // say, its analytics script keeps working. Called from
-// ChromeContentRendererClient::WillSendRequest (patches/30-adblock/0007), the
+// ChromeContentRendererClient::WillSendRequest (patches/20-hooks), the
 // last renderer hook where a subresource's URL can still be replaced; Blink then
 // loads the data: URL itself, without the network service.
 //

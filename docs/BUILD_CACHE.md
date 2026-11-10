@@ -79,6 +79,21 @@ runs the preprocessor).
    not help CI. Only if sccache turns out not to work.
 5. **Siso + BuildBuddy/NativeLink**: only with a second build machine, after the toolchain packaging above.
 
+## Status 2026-11-10: sccache in CI, switched off until a bucket exists
+`scripts/ci/install-tools.ps1` installs sccache 0.19.0 (checksum pinned) and `scripts/ci/build-stage.ps1` adds
+`cc_wrapper="sccache"` to `flags.windows.gn` for the build stages, both only when the repository variable
+`SCCACHE_BUCKET` is set; without it nothing changes. The credentials reach only the build steps, never `prepare`.
+Not measured yet (no bucket, and the build VM was off). To switch it on:
+1. Cloudflare: an R2 bucket (e.g. `plainbrowser-sccache`) and an API token limited to that bucket with Object Read and
+   Write.
+2. GitHub, Settings > Secrets and variables > Actions: variables `SCCACHE_BUCKET` (bucket name) and `SCCACHE_ENDPOINT`
+   (`https://<account id>.r2.cloudflarestorage.com`), secrets `SCCACHE_ACCESS_KEY_ID` and
+   `SCCACHE_SECRET_ACCESS_KEY` (the token's S3 credentials).
+3. Run `build-windows` twice on the same tag: the first fills the cache, the second shows the hit rate in the
+   "sccache statistics" part of each stage's log and how many stages are still needed. Then measure a real bump.
+The cache is only valid while the Visual Studio and Windows SDK versions and the path `C:\pb` stay the same (the
+compile commands contain them); a runner image update that changes the MSVC version empties it in practice.
+
 ## Next steps
 1. Move the shields and adblock strings out of `generated_resources.grd` into a grd under `//plainbrowser`.
 2. On the VM: install sccache (pinned release, checksum in `scripts/install-tools.ps1`), add

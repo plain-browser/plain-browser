@@ -13,7 +13,7 @@ inline constexpr char kRecommendedExtensionsHost[] = "recommended-extensions";
 class RecommendedExtensionsUI;
 
 // chrome://recommended-extensions, registered in
-// chrome/browser/ui/webui/chrome_web_ui_configs.cc (patches/60-ui/0014).
+// chrome/browser/ui/webui/chrome_web_ui_configs.cc (patches/20-hooks).
 class RecommendedExtensionsUIConfig
     : public content::DefaultWebUIConfig<RecommendedExtensionsUI> {
  public:

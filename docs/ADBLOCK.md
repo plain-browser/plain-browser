@@ -37,8 +37,10 @@ disconnected filters and fails open after 3 s.
   (`infra/filter-lists`); see "Filter list updates".
 - `//plainbrowser/shields` – per-site exception list, toolbar button and bubble; see "UI and per-site exceptions".
 
-Wiring patches: `patches/00-build/0001` (GN deps, shared with the other features), `patches/30-adblock/0002..0008`
-and, for the UI and the exception list, `patches/60-ui/0005..0009`; about 60 added lines in Chromium files. `scripts/check-patches.py` dry-runs them against any upstream tag.
+Wiring patches: `patches/00-build/0001` (GN deps, shared with the other features), `patches/20-hooks/0001..0003`
+(one call per Chromium extension point into `//plainbrowser/hooks`, the only place that knows every feature; a new
+feature never needs a new patch), `patches/30-adblock/0000` and `0008` (crates, utility process) and, for the
+settings page, `patches/60-ui/0009`; about 40 added lines in Chromium files besides the crates. `scripts/check-patches.py` dry-runs them against any upstream tag.
 
 ## Why GN and not a cargo staticlib
 Chromium links its own Rust std (`build/rust/std`) and routes Rust allocation to
@@ -67,7 +69,7 @@ button and the bubble, checks the pushed exception list in the running renderer 
 - **One exception list for all protections.** Profile pref `plainbrowser.shields.exceptions`: a list of sites
   (eTLD+1, lower case, e.g. `example.com`). A site on the list gets no ad blocking (network and cosmetic), no
   tracking-parameter stripping and no fingerprint noise. Registered in `chrome::RegisterProfilePrefs`
-  (`patches/60-ui/0005`), helpers in `shields/browser/shields_prefs.h`. The site of a request is the eTLD+1 of the
+  (`patches/20-hooks`), helpers in `shields/browser/shields_prefs.h`. The site of a request is the eTLD+1 of the
   page's top-level frame (`shields/common/site_util.h`), so a third-party frame on an excepted page is excepted too,
   and an excepted site embedded as a frame elsewhere is not.
 - **Toolbar button** (`shields/ui/shields_button.*`, `patches/60-ui/0006`): a `ToolbarButton` right of the omnibox
@@ -92,7 +94,7 @@ button and the bubble, checks the pushed exception list in the running renderer 
   bubble title "Plain Browser" stays a literal (product name).
 - **How the three features read the list.**
   - Browser-side adblock filter: `AdblockFilter.ShouldBlockRequest` and `GetCosmeticCss` now carry the page's
-    top-level origin (the renderer throttle reads it from the frame token, `patches/30-adblock/0003`) and the filter
+    top-level origin (the renderer throttle reads it from the frame token, `patches/20-hooks`) and the filter
     answers "allow" / empty CSS when `ShieldsService::IsExcepted(site)` says so. `ShieldsService`
     (`shields/browser/shields_service.*`) keeps a lock-protected, process-wide union of the lists of all loaded
     profiles (one profile in practice), refreshed by a `PrefChangeRegistrar` attached to each `BrowserContext` as
@@ -101,8 +103,7 @@ button and the bubble, checks the pushed exception list in the running renderer 
     (subframe) is excepted.
   - Fingerprint protection: the renderer decides synchronously when a script context is created, so the browser
     pushes the list into every renderer over `shields.mojom.ShieldsConfig` (bound at process creation in
-    `ExposeInterfacesToRenderer`, `patches/30-adblock/0002`; renderer side registered in
-    `ChromeContentRendererClient::ExposeInterfacesToBrowser`, `patches/60-ui/0007`) and re-sends it on every change.
+    `hooks::ExposeInterfacesToRenderer`; renderer side registered by `hooks::ExposeInterfacesToBrowser`) and re-sends it on every change.
     New renderers get the list at creation (`--plainbrowser-shields-exceptions`) as the initial value the first
     push replaces. Details in
     [FINGERPRINT.md](FINGERPRINT.md).
@@ -125,7 +126,7 @@ button and the bubble, checks the pushed exception list in the running renderer 
 - Not done: languages other than English and Polish.
 
 ## chrome://adblock
-Status page (2026-10-28, `ui/adblock_ui.*`, registered by `patches/60-ui/0011`; linked from the settings section as
+Status page (2026-10-28, `ui/adblock_ui.*`, registered by `patches/20-hooks`; linked from the settings section as
 "Ad blocker status"): the global switch, requests blocked since start-up (`AdBlockService::blocked_total()`, blocks
 and `$redirect` replacements), the engine process (running, starts this session, stopped after repeated crashes),
 each list with its source (updated copy with the first 12 hex digits of its SHA-256 and its size, or built in) and
@@ -206,7 +207,7 @@ Status 2026-10-27: done with our own resources (MPL-2.0, `src/plainbrowser/adblo
   `GetScriptlets` call and runs the answer at once, wrapped in a function so our helpers are not page globals.
   Sync on purpose: they must run before the page's first script (Brave does the same).
 - **Redirects**: the URL loader throttle decides asynchronously and can no longer change a URL, so redirects use
-  `ChromeContentRendererClient::WillSendRequest` (`patches/30-adblock/0007`, `renderer/request_redirector.*`), the
+  `ChromeContentRendererClient::WillSendRequest` (`patches/20-hooks`, `renderer/request_redirector.*`), the
   last renderer hook that may replace a subresource URL. The renderer fetches the hosts that `$redirect` rules name
   once per process (sync `GetRedirectHosts`, refreshed after a minute, so list updates arrive); for a request to one of them it asks
   `GetRedirect` (sync) and replaces the URL with the `data:` URL of our resource, which Blink loads itself. The
@@ -238,7 +239,7 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   header, at least 1000 rules, not shrunk by more than half) and serves `/v1/manifest.json` (SHA-256 and size per
   list) and `/v1/lists/<name>.txt`. No logs. Browsers never contact the publishers.
 - **Browser**: `FilterListUpdater` (UI thread), started from `ChromeBrowserMainParts::PostBrowserStart`
-  (`patches/30-adblock/0006`). At start-up it loads the lists stored in `<user data>\PlainBrowser Filter Lists`
+  (`patches/20-hooks`). At start-up it loads the lists stored in `<user data>\PlainBrowser Filter Lists`
   (each checked against the stored manifest) into a new engine. Two minutes after start-up and then every 24 h
   (Local State `plainbrowser.adblock.list_updates.last_check`, so restarts do not check more often; 1 h after a
   failure) it fetches the manifest and `manifest.json.sig`, checks the Ed25519 signature over the manifest's exact

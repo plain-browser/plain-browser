@@ -3,7 +3,7 @@
 # (ext.plain-browser.app, infra/extensions) and its page
 # chrome://recommended-extensions, and .crx files opening the install dialog.
 # Linked through //plainbrowser:browser; wired into Chromium by
-# patches/60-ui/0014. Depends on //chrome/browser/extensions, which does not
+# patches/20-hooks. Depends on //chrome/browser/extensions, which does not
 # depend on chrome/browser:core (the target that depends on us), so there is
 # no cycle.
 assert(!is_android)
@@ -14,8 +14,6 @@ source_set("browser") {
     "browser/catalog.h",
     "browser/curated_installer.cc",
     "browser/curated_installer.h",
-    "browser/switches.cc",
-    "browser/switches.h",
   ]
   deps = [
     "//base",
@@ -61,7 +59,7 @@ action("embed_page_js") {
   ]
 }
 
-# chrome://recommended-extensions (registered by patches/60-ui/0014).
+# chrome://recommended-extensions (registered by patches/20-hooks).
 source_set("webui") {
   sources = [
     "ui/recommended_extensions_ui.cc",

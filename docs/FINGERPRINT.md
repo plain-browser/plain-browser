@@ -18,7 +18,7 @@ deterministic noise:
 
 The seed is `FastHash(session_key + "|" + top-level site)`. The browser process draws the 128-bit session key once
 per run and passes it to every renderer on the command line (`--plainbrowser-fingerprint-session-key`,
-`patches/80-fingerprint/0002`), so one site sees the same values in every tab for the whole session, two sites see
+`fingerprint/browser/renderer_switches.cc`), so one site sees the same values in every tab for the whole session, two sites see
 different values, and a restart changes everything. The site is the eTLD+1 of the top-level frame, so an embedded
 tracker frame sees the noise of the page it is on, not its own.
 
@@ -55,13 +55,13 @@ Kill switch: `--disable-features=PlainBrowserFingerprintProtection`.
   adds and removes them (`patches/60-ui/0009`). The built-in compatibility list cannot be edited from the UI.
 
 ## Wiring
-- `patches/80-fingerprint/0001-renderer-agent.patch`: `FingerprintAgent::Create` in
-  `ChromeContentRendererClient::RenderFrameCreated` (next to the adblock cosmetic agent).
-- `patches/80-fingerprint/0002-browser-renderer-switches.patch`: `AppendRendererCommandLineSwitches` in
-  `ChromeContentBrowserClient::AppendExtraCommandLineSwitches` (gets the renderer's process id to find its
+- No patch of its own: `patches/20-hooks` calls `//plainbrowser/hooks` (`renderer_hooks.cc`, `browser_hooks.cc`), which
+  creates `FingerprintAgent` in `ChromeContentRendererClient::RenderFrameCreated` (next to the adblock cosmetic
+  agent) and calls `AppendRendererCommandLineSwitches` from
+  `ChromeContentBrowserClient::AppendExtraCommandLineSwitches` (it gets the renderer's process id to find its
   profile's exception list).
-- `patches/60-ui/0007`: the renderer's `ShieldsConfig` receiver; `patches/30-adblock/0002`: the browser binds it
-  per renderer process.
+- The renderer's `ShieldsConfig` receiver is exposed by `hooks::ExposeInterfacesToBrowser`; the browser binds it per
+  renderer process in `hooks::ExposeInterfacesToRenderer`.
 - `patches/00-build/0001-gn-deps.patch`: `//plainbrowser:browser` and `//plainbrowser:renderer` groups.
 - `renderer/embed_text.py` turns the `.js` into a C++ constant at build time (GN action).
 

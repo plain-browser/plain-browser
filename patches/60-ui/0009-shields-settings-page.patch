@@ -2,18 +2,18 @@ From: Plain Browser
 Subject: [ui] Settings > Privacy and security: the list of sites with protections off
 
 Category: 60-ui. A section under "Site settings" on chrome://settings/privacy lists
-plainbrowser.shields.exceptions (the per-site exception list of 60-ui/0005) with a remove button per site
+plainbrowser.shields.exceptions (the per-site exception list, registered through 20-hooks) with a remove button per site
 and an Add dialog. The element is new (privacy_page/plainbrowser_shields_exceptions.*, a Lit element like the
 page around it; Chromium is moving Settings off Polymer) and edits the pref through settingsPrivate, which needs
 the pref in prefs_util.cc's allowlist. Entries are stored as typed; ShieldsService rewrites them as eTLD+1 sites.
 Strings come from //plainbrowser/shields (AddSettingsStrings, strings in 60-ui/0008), called at the end of
 settings::AddLocalizedStrings. The same element holds the toggle for daily filter list updates (Local State pref
-plainbrowser.adblock.list_updates.enabled, 30-adblock/0006), also allowlisted; settingsPrivate finds Local State
+plainbrowser.adblock.list_updates.enabled, registered through 20-hooks), also allowlisted; settingsPrivate finds Local State
 prefs by itself. Above the list, the global "Block ads and trackers" toggle (plainbrowser.adblock.enabled); below
 the update toggle, when the lists were last checked (plainbrowser.adblock.list_updates.last_success) and a link to
-chrome://adblock (60-ui/0011). Under the blocking toggle, the optional filter lists (EasyList Cookie List, Fanboy's
+chrome://adblock (20-hooks/0003). Under the blocking toggle, the optional filter lists (EasyList Cookie List, Fanboy's
 Annoyance List, uBlock filters: plainbrowser.adblock.lists.*, Local State, allowlisted); at the end a link to
-chrome://recommended-extensions (60-ui/0014).
+chrome://recommended-extensions (20-hooks/0003).
 ---
 --- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
 +++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc

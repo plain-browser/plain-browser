@@ -1,0 +1,87 @@
+From: Plain Browser
+Subject: [hooks] Browser start-up: prefs, WebUI pages and post-start work
+
+Category: 20-hooks. Through //plainbrowser/hooks/browser_hooks.h: RegisterLocalStatePrefs and RegisterProfilePrefs
+(chrome/browser/prefs/browser_prefs.cc), RegisterWebUIConfigs (chrome://adblock, chrome://recommended-extensions;
+chrome_web_ui_configs.cc) and OnPostBrowserStart (ChromeBrowserMainParts::PostBrowserStart: the filter list
+updater loads the stored lists and schedules the daily check).
+A new feature adds itself in src/plainbrowser/hooks and never changes this patch.
+---
+--- a/chrome/browser/chrome_browser_main.cc
++++ b/chrome/browser/chrome_browser_main.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/chrome_browser_main.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/hooks/browser_hooks.h"
+ 
+ #include <memory>
+ #include <string>
+@@ -1731,6 +1735,11 @@
+ 
+   browser_process_->browser_policy_connector()->OnBrowserStarted();
+ 
++  // Plain Browser: start-up work of our features (patches/20-hooks).
++  plainbrowser::hooks::OnPostBrowserStart(
++      browser_process_->local_state(),
++      browser_process_->shared_url_loader_factory(), user_data_dir_);
++
+ #if BUILDFLAG(ENABLE_PROCESS_SINGLETON)
+   // Allow ProcessSingleton to process messages.
+   // This is done here instead of just relying on the main message loop's start
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/prefs/browser_prefs.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/hooks/browser_hooks.h"
+ 
+ #include <array>
+ #include <optional>
+@@ -1658,6 +1662,8 @@
+   // Call outs to individual subsystems that register Local State (browser-wide)
+   // prefs en masse. See RegisterProfilePrefs for per-profile prefs. Please
+   // keep this list alphabetized.
++  // Plain Browser: our Local State prefs (patches/20-hooks).
++  plainbrowser::hooks::RegisterLocalStatePrefs(registry);
+ #if BUILDFLAG(IS_ANDROID)
+   accessibility::AccessibilityPrefsController::RegisterLocalStatePrefs(
+       registry);
+@@ -1989,6 +1995,8 @@
+ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+                           const std::string& locale) {
+   TRACE_EVENT0("browser", "chrome::RegisterProfilePrefs");
++  // Plain Browser: our profile prefs (patches/20-hooks).
++  plainbrowser::hooks::RegisterProfilePrefs(registry);
+   // User prefs. Please keep this list alphabetized.
+   AccessibilityLabelsService::RegisterProfilePrefs(registry);
+   registry->RegisterBooleanPref(prefs::kRendererAccessibilityEnabled, true);
+--- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
++++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/ui/webui/chrome_web_ui_configs.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/hooks/browser_hooks.h"
+ 
+ #include "build/android_buildflags.h"
+ #include "build/branding_buildflags.h"
+@@ -270,6 +274,8 @@
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ 
+   auto& map = content::WebUIConfigMap::GetInstance();
++  // Plain Browser: chrome://adblock and the like (patches/20-hooks).
++  plainbrowser::hooks::RegisterWebUIConfigs(map);
+   map.AddWebUIConfig(std::make_unique<AccessibilityUIConfig>());
+   map.AddWebUIConfig(std::make_unique<AutofillInternalsUIConfig>());
+   map.AddWebUIConfig(std::make_unique<BluetoothInternalsUIConfig>());

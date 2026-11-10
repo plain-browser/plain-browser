@@ -1,0 +1,64 @@
+From: Plain Browser
+Subject: [hooks] ChromeContentBrowserClient: one hook per extension point
+
+Category: 20-hooks. Browser-side extension points of ChromeContentBrowserClient, through //plainbrowser/hooks/browser_hooks.h:
+ExposeInterfacesToRenderer (chrome_content_browser_client_receiver_bindings.cc: our mojo interfaces for a new
+renderer process), AppendRendererCommandLineSwitches (per-renderer switches: fingerprint session key, initial
+exception list), AddNavigationThrottles (our navigation throttles). A new feature adds itself in
+src/plainbrowser/hooks and never changes this patch.
+---
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -3,6 +3,10 @@
+ // found in the LICENSE file.
+ 
+ #include "chrome/browser/chrome_content_browser_client.h"
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/hooks/browser_hooks.h"
+ 
+ #include <algorithm>
+ #include <iterator>
+@@ -3158,6 +3162,9 @@
+ #endif
+ 
+   if (process_type == switches::kRendererProcess) {
++    // Plain Browser: switches for our renderer features (patches/20-hooks).
++    plainbrowser::hooks::AppendRendererCommandLineSwitches(command_line,
++                                                           child_process_id);
+     content::RenderProcessHost* process =
+         content::RenderProcessHost::FromID(child_process_id);
+     if (process) {
+@@ -5735,6 +5742,8 @@
+ void ChromeContentBrowserClient::CreateThrottlesForNavigation(
+     content::NavigationThrottleRegistry& registry) {
+   CreateAndAddChromeThrottlesForNavigation(registry);
++  // Plain Browser: our navigation throttles (patches/20-hooks).
++  plainbrowser::hooks::AddNavigationThrottles(registry);
+ }
+ 
+ void ChromeContentBrowserClient::CreateThrottlesForCommitWithoutUrlLoader(
+--- a/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
++++ b/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
+@@ -1,6 +1,10 @@
+ // Copyright 2019 The Chromium Authors
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
++
++// Plain Browser: own includes (patches/series), kept together up here so that
++// changes to the upstream include list below never touch this hunk.
++#include "plainbrowser/hooks/browser_hooks.h"
+ 
+ // This file exposes services from the browser to child processes.
+ 
+@@ -239,6 +243,9 @@
+   registry->AddInterface<metrics::mojom::CallStackProfileCollector>(
+       base::BindRepeating(&metrics::CallStackProfileCollector::Create));
+ 
++  // Plain Browser: our interfaces for the new renderer (patches/20-hooks).
++  plainbrowser::hooks::ExposeInterfacesToRenderer(registry, render_process_host);
++
+   if (NetBenchmarking::CheckBenchmarkingEnabled()) {
+     Profile* profile =
+         Profile::FromBrowserContext(render_process_host->GetBrowserContext());
