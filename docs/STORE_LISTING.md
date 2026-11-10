@@ -9,7 +9,7 @@ text says so and claims only what has been checked.
 **Product name:** Plain Browser
 
 **Short description (100):**
-A plain Chromium browser: no Google services, built-in ad blocking, no tracking.
+A fast, private web browser with built-in ad blocking and no telemetry or account.
 
 **Description:**
 Plain Browser is a fast, familiar Chromium-based web browser without the extras. It has no Google account, no
@@ -52,7 +52,7 @@ anonymizing proxy, Polish and English interface, Chromium 156.
 - Your data stays on your device
 - Free and open source (MPL-2.0)
 
-**Search terms (7):** browser, web browser, ad blocker, privacy, chromium, no tracking, open source
+**Search terms (7):** browser, web browser, ad blocker, privacy, fast browser, no tracking, open source
 
 **Copyright and trademark info:** © 2026 Plain Browser contributors. Based on Chromium, © The Chromium Authors.
 Chromium, Google and other names belong to their owners.
