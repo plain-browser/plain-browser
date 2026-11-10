@@ -157,6 +157,12 @@ Expected on a current build: `[WITH_UBO]` with `manifest_version 2`, `state ENAB
   talk a user into a one-click install of anything. Our own page does not need the switch (it calls `CrxInstaller`
   itself). Someone who wants another extension still has the developer-mode drag and drop on chrome://extensions or
   the flag "Handling of extension MIME type requests" in chrome://flags.
-- Not verified yet: an actual install, update and switch in a built browser (the Worker is not deployed either);
-  `scripts/test-mv2.ps1` still loads uBO unpacked.
+- Repository live since 2026-11-10: Worker `plainbrowser-extensions` at `ext.plain-browser.app` (custom domain), R2 bucket
+  `plainbrowser-extensions`, first build published by hand from the maintainer's machine (uBlock Origin 1.76.0, uMatrix
+  1.4.4, NoScript 13.6.38, AdGuard 5.5.4.55). Checked: `updates.xml`, `catalog.json` and the CRX download answer, the served
+  CRX is byte-identical to the built one (SHA-256) and `verifyCrx3` gives the ID compiled into the browser. The signing
+  keys are the ones from 2026-11-09 (`~/plainbrowser-extension-keys`, IDs match `catalog.cc`). The weekly workflow
+  `extensions.yml` still needs the `EXT_KEY_*` secrets and `CLOUDFLARE_API_TOKEN` (R2 write) before it can build and
+  publish; until then updates are published by hand with `scripts/build.mjs` and `scripts/publish.mjs`.
+- Not verified yet: an actual install, update and switch in a built browser; `scripts/test-mv2.ps1` still loads uBO unpacked.
 
