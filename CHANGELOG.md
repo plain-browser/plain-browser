@@ -5,6 +5,13 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.1-beta.1] - 2026-11-10 [Chromium 157.0.8103.50, ungoogled-chromium-windows 157.0.8103.50-1.1]
+
+### Changed
+- Chromium base updated from 157.0.8103.38 to 157.0.8103.50 (upstream update, built and submitted to the
+  Microsoft Store by the automated release pipeline).
+- Package version 0.2.1.0.
+
 ## [0.2.0-beta.6] - 2026-11-07 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1]
 
 ### Fixed
