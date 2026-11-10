@@ -4,6 +4,9 @@
    four known ad/tracker hosts (EasyList rules) and two controls. The result is read from the tab title
    over the remote-debugging port. Run once with the filter on and once with --disable-features=PlainBrowserAdblock.
    Expected ON: ad_* error, never reach the server; ctl_* allowed. Expected OFF: all six allowed, none hang.
+   WebSockets (patches/20-hooks, adblock_websocket_throttle): ws_neowin (EasyPrivacy ||neowin.net/ws/$websocket) and
+   ws_control are opened too. The local server answers the handshake with a plain 404, so both end in `error`; what
+   tells them apart is the server log: ON must show `GET /ws` (control) and no `GET /ws/chat`, OFF both.
    Hosts are deliberately NOT on Chrome's HSTS preload list (google/wikipedia domains are: they would fail
    with or without a blocker).
    Usage: powershell -File scripts\test-adblock.ps1 [-Zip <package.zip>] #>
@@ -22,6 +25,9 @@ Set-Content C:\dw-test3\srv\index.html "ok"
 async function t(u){ const c = new AbortController(); const id = setTimeout(() => c.abort(), 6000); const t0 = performance.now();
   try { await fetch(u,{mode:"no-cors",signal:c.signal}); clearTimeout(id); return "allowed(" + Math.round(performance.now()-t0) + "ms)"; }
   catch(e) { clearTimeout(id); return e.name === "AbortError" ? "TIMEOUT" : "error"; } }
+function w(u){ return new Promise(res => { let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+  try { const s = new WebSocket(u); s.onopen = () => { s.close(); fin("open"); }; s.onerror = () => fin("error"); s.onclose = () => fin("error"); setTimeout(() => fin("TIMEOUT"), 6000); }
+  catch(e) { fin("exception"); } }); }
 (async () => {
   const tests = {
     ad_adnxs: "http://ib.adnxs.com:8000/ttj",
@@ -33,11 +39,13 @@ async function t(u){ const c = new AbortController(); const id = setTimeout(() =
   };
   const out = [];
   for (const k in tests) out.push(k + "=" + await t(tests[k]));
+  out.push("ws_neowin=" + await w("ws://neowin.net:8000/ws/chat"));
+  out.push("ws_control=" + await w("ws://example.com:8000/ws"));
   document.title = "RESULT " + out.join(" ");
 })();
 </script></body></html>
 '@ | Set-Content C:\dw-test3\t.html -Encoding utf8
-$rules = "MAP ib.adnxs.com 127.0.0.1, MAP static.criteo.net 127.0.0.1, MAP sb.scorecardresearch.com 127.0.0.1, MAP ads.pubmatic.com 127.0.0.1, MAP example.com 127.0.0.1, MAP example.org 127.0.0.1"
+$rules = "MAP ib.adnxs.com 127.0.0.1, MAP static.criteo.net 127.0.0.1, MAP sb.scorecardresearch.com 127.0.0.1, MAP ads.pubmatic.com 127.0.0.1, MAP example.com 127.0.0.1, MAP example.org 127.0.0.1, MAP neowin.net 127.0.0.1"
 function Run($extra, $tag, $port) {
   $log = "C:\dw-test3\srv_$tag.log"
   $srv = Start-Process -FilePath $py -ArgumentList @("-m","http.server","8000","--bind","127.0.0.1","--directory","C:\dw-test3\srv") -PassThru -WindowStyle Hidden -RedirectStandardError $log

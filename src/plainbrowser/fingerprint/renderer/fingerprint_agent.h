@@ -21,6 +21,16 @@ class FingerprintAgent : public content::RenderFrameObserver {
  public:
   static void Create(content::RenderFrame* render_frame);
 
+  // A dedicated, shared or service worker's global scope was created (worker
+  // thread, before the worker's script runs): injects the same script, seeded
+  // with the site of the worker's own origin (`self.origin`). For a worker
+  // started by a top-level page that is the page's site, so page and worker
+  // agree; a worker started by a third-party frame gets the noise of its own
+  // site, not of the page the frame is embedded in (the hook knows no frame).
+  // Opaque origins (data: workers) and sites on a compatibility or user
+  // exception list get nothing, like documents.
+  static void OnWorkerContextCreated(v8::Local<v8::Context> context);
+
   FingerprintAgent(const FingerprintAgent&) = delete;
   FingerprintAgent& operator=(const FingerprintAgent&) = delete;
 

@@ -36,7 +36,9 @@ bool AdBlockEngine::ShouldBlock(const GURL& url,
                                  const GURL& source_url,
                                  const std::string& request_type) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (!engine_ || !url.SchemeIsHTTPOrHTTPS()) {
+  // ws:// and wss:// are network requests too ($websocket rules; adblock-rust
+  // types them "websocket" by their scheme).
+  if (!engine_ || !(url.SchemeIsHTTPOrHTTPS() || url.SchemeIsWSOrWSS())) {
     return false;
   }
   const std::string& spec = url.spec();

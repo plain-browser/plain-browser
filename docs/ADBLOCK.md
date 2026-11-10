@@ -281,6 +281,19 @@ the click.
 - Tests: `debounce_rules_unittest.cc` (plainbrowser_unittests), `scripts/test-privacy.ps1` cases `debounce` and
   `debounce-off` (headless: the local server never sees `/l.php` unless the kill switch is on). Verified 2026-10-28.
 
+## WebSockets
+Branch `feat/websocket-and-worker-fingerprint`, not yet built. Blink does not send WebSocket handshakes through
+`URLLoaderThrottle`; `ContentRendererClient::CreateWebSocketHandshakeThrottleProvider()` is the hook (chrome returns its
+Safe Browsing provider there). `AdblockWebSocketThrottleProvider` wraps it (like `AdblockThrottleProvider` the URL loader
+one; `hooks::WrapWebSocketHandshakeThrottleProvider`, `patches/20-hooks/0001`), and every throttle it makes is an
+`AdblockWebSocketHandshakeThrottle` around chrome's: Blink allows one throttle per socket. The throttle asks
+`AdblockFilter.ShouldBlockRequest` with type `websocket` (so `$websocket` rules apply: EasyPrivacy has some; adblock-rust
+types ws/wss URLs by their scheme) and reports an error to Blink when blocked, which fails the socket like a blocked
+request (counted for the tab, listed in the request log); otherwise it hands the handshake to chrome's throttle. Fails open
+after 3 s and when the filter is disconnected, like the URL throttle. The engine's scheme check now accepts ws/wss.
+Tests: `AdBlockEngineTest.WebSocketUrlsAreCheckedAgainstWebSocketRules`, and `scripts/test-adblock.ps1` opens a blocked
+and a control WebSocket (expected: the server log has `GET /ws` and, with the filter on, no `GET /ws/chat`).
+
 ## Not done yet (alpha scope)
 - Scriptlets beyond our set (uBO's resources are GPLv3; we write our own), `$redirect` for request types the
   file extension does not reveal, procedural operators `:others()`, `:watch-attr()`, `:matches-prop()`.

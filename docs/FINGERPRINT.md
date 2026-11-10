@@ -50,7 +50,16 @@ Kill switch: `--disable-features=PlainBrowserFingerprintProtection`.
 - Page-world JavaScript overrides are easier to detect than Blink-level changes (Brave's approach). A determined
   script can snapshot a pristine iframe early or compare timing. This slice buys protection against the common
   fingerprinting libraries at near-zero rebase cost; Blink patches for canvas and audio are the next step if needed.
-- Not covered: workers (no document), WebGL `readPixels`, fonts, screen size, `navigator.plugins`.
+- Workers (branch `feat/websocket-and-worker-fingerprint`, not yet built): the same script runs in dedicated, shared and
+  service workers, from `ChromeContentRendererClient::DidInitializeWorkerContextOnWorkerThread` (a new override,
+  `patches/20-hooks/0001`; chrome does not override it) before the worker's script. It covers `WorkerNavigator`
+  (`hardwareConcurrency`, `deviceMemory`), `OffscreenCanvas` readback and WebGL strings in workers, so a page and its
+  worker report the same values. The hook gets no frame, so the seed uses the site of the worker's own origin
+  (`self.origin`, read by the agent before anything of the worker runs): for a worker started by a top-level page that
+  is the page's site; **a worker started by a third-party iframe gets its own site's noise, not the embedding page's**,
+  so it differs from its iframe (a Blink change would fix it). `data:` workers (opaque origin) get nothing. The Node test
+  runs the script in a worker-like scope and checks that page and worker agree.
+- Not covered: worklets (`AudioWorkletGlobalScope`), WebGL `readPixels`, fonts, screen size, `navigator.plugins`.
 - UI: the toolbar bubble toggles a site, and "Sites with protections off" on `chrome://settings/privacy` lists,
   adds and removes them (`patches/60-ui/0009`). The built-in compatibility list cannot be edited from the UI.
 

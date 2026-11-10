@@ -28,6 +28,12 @@ tests and the Node tests; not yet compiled or run in a browser.
   its page in Windows' Default apps (`60-ui/0013`, `//plainbrowser/win`). Before, the package was always reported
   "not default" and the button opened a page for an unknown app.
 
+### Added (branch `feat/websocket-and-worker-fingerprint`, not yet compiled)
+- WebSockets go through the ad blocker: `$websocket` rules apply (`AdblockWebSocketThrottleProvider`, a wrapper around
+  chrome's WebSocket handshake throttle provider; the engine accepts ws/wss URLs).
+- Fingerprint protection in dedicated, shared and service workers (`OffscreenCanvas`, `WorkerNavigator`, WebGL strings),
+  seeded like the page of the same site.
+
 ### Changed
 - Patches: every hook into a file all features share (`ChromeContentRendererClient`, `ChromeContentBrowserClient`,
   `ChromeBrowserMainParts`, `browser_prefs.cc`, `chrome_web_ui_configs.cc`) is now one call into the new

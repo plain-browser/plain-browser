@@ -49,6 +49,44 @@ shows Standard (default) / No protection only: the Enhanced protection row is hi
 something our proxy supports and the policy promises standard protection only) and the descriptions say where
 requests go, in English and Polish. Verified with `scripts/test-safebrowsing-settings.ps1`.
 
+### Request filtering: gaps and the plan (written 2026-11-10, not implemented)
+Today every subresource request is decided in the renderer (`AdblockURLLoaderThrottle`, two IPC hops to the engine
+process). Known gaps ([ADBLOCK.md](ADBLOCK.md), "Not done yet"): no navigation (`$document`) blocking, no requests from
+the browser process, `$removeparam` only on navigations, `$redirect` with a request type guessed from the file
+extension, and **no WebSockets** (they do not pass `URLLoaderThrottle`). The adblock lists have `$websocket` rules.
+Checked against Chromium 157.0.8103.38:
+- WebSockets: `ContentRendererClient::CreateWebSocketHandshakeThrottleProvider()` returns a
+  `blink::WebSocketHandshakeThrottleProvider` (`Clone(task_runner)`, `CreateThrottle(local_frame_token, task_runner)`);
+  chrome returns `WebSocketHandshakeThrottleProviderImpl` (Safe Browsing). A wrapper like `AdblockThrottleProvider`
+  fits: one more hook function in `hooks/renderer_hooks.cc` and one hunk in `patches/20-hooks/0001`, the throttle
+  asks the same `AdblockFilter.ShouldBlockRequest` with type `websocket`. Smallest step, closes the largest hole.
+- `$document` and malware/phishing lists in the engine (the alternative to Safe Browsing, see above): a block decision
+  in `TrackingParamsNavigationThrottle` (browser side, it already asks the engine), for main-frame navigations.
+  `WillStartRequest` may return `BLOCK_REQUEST_AND_COLLAPSE`/`CANCEL` with an error page; needs an interstitial.
+- The real fix for the request type and for browser-side requests is Brave's design, a browser-process proxy
+  `URLLoaderFactory` (`ContentBrowserClient::WillCreateURLLoaderFactory`): every type, one IPC hop less, `$removeparam`
+  on subresources. It replaces the renderer throttle and `WillSendRequest` redirect, so it is a rewrite of
+  `adblock/renderer` and of 30-adblock/0003 behaviour, with the extensions' webRequest ordering to re-verify
+  (uBO as MV2 extension must still see the requests it expects).
+Status: the WebSocket wrapper is written on branch `feat/websocket-and-worker-fingerprint` (2026-11-10; see
+[ADBLOCK.md](ADBLOCK.md), "WebSockets") and not yet compiled. `$document` and the factory proxy are not started. Order
+when the build VM is on: compile and test the branch, then `$document`, then the factory proxy.
+
+### Fingerprint protection: workers and Blink (written 2026-11-10, not implemented)
+The page-world script (`fingerprint_script.js`) is injected from `DidCreateScriptContext`, which workers never get:
+`OffscreenCanvas` in a Dedicated Worker returns unmodified pixels and `WorkerNavigator.hardwareConcurrency` the real
+core count, and the difference between page and worker is itself a signal. Checked against 157.0.8103.38:
+`content::ContentRendererClient::DidInitializeWorkerContextOnWorkerThread(v8::Local<v8::Context>)` exists and
+`ChromeContentRendererClient` does not override it, so the hook needs a new override (header and .cc hunk in
+`patches/20-hooks/0001`). Open points: the worker has no top-level site, so the seed must come from the worker's own
+origin (same-site workers match the page; cross-site ones differ), the script must tolerate missing page globals
+(it is a Node-tested file, `fingerprint_script_test.js`, which can grow a worker harness first), and the session key is
+already on the renderer's command line. The alternative with the lowest detectability is Blink-level noise at the
+readback points (canvas, audio) as Brave does, which touches several Blink files and is the most expensive thing here
+to rebase. The worker hook is written on the same branch (see [FINGERPRINT.md](FINGERPRINT.md), "Workers"), not yet compiled;
+Blink-level noise is not started. Until the branch is built and checked, the store text should not promise worker
+coverage.
+
 ### Safe Browsing: terms of use (checked 2026-11-10)
 Google's terms (developers.google.com/safe-browsing/terms, `v4/usage-limits`) allow the Safe Browsing API only for
 "non-commercial use ... not for sale or revenue generating purposes", unless there is a separate agreement; the

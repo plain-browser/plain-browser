@@ -5,6 +5,7 @@
 
 #include "content/public/renderer/render_thread.h"
 #include "plainbrowser/adblock/renderer/adblock_url_loader_throttle.h"
+#include "plainbrowser/adblock/renderer/adblock_websocket_throttle.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "third_party/blink/public/common/loader/resource_type_util.h"
 #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
@@ -63,25 +64,46 @@ AdblockThrottleFactory::MaybeCreateThrottle(
   if (!filter) {
     return nullptr;
   }
-  // Top-level origin of the page: frames may only be touched on the main
-  // thread; worker requests fall back to the initiator (first-party workers
-  // are then still covered by the exception list).
-  GURL top_level_url;
+  // Top-level origin of the page; worker requests fall back to the initiator
+  // (first-party workers are then still covered by the exception list).
+  GURL top_level_url = TopLevelUrl(local_frame_token);
   std::optional<blink::LocalFrameToken> frame_token;
   if (local_frame_token.has_value()) {
     frame_token = *local_frame_token;
-    if (content::RenderThread::IsMainThread()) {
-      if (blink::WebLocalFrame* frame =
-              blink::WebLocalFrame::FromFrameToken(*local_frame_token)) {
-        top_level_url = url::Origin(frame->Top()->GetSecurityOrigin()).GetURL();
-      }
-    }
   }
   if (top_level_url.is_empty() && request.request_initiator) {
     top_level_url = request.request_initiator->GetURL();
   }
   return std::make_unique<AdblockURLLoaderThrottle>(filter, top_level_url,
                                                     frame_token);
+}
+
+// static
+GURL AdblockThrottleFactory::TopLevelUrl(
+    base::optional_ref<const blink::LocalFrameToken> local_frame_token) {
+  if (local_frame_token.has_value() && content::RenderThread::IsMainThread()) {
+    if (blink::WebLocalFrame* frame =
+            blink::WebLocalFrame::FromFrameToken(*local_frame_token)) {
+      return url::Origin(frame->Top()->GetSecurityOrigin()).GetURL();
+    }
+  }
+  return GURL();
+}
+
+std::unique_ptr<blink::WebSocketHandshakeThrottle>
+AdblockThrottleFactory::CreateWebSocketThrottle(
+    base::optional_ref<const blink::LocalFrameToken> local_frame_token,
+    std::unique_ptr<blink::WebSocketHandshakeThrottle> inner) {
+  mojom::AdblockFilter* filter = GetFilter();
+  if (!filter) {
+    return inner;
+  }
+  std::optional<blink::LocalFrameToken> frame_token;
+  if (local_frame_token.has_value()) {
+    frame_token = *local_frame_token;
+  }
+  return std::make_unique<AdblockWebSocketHandshakeThrottle>(
+      filter, TopLevelUrl(local_frame_token), frame_token, std::move(inner));
 }
 
 }  // namespace plainbrowser::adblock

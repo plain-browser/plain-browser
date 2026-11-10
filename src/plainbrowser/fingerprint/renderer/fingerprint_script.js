@@ -1,7 +1,9 @@
 // Copyright Plain Browser contributors. MPL-2.0.
 //
-// Fingerprint protection, injected into the main world of every document
-// before page scripts run (renderer/fingerprint_agent.cc). The two seed
+// Fingerprint protection, injected into the main world of every document and
+// into every dedicated, shared and service worker before their scripts run
+// (renderer/fingerprint_agent.cc). The same file runs in both: surfaces that a
+// global does not have are skipped. The two seed
 // placeholders are replaced with a value that is fixed for (session, top-level
 // site), so a site sees stable values for the whole session, two sites see
 // different ones, and the next browser run gives new ones.
@@ -10,8 +12,8 @@
 // low bit in a few canvas pixels, an audio gain change of under 1 %,
 // hardware values rounded to common buckets). Surfaces: 2D canvas readback,
 // WebGL vendor/renderer strings, Web Audio readback, navigator.hardwareConcurrency,
-// navigator.deviceMemory. Not covered: workers (no document), WebGL readPixels,
-// fonts, screen size.
+// navigator.deviceMemory (also WorkerNavigator, OffscreenCanvas and WebGL in
+// workers). Not covered: WebGL readPixels, fonts, screen size, worklets.
 //
 // Known limit: these are JavaScript overrides in the page world. A script can
 // detect them (for example by comparing with an iframe whose context it
@@ -99,19 +101,25 @@
     return allowed[Math.min(allowed.length - 1, Math.floor(pick * allowed.length))];
   }
   try {
-    var NavProto = typeof Navigator !== 'undefined' ? Navigator.prototype : null;
-    wrapGetter(NavProto, 'hardwareConcurrency', function (orig) {
-      return function hardwareConcurrency() {
-        var real = call.call(orig, this);
-        return typeof real === 'number' ? bucket(real, [2, 4, 8], hwBucketPick) : real;
-      };
-    });
-    wrapGetter(NavProto, 'deviceMemory', function (orig) {
-      return function deviceMemory() {
-        var real = call.call(orig, this);
-        return typeof real === 'number' ? bucket(real, [2, 4, 8], memBucketPick) : real;
-      };
-    });
+    // Navigator in a document, WorkerNavigator in a worker (a page and its
+    // workers must agree, or the difference is itself a fingerprint).
+    var navProtos = [];
+    if (typeof Navigator !== 'undefined') navProtos.push(Navigator.prototype);
+    if (typeof WorkerNavigator !== 'undefined') navProtos.push(WorkerNavigator.prototype);
+    for (var np = 0; np < navProtos.length; np++) {
+      wrapGetter(navProtos[np], 'hardwareConcurrency', function (orig) {
+        return function hardwareConcurrency() {
+          var real = call.call(orig, this);
+          return typeof real === 'number' ? bucket(real, [2, 4, 8], hwBucketPick) : real;
+        };
+      });
+      wrapGetter(navProtos[np], 'deviceMemory', function (orig) {
+        return function deviceMemory() {
+          var real = call.call(orig, this);
+          return typeof real === 'number' ? bucket(real, [2, 4, 8], memBucketPick) : real;
+        };
+      });
+    }
   } catch (e) { /* keep going */ }
 
   // ---- 2D canvas ------------------------------------------------------------

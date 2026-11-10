@@ -33,11 +33,10 @@ namespace plainbrowser::fingerprint {
 
 namespace {
 
-std::string SiteOf(const blink::WebSecurityOrigin& origin) {
-  if (origin.IsNull() || origin.IsOpaque()) {
+std::string SiteOf(const url::Origin& o) {
+  if (o.opaque()) {
     return std::string();
   }
-  const url::Origin o = origin;
   if (o.scheme() != "https" && o.scheme() != "http") {
     return std::string();
   }
@@ -49,18 +48,97 @@ std::string SiteOf(const blink::WebSecurityOrigin& origin) {
   return site.empty() ? o.host() : site;
 }
 
+std::string SiteOf(const blink::WebSecurityOrigin& origin) {
+  if (origin.IsNull() || origin.IsOpaque()) {
+    return std::string();
+  }
+  return SiteOf(url::Origin(origin));
+}
+
+bool Enabled() {
+  return base::FeatureList::IsEnabled(kPlainBrowserFingerprintProtection) &&
+         base::CommandLine::ForCurrentProcess()->HasSwitch(
+             switches::kFingerprintSessionKey);
+}
+
+// The script with the seed of (session, `site`) filled in.
+std::string ScriptFor(const std::string& site) {
+  const std::string session_key =
+      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
+          switches::kFingerprintSessionKey);
+  const uint64_t seed = FingerprintAgent::SeedFor(session_key, site);
+  std::string script(kFingerprintScript);
+  base::ReplaceSubstringsAfterOffset(
+      &script, 0, "__PB_SEED_HI__",
+      base::NumberToString(static_cast<uint32_t>(seed >> 32)));
+  base::ReplaceSubstringsAfterOffset(
+      &script, 0, "__PB_SEED_LO__",
+      base::NumberToString(static_cast<uint32_t>(seed & 0xffffffffu)));
+  return script;
+}
+
+// Compiles and runs `script` in `context` (the caller has entered it).
+// Returns the completion value, empty when compiling or running failed.
+v8::MaybeLocal<v8::Value> Evaluate(v8::Local<v8::Context> context,
+                                   const std::string& script) {
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::MicrotasksScope microtasks(context,
+                                 v8::MicrotasksScope::kDoNotRunMicrotasks);
+  v8::TryCatch try_catch(isolate);
+  v8::Local<v8::String> source;
+  if (!v8::String::NewFromUtf8(isolate, script.data(),
+                               v8::NewStringType::kNormal, script.size())
+           .ToLocal(&source)) {
+    return {};
+  }
+  v8::Local<v8::Script> compiled;
+  if (!v8::Script::Compile(context, source).ToLocal(&compiled)) {
+    LOG(ERROR) << "fingerprint script failed to compile";
+    return {};
+  }
+  v8::MaybeLocal<v8::Value> result = compiled->Run(context);
+  if (result.IsEmpty()) {
+    DLOG(ERROR) << "fingerprint script threw";
+  }
+  return result;
+}
+
 }  // namespace
 
 // static
 void FingerprintAgent::Create(content::RenderFrame* render_frame) {
-  if (!base::FeatureList::IsEnabled(kPlainBrowserFingerprintProtection)) {
-    return;
-  }
-  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
-          switches::kFingerprintSessionKey)) {
-    return;  // Browser side disabled (feature off there, or not Plain Browser).
+  if (!Enabled()) {
+    return;  // Feature off, or the browser side is off (not Plain Browser).
   }
   new FingerprintAgent(render_frame);  // Self-owned.
+}
+
+// static
+void FingerprintAgent::OnWorkerContextCreated(v8::Local<v8::Context> context) {
+  if (!Enabled()) {
+    return;
+  }
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  v8::HandleScope handle_scope(isolate);
+  v8::Context::Scope context_scope(context);
+  // The worker has no document and the hook gets no frame, so the origin is
+  // read from the scope itself. Nothing of the worker has run yet, so
+  // `self.origin` is the real one. A worklet scope without it gets nothing.
+  v8::Local<v8::Value> origin;
+  if (!Evaluate(context, "self.origin").ToLocal(&origin) ||
+      !origin->IsString()) {
+    return;
+  }
+  v8::String::Utf8Value utf8(isolate, origin);
+  if (!*utf8) {
+    return;
+  }
+  const std::string site =
+      SiteOf(url::Origin::Create(GURL(std::string(*utf8, utf8.length()))));
+  if (site.empty() || IsExceptedSite(site)) {
+    return;
+  }
+  (void)Evaluate(context, ScriptFor(site));
 }
 
 // static
@@ -97,39 +175,10 @@ void FingerprintAgent::DidCreateScriptContext(v8::Local<v8::Context> context,
   if (site.empty() || IsExceptedSite(site)) {
     return;
   }
-  const std::string session_key =
-      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
-          switches::kFingerprintSessionKey);
-  const uint64_t seed = SeedFor(session_key, site);
-  std::string script(kFingerprintScript);
-  base::ReplaceSubstringsAfterOffset(
-      &script, 0, "__PB_SEED_HI__",
-      base::NumberToString(static_cast<uint32_t>(seed >> 32)));
-  base::ReplaceSubstringsAfterOffset(
-      &script, 0, "__PB_SEED_LO__",
-      base::NumberToString(static_cast<uint32_t>(seed & 0xffffffffu)));
-
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
   v8::HandleScope handle_scope(isolate);
   v8::Context::Scope context_scope(context);
-  v8::MicrotasksScope microtasks(context,
-                                 v8::MicrotasksScope::kDoNotRunMicrotasks);
-  v8::TryCatch try_catch(isolate);
-  v8::Local<v8::String> source;
-  if (!v8::String::NewFromUtf8(isolate, script.data(),
-                               v8::NewStringType::kNormal, script.size())
-           .ToLocal(&source)) {
-    return;
-  }
-  v8::Local<v8::Script> compiled;
-  if (!v8::Script::Compile(context, source).ToLocal(&compiled)) {
-    LOG(ERROR) << "fingerprint script failed to compile";
-    return;
-  }
-  v8::Local<v8::Value> unused;
-  if (!compiled->Run(context).ToLocal(&unused)) {
-    DLOG(ERROR) << "fingerprint script threw";
-  }
+  (void)Evaluate(context, ScriptFor(site));
 }
 
 void FingerprintAgent::OnDestruct() {

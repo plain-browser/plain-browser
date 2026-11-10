@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "plainbrowser/adblock/renderer/adblock_throttle_provider.h"
+#include "plainbrowser/adblock/renderer/adblock_websocket_throttle_provider.h"
 #include "plainbrowser/adblock/renderer/cosmetic_filter_agent.h"
 #include "plainbrowser/adblock/renderer/request_redirector.h"
 #include "plainbrowser/fingerprint/renderer/fingerprint_agent.h"
@@ -21,6 +22,10 @@ void OnRenderFrameCreated(content::RenderFrame* render_frame) {
   fingerprint::FingerprintAgent::Create(render_frame);
 }
 
+void OnWorkerContextCreated(v8::Local<v8::Context> context) {
+  fingerprint::FingerprintAgent::OnWorkerContextCreated(context);
+}
+
 bool MaybeReplaceRequestUrl(blink::WebLocalFrame* frame,
                             const GURL& url,
                             const url::Origin* initiator_origin,
@@ -33,6 +38,14 @@ std::unique_ptr<blink::URLLoaderThrottleProvider> WrapURLLoaderThrottleProvider(
     blink::ThreadSafeBrowserInterfaceBrokerProxy* broker) {
   return adblock::AdblockThrottleProvider::Wrap(std::move(chrome_provider),
                                                 broker);
+}
+
+std::unique_ptr<blink::WebSocketHandshakeThrottleProvider>
+WrapWebSocketHandshakeThrottleProvider(
+    std::unique_ptr<blink::WebSocketHandshakeThrottleProvider> chrome_provider,
+    blink::ThreadSafeBrowserInterfaceBrokerProxy* broker) {
+  return adblock::AdblockWebSocketThrottleProvider::Wrap(
+      std::move(chrome_provider), broker);
 }
 
 }  // namespace plainbrowser::hooks

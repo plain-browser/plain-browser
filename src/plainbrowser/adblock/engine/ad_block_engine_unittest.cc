@@ -141,6 +141,15 @@ TEST_F(AdBlockEngineTest, SourceUrlDefaultsToTheRequestUrl) {
   EXPECT_TRUE(ShouldBlock(kAdScript, "", "script"));
 }
 
+// EasyPrivacy: ||neowin.net/ws/$websocket.
+TEST_F(AdBlockEngineTest, WebSocketUrlsAreCheckedAgainstWebSocketRules) {
+  EXPECT_TRUE(ShouldBlock("wss://neowin.net/ws/chat", kPage, "websocket"));
+  EXPECT_TRUE(ShouldBlock("ws://neowin.net/ws/chat", kPage, "websocket"));
+  EXPECT_FALSE(ShouldBlock("wss://plain-browser.test/ws", kPage, "websocket"));
+  // A rule restricted to $websocket does not apply to other request types.
+  EXPECT_FALSE(ShouldBlock("https://neowin.net/ws/chat", kPage, "script"));
+}
+
 TEST_F(AdBlockEngineTest, NonHttpUrlsAreNeverBlocked) {
   EXPECT_FALSE(ShouldBlock("chrome://version/", kPage, "script"));
   EXPECT_FALSE(ShouldBlock("file:///C:/ads/adsbygoogle.js", kPage, "script"));

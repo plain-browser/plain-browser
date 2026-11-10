@@ -1,12 +1,13 @@
 From: Plain Browser
 Subject: [hooks] ChromeContentRendererClient: one hook per extension point
 
-Category: 20-hooks. All renderer-side features hook into ChromeContentRendererClient through the four functions of
+Category: 20-hooks. All renderer-side features hook into ChromeContentRendererClient through the functions of
 //plainbrowser/hooks/renderer_hooks.h; a new feature adds itself in that file (src/plainbrowser/hooks) and never
 changes this patch. The hooks: ExposeInterfacesToBrowser (our mojo receivers), OnRenderFrameCreated (per-frame
 agents: cosmetic filter, fingerprint), MaybeReplaceRequestUrl (WillSendRequest: $redirect stand-ins, after the
-extensions check so an extension that blocks the request still wins), WrapURLLoaderThrottleProvider (our throttles
-in front of chrome's, Clone() included so workers are covered).
+extensions check so an extension that blocks the request still wins), WrapURLLoaderThrottleProvider and WrapWebSocketHandshakeThrottleProvider (our throttles
+in front of chrome's, Clone() included so workers are covered), OnWorkerContextCreated (new override of
+DidInitializeWorkerContextOnWorkerThread, which chrome does not override: fingerprint protection in workers).
 ---
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
@@ -52,7 +53,27 @@ in front of chrome's, Clone() included so workers are covered).
    if (!target_url.ProtocolIs(chrome::kChromeSearchScheme)) {
      return;
    }
-@@ -1658,8 +1672,12 @@
+@@ -1443,8 +1457,18 @@
+ 
+ std::unique_ptr<blink::WebSocketHandshakeThrottleProvider>
+ ChromeContentRendererClient::CreateWebSocketHandshakeThrottleProvider() {
+-  return std::make_unique<WebSocketHandshakeThrottleProviderImpl>(
++  // Plain Browser: WebSocket handshakes go through our filter first
++  // (patches/20-hooks).
++  return plainbrowser::hooks::WrapWebSocketHandshakeThrottleProvider(
++      std::make_unique<WebSocketHandshakeThrottleProviderImpl>(
++          browser_interface_broker_.get()),
+       browser_interface_broker_.get());
++}
++
++void ChromeContentRendererClient::DidInitializeWorkerContextOnWorkerThread(
++    v8::Local<v8::Context> context) {
++  // Plain Browser: fingerprint protection in workers (patches/20-hooks).
++  plainbrowser::hooks::OnWorkerContextCreated(context);
+ }
+ 
+ bool ChromeContentRendererClient::ShouldUseCodeCacheWithHashing(
+@@ -1658,8 +1682,12 @@
  std::unique_ptr<blink::URLLoaderThrottleProvider>
  ChromeContentRendererClient::CreateURLLoaderThrottleProvider(
      blink::URLLoaderThrottleProviderType provider_type) {
@@ -67,3 +88,14 @@ in front of chrome's, Clone() included so workers are covered).
  }
  
  blink::WebFrame* ChromeContentRendererClient::FindFrame(
+--- a/chrome/renderer/chrome_content_renderer_client.h
++++ b/chrome/renderer/chrome_content_renderer_client.h
+@@ -164,6 +164,8 @@
+       content::RenderFrame* render_frame) override;
+   std::unique_ptr<blink::WebSocketHandshakeThrottleProvider>
+   CreateWebSocketHandshakeThrottleProvider() override;
++  void DidInitializeWorkerContextOnWorkerThread(
++      v8::Local<v8::Context> context) override;
+   bool ShouldUseCodeCacheWithHashing(
+       const blink::WebURL& request_url) const override;
+   bool ShouldReportDetailedMessageForSource(
