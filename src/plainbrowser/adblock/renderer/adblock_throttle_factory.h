@@ -14,7 +14,6 @@
 namespace blink {
 class ThreadSafeBrowserInterfaceBrokerProxy;
 class URLLoaderThrottle;
-class WebSocketHandshakeThrottle;
 }  // namespace blink
 
 namespace network {
@@ -46,13 +45,6 @@ class AdblockThrottleFactory {
       base::optional_ref<const blink::LocalFrameToken> local_frame_token,
       const network::ResourceRequest& request);
 
-  // For WebSocketHandshakeThrottleProvider::CreateThrottle(): a throttle that
-  // asks the filter first and then hands the handshake to `inner` (chrome's
-  // throttle, may be null). Returns `inner` itself when there is no working
-  // filter, so a missing filter never blocks or delays a WebSocket.
-  std::unique_ptr<blink::WebSocketHandshakeThrottle> CreateWebSocketThrottle(
-      base::optional_ref<const blink::LocalFrameToken> local_frame_token,
-      std::unique_ptr<blink::WebSocketHandshakeThrottle> inner);
 
  private:
   mojom::AdblockFilter* GetFilter();

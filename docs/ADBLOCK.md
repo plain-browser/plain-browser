@@ -282,21 +282,23 @@ the click.
   `debounce-off` (headless: the local server never sees `/l.php` unless the kill switch is on). Verified 2026-10-28.
 
 ## WebSockets
-Branch `feat/websocket-and-worker-fingerprint`; built and checked 2026-11-10 (unit tests 86/86, `scripts/test-adblock.ps1`: blocked socket `error`, control `open`, both `open` with the blocker off). Blink does not send WebSocket handshakes through
-`URLLoaderThrottle`; `ContentRendererClient::CreateWebSocketHandshakeThrottleProvider()` is the hook (chrome returns its
-Safe Browsing provider there). `AdblockWebSocketThrottleProvider` wraps it (like `AdblockThrottleProvider` the URL loader
-one; `hooks::WrapWebSocketHandshakeThrottleProvider`, `patches/20-hooks/0001`), and every throttle it makes is an
-`AdblockWebSocketHandshakeThrottle` around chrome's: Blink allows one throttle per socket. The throttle asks
-`AdblockFilter.ShouldBlockRequest` with type `websocket` (so `$websocket` rules apply: EasyPrivacy has some; adblock-rust
-types ws/wss URLs by their scheme) and reports an error to Blink when blocked, which fails the socket like a blocked
-request (counted for the tab, listed in the request log); otherwise it hands the handshake to chrome's throttle. Fails open
-after 3 s and when the filter is disconnected, like the URL throttle. The engine's scheme check now accepts ws/wss.
-**Limit: the handshake still leaves the machine.** Blink starts the handshake in parallel with the throttle and only waits
-for the throttle's answer before it reports the connection open, so a blocked tracker still gets the TCP connection and
-the `GET` with its headers (seen in the test server's log); the page cannot use the socket. Real blocking needs a
-browser-side decision before the connection: `ContentBrowserClient::WillInterceptWebSocket`/`CreateWebSocket`
-(chrome uses them for the extensions' webRequest proxy, so ours has to chain with it) and failing the
-`WebSocketHandshakeClient` there. Not done.
+Built and checked 2026-11-10 (unit tests 86/86; `scripts/test-adblock.ps1`: with the filter on, a blocked WebSocket
+fails and **never reaches the server**, the control opens; with the blocker off both open).
+WebSocket connections are decided in the browser process, before the network service opens a socket
+(`browser/websocket_filter.*`, `patches/20-hooks/0002`). `ChromeContentBrowserClient::WillInterceptWebSocket` first
+asks `hooks::WillInterceptWebSocket` (blocking is on, the page's site is not excepted; otherwise nothing changes);
+`CreateWebSocket` wraps the connection factory with `hooks::FilterWebSocketFactory`. The wrapped factory asks the engine
+(through `DecideRequest`, the same decision as for subresources: per-site exceptions, counters, request log), with the
+type `websocket` so `$websocket` rules apply (adblock-rust types ws/wss URLs by their scheme), and on a block ends the
+handshake with `ERR_BLOCKED_BY_CLIENT` instead of running the factory. Chrome's own code then hands the (wrapped) factory
+to the extensions' webRequest proxy when an extension can see the connection, else `hooks::ConnectWebSocket` connects
+the way content does (a `User-Agent` header if the renderer gave one). Fails open: no engine means connect.
+Limits: shared and service workers have no frame and are not filtered; DevTools' extra headers are not added to a
+socket the filter intercepted (it only matters while DevTools is open); the chain with an extension's `webRequest` proxy
+is not tested with a real extension yet.
+An earlier version wrapped chrome's renderer-side `WebSocketHandshakeThrottleProvider`; it was dropped: Blink starts the
+handshake in parallel with that throttle, so the request to a blocked host still left the machine, and with both in place
+a blocked socket would have been counted twice. The engine's scheme check accepts ws/wss.
 Tests: `AdBlockEngineTest.WebSocketUrlsAreCheckedAgainstWebSocketRules` (no port in the URL: a rule with a path like
 `||neowin.net/ws/` does not match `neowin.net:8000/ws/`), and `scripts/test-adblock.ps1` (with
 `scripts/test-http-ws-server.py`, which accepts a handshake) opens a blocked and a control WebSocket.

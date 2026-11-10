@@ -4,13 +4,11 @@
    four known ad/tracker hosts (EasyList rules) and two controls. The result is read from the tab title
    over the remote-debugging port. Run once with the filter on and once with --disable-features=PlainBrowserAdblock.
    Expected ON: ad_* error, never reach the server; ctl_* allowed. Expected OFF: all six allowed, none hang.
-   WebSockets (patches/20-hooks, adblock_websocket_throttle): ws_duckdns (EasyPrivacy ||duckdns.org^$third-party,websocket; a rule with a path such as ||neowin.net/ws/ does not match a URL with a port) and
-   ws_control are opened too. The local server (scripts\test-http-ws-server.py) accepts a handshake. Expected ON:
-   ws_duckdns=error, ws_control=open. Expected OFF_killswitch: both open. Blink starts the handshake in parallel with
-   the throttle, so a blocked socket's request still reaches the server (GET /ws/chat in the log): the throttle only
-   stops the page from using the connection.
-   Hosts are deliberately NOT on Chrome's HSTS preload list (google/wikipedia domains are: they would fail
-   with or without a blocker).
+   WebSockets (patches/20-hooks/0002, adblock/browser/websocket_filter): ws_duckdns (EasyPrivacy
+   ||duckdns.org^$third-party,websocket; a rule with a path such as ||neowin.net/ws/ does not match a URL with a port)
+   and ws_control are opened too. The local server (scripts\test-http-ws-server.py) accepts a handshake. The browser
+   decides before it opens a socket. Expected ON: ws_duckdns=error AND no `GET /ws/chat` in the server log, ws_control=open
+   with `GET /ws`. Expected OFF_killswitch: both open, both in the log.
    Workers (fingerprint protection): the page is served over http (file:// pages are never protected) and also
    starts a blob: Worker; pg_* and wk_* are hardwareConcurrency and the pixel sum of an OffscreenCanvas/canvas fill.
    Expected ON: wk_hwc = pg_hwc in {2,4,8}, wk_cv = pg_cv (both noised, not 218880). OFF_fingerprint (feature

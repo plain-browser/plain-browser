@@ -12,7 +12,6 @@ namespace blink {
 class ThreadSafeBrowserInterfaceBrokerProxy;
 class URLLoaderThrottleProvider;
 class WebLocalFrame;
-class WebSocketHandshakeThrottleProvider;
 }  // namespace blink
 
 namespace content {
@@ -60,14 +59,6 @@ std::unique_ptr<blink::URLLoaderThrottleProvider> WrapURLLoaderThrottleProvider(
 // dedicated, shared or service worker's global scope exists, its script has not
 // run. Worker thread. Fingerprint protection for workers.
 void OnWorkerContextCreated(v8::Local<v8::Context> context);
-
-// ChromeContentRendererClient::CreateWebSocketHandshakeThrottleProvider: wraps
-// chrome's provider so that WebSocket handshakes are checked against the
-// `$websocket` rules first.
-std::unique_ptr<blink::WebSocketHandshakeThrottleProvider>
-WrapWebSocketHandshakeThrottleProvider(
-    std::unique_ptr<blink::WebSocketHandshakeThrottleProvider> chrome_provider,
-    blink::ThreadSafeBrowserInterfaceBrokerProxy* broker);
 
 }  // namespace plainbrowser::hooks
 

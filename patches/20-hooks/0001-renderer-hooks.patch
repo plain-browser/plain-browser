@@ -5,7 +5,7 @@ Category: 20-hooks. All renderer-side features hook into ChromeContentRendererCl
 //plainbrowser/hooks/renderer_hooks.h; a new feature adds itself in that file (src/plainbrowser/hooks) and never
 changes this patch. The hooks: ExposeInterfacesToBrowser (our mojo receivers), OnRenderFrameCreated (per-frame
 agents: cosmetic filter, fingerprint), MaybeReplaceRequestUrl (WillSendRequest: $redirect stand-ins, after the
-extensions check so an extension that blocks the request still wins), WrapURLLoaderThrottleProvider and WrapWebSocketHandshakeThrottleProvider (our throttles
+extensions check so an extension that blocks the request still wins), WrapURLLoaderThrottleProvider (our throttles
 in front of chrome's, Clone() included so workers are covered), OnWorkerContextCreated (new override of
 DidInitializeWorkerContextOnWorkerThread, which chrome does not override: fingerprint protection in workers).
 ---
@@ -53,16 +53,9 @@ DidInitializeWorkerContextOnWorkerThread, which chrome does not override: finger
    if (!target_url.ProtocolIs(chrome::kChromeSearchScheme)) {
      return;
    }
-@@ -1443,8 +1457,18 @@
- 
- std::unique_ptr<blink::WebSocketHandshakeThrottleProvider>
+@@ -1445,6 +1459,12 @@
  ChromeContentRendererClient::CreateWebSocketHandshakeThrottleProvider() {
--  return std::make_unique<WebSocketHandshakeThrottleProviderImpl>(
-+  // Plain Browser: WebSocket handshakes go through our filter first
-+  // (patches/20-hooks).
-+  return plainbrowser::hooks::WrapWebSocketHandshakeThrottleProvider(
-+      std::make_unique<WebSocketHandshakeThrottleProviderImpl>(
-+          browser_interface_broker_.get()),
+   return std::make_unique<WebSocketHandshakeThrottleProviderImpl>(
        browser_interface_broker_.get());
 +}
 +
@@ -73,7 +66,7 @@ DidInitializeWorkerContextOnWorkerThread, which chrome does not override: finger
  }
  
  bool ChromeContentRendererClient::ShouldUseCodeCacheWithHashing(
-@@ -1658,8 +1682,12 @@
+@@ -1658,8 +1678,12 @@
  std::unique_ptr<blink::URLLoaderThrottleProvider>
  ChromeContentRendererClient::CreateURLLoaderThrottleProvider(
      blink::URLLoaderThrottleProviderType provider_type) {

@@ -5,7 +5,6 @@
 
 #include "content/public/renderer/render_thread.h"
 #include "plainbrowser/adblock/renderer/adblock_url_loader_throttle.h"
-#include "plainbrowser/adblock/renderer/adblock_websocket_throttle.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "third_party/blink/public/common/loader/resource_type_util.h"
 #include "third_party/blink/public/common/thread_safe_browser_interface_broker_proxy.h"
@@ -88,22 +87,6 @@ GURL AdblockThrottleFactory::TopLevelUrl(
     }
   }
   return GURL();
-}
-
-std::unique_ptr<blink::WebSocketHandshakeThrottle>
-AdblockThrottleFactory::CreateWebSocketThrottle(
-    base::optional_ref<const blink::LocalFrameToken> local_frame_token,
-    std::unique_ptr<blink::WebSocketHandshakeThrottle> inner) {
-  mojom::AdblockFilter* filter = GetFilter();
-  if (!filter) {
-    return inner;
-  }
-  std::optional<blink::LocalFrameToken> frame_token;
-  if (local_frame_token.has_value()) {
-    frame_token = *local_frame_token;
-  }
-  return std::make_unique<AdblockWebSocketHandshakeThrottle>(
-      filter, TopLevelUrl(local_frame_token), frame_token, std::move(inner));
 }
 
 }  // namespace plainbrowser::adblock

@@ -4,7 +4,8 @@ Subject: [hooks] ChromeContentBrowserClient: one hook per extension point
 Category: 20-hooks. Browser-side extension points of ChromeContentBrowserClient, through //plainbrowser/hooks/browser_hooks.h:
 ExposeInterfacesToRenderer (chrome_content_browser_client_receiver_bindings.cc: our mojo interfaces for a new
 renderer process), AppendRendererCommandLineSwitches (per-renderer switches: fingerprint session key, initial
-exception list), AddNavigationThrottles (our navigation throttles). A new feature adds itself in
+exception list), AddNavigationThrottles (our navigation throttles), WillInterceptWebSocket and CreateWebSocket (WebSockets are
+decided in the browser before a socket is opened; chrome's extension proxy still runs after our filter). A new feature adds itself in
 src/plainbrowser/hooks and never changes this patch.
 ---
 --- a/chrome/browser/chrome_content_browser_client.cc
@@ -39,6 +40,50 @@ src/plainbrowser/hooks and never changes this patch.
  }
  
  void ChromeContentBrowserClient::CreateThrottlesForCommitWithoutUrlLoader(
+@@ -7045,6 +7054,10 @@
+ 
+ bool ChromeContentBrowserClient::WillInterceptWebSocket(
+     content::RenderFrameHost* frame) {
++  // Plain Browser: the ad blocker wants this frame's WebSockets (patches/20-hooks).
++  if (plainbrowser::hooks::WillInterceptWebSocket(frame)) {
++    return true;
++  }
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+   if (!frame) {
+     return false;
+@@ -7087,6 +7100,9 @@
+     mojo::PendingRemote<network::mojom::WebSocketHandshakeClient>
+         handshake_client,
+     content::ContentBrowserClient::WebSocketOptions options) {
++  // Plain Browser: the ad blocker decides first, then the extensions' webRequest
++  // proxy (if any) sees the connection (patches/20-hooks).
++  factory = plainbrowser::hooks::FilterWebSocketFactory(frame, std::move(factory));
+ #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
+   // TODO(crbug.com/40195467): Request w/o a frame also should be proxied.
+   if (!frame) {
+@@ -7097,10 +7113,18 @@
+           frame->GetBrowserContext());
+ 
+   DCHECK(web_request_api);
+-  web_request_api->ProxyWebSocket(
+-      frame, std::move(factory), url, site_for_cookies, user_agent,
+-      std::move(handshake_client), std::move(options.header_client));
+-#endif
++  // Plain Browser: WillInterceptWebSocket may be true for the ad blocker alone;
++  // ProxyWebSocket needs an extension that can see the connection.
++  if (web_request_api->MayHaveProxiesForFrame(frame)) {
++    web_request_api->ProxyWebSocket(
++        frame, std::move(factory), url, site_for_cookies, user_agent,
++        std::move(handshake_client), std::move(options.header_client));
++    return;
++  }
++#endif
++  plainbrowser::hooks::ConnectWebSocket(std::move(factory), url, user_agent,
++                                        std::move(handshake_client),
++                                        std::move(options.header_client));
+ }
+ 
+ void ChromeContentBrowserClient::WillCreateWebTransport(
 --- a/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
 +++ b/chrome/browser/chrome_content_browser_client_receiver_bindings.cc
 @@ -1,6 +1,10 @@

@@ -55,11 +55,9 @@ process). Known gaps ([ADBLOCK.md](ADBLOCK.md), "Not done yet"): no navigation (
 the browser process, `$removeparam` only on navigations, `$redirect` with a request type guessed from the file
 extension, and **no WebSockets** (they do not pass `URLLoaderThrottle`). The adblock lists have `$websocket` rules.
 Checked against Chromium 157.0.8103.38:
-- WebSockets: `ContentRendererClient::CreateWebSocketHandshakeThrottleProvider()` returns a
-  `blink::WebSocketHandshakeThrottleProvider` (`Clone(task_runner)`, `CreateThrottle(local_frame_token, task_runner)`);
-  chrome returns `WebSocketHandshakeThrottleProviderImpl` (Safe Browsing). A wrapper like `AdblockThrottleProvider`
-  fits: one more hook function in `hooks/renderer_hooks.cc` and one hunk in `patches/20-hooks/0001`, the throttle
-  asks the same `AdblockFilter.ShouldBlockRequest` with type `websocket`. Smallest step, closes the largest hole.
+- WebSockets: done 2026-11-10, in the browser process (`ContentBrowserClient::WillInterceptWebSocket`/`CreateWebSocket`, chained
+  with the extensions' webRequest proxy); see [ADBLOCK.md](ADBLOCK.md), "WebSockets". A renderer-side handshake throttle was
+  tried first and dropped: Blink starts the handshake in parallel with it.
 - `$document` and malware/phishing lists in the engine (the alternative to Safe Browsing, see above): a block decision
   in `TrackingParamsNavigationThrottle` (browser side, it already asks the engine), for main-frame navigations.
   `WillStartRequest` may return `BLOCK_REQUEST_AND_COLLAPSE`/`CANCEL` with an error page; needs an interstitial.
@@ -68,10 +66,8 @@ Checked against Chromium 157.0.8103.38:
   on subresources. It replaces the renderer throttle and `WillSendRequest` redirect, so it is a rewrite of
   `adblock/renderer` and of 30-adblock/0003 behaviour, with the extensions' webRequest ordering to re-verify
   (uBO as MV2 extension must still see the requests it expects).
-Status: the WebSocket wrapper is on branch `feat/websocket-and-worker-fingerprint` (2026-11-10; built and tested, see
-[ADBLOCK.md](ADBLOCK.md), "WebSockets"); it stops the page from using a blocked socket but not the handshake request, so a
-browser-side `WillCreateWebSocket` decision is the next step for real blocking. `$document` and the factory proxy are not started. Order
-when the build VM is on: compile and test the branch, then `$document`, then the factory proxy.
+Status: WebSockets are done (see above). `$document` and the factory proxy are not started. Order next: `$document`, then the
+factory proxy.
 
 ### Fingerprint protection: workers and Blink (written 2026-11-10, not implemented)
 The page-world script (`fingerprint_script.js`) is injected from `DidCreateScriptContext`, which workers never get:

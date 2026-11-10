@@ -29,9 +29,9 @@ tests and the Node tests; not yet compiled or run in a browser.
   "not default" and the button opened a page for an unknown app.
 
 ### Added (branch `feat/websocket-and-worker-fingerprint`, built and tested on the build VM 2026-11-10)
-- WebSockets go through the ad blocker: `$websocket` rules apply (`AdblockWebSocketThrottleProvider`, a wrapper around
-  chrome's WebSocket handshake throttle provider; the engine accepts ws/wss URLs). The page cannot use a blocked socket;
-  the handshake request itself still leaves (Blink starts it in parallel), see `docs/ADBLOCK.md`.
+- WebSockets go through the ad blocker: `$websocket` rules apply, decided in the browser process before a socket is opened, so a
+  blocked tracker never receives the handshake (`ContentBrowserClient::WillInterceptWebSocket`/`CreateWebSocket`, chained with
+  the extensions' webRequest proxy; the engine accepts ws/wss URLs). Shared and service workers are not covered.
 - Fingerprint protection in dedicated, shared and service workers (`OffscreenCanvas`, `WorkerNavigator`, WebGL strings),
   seeded like the page of the same site.
 

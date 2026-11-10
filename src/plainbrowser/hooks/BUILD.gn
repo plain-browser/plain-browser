@@ -11,7 +11,10 @@ source_set("browser") {
   ]
   public_deps = [
     "//base",
+    "//content/public/browser",
+    "//mojo/public/cpp/bindings",
     "//services/network/public/cpp",
+    "//services/network/public/mojom",
     "//services/service_manager/public/cpp",
   ]
   deps = [

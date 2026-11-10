@@ -203,6 +203,8 @@ source_set("browser") {
     "browser/renderer_interfaces.h",
     "browser/tracking_params_navigation_throttle.cc",
     "browser/tracking_params_navigation_throttle.h",
+    "browser/websocket_filter.cc",
+    "browser/websocket_filter.h",
   ]
   public_deps = [
     ":client",
@@ -214,7 +216,9 @@ source_set("browser") {
     "//base",
     "//content/public/browser",
     "//mojo/public/cpp/bindings",
+    "//net",
     "//plainbrowser/shields:browser",
+    "//services/network/public/mojom",
     "//third_party/blink/public/common",
     "//url",
   ]
@@ -306,10 +310,6 @@ source_set("renderer") {
     "renderer/adblock_throttle_factory.h",
     "renderer/adblock_throttle_provider.cc",
     "renderer/adblock_throttle_provider.h",
-    "renderer/adblock_websocket_throttle.cc",
-    "renderer/adblock_websocket_throttle.h",
-    "renderer/adblock_websocket_throttle_provider.cc",
-    "renderer/adblock_websocket_throttle_provider.h",
     "renderer/cosmetic_filter_agent.cc",
     "renderer/cosmetic_filter_agent.h",
     "renderer/cosmetic_script.h",

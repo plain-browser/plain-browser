@@ -8,6 +8,7 @@
 #include "plainbrowser/adblock/browser/filter_list_updater.h"
 #include "plainbrowser/adblock/browser/renderer_interfaces.h"
 #include "plainbrowser/adblock/browser/tracking_params_navigation_throttle.h"
+#include "plainbrowser/adblock/browser/websocket_filter.h"
 #include "plainbrowser/adblock/ui/adblock_ui.h"
 #include "plainbrowser/extensions/ui/recommended_extensions_ui.h"
 #include "plainbrowser/fingerprint/browser/renderer_switches.h"
@@ -32,6 +33,28 @@ void AppendRendererCommandLineSwitches(base::CommandLine* command_line,
 
 void AddNavigationThrottles(content::NavigationThrottleRegistry& registry) {
   adblock::TrackingParamsNavigationThrottle::MaybeCreateAndAdd(registry);
+}
+
+bool WillInterceptWebSocket(content::RenderFrameHost* frame) {
+  return adblock::WillInterceptWebSocket(frame);
+}
+
+content::ContentBrowserClient::WebSocketFactory FilterWebSocketFactory(
+    content::RenderFrameHost* frame,
+    content::ContentBrowserClient::WebSocketFactory factory) {
+  return adblock::FilterWebSocketFactory(frame, std::move(factory));
+}
+
+void ConnectWebSocket(
+    content::ContentBrowserClient::WebSocketFactory factory,
+    const GURL& url,
+    const std::optional<std::string>& user_agent,
+    mojo::PendingRemote<network::mojom::WebSocketHandshakeClient>
+        handshake_client,
+    mojo::PendingRemote<network::mojom::TrustedHeaderClient> header_client) {
+  adblock::ConnectWebSocket(std::move(factory), url, user_agent,
+                            std::move(handshake_client),
+                            std::move(header_client));
 }
 
 void RegisterLocalStatePrefs(PrefRegistrySimple* registry) {
