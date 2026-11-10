@@ -50,7 +50,7 @@ Kill switch: `--disable-features=PlainBrowserFingerprintProtection`.
 - Page-world JavaScript overrides are easier to detect than Blink-level changes (Brave's approach). A determined
   script can snapshot a pristine iframe early or compare timing. This slice buys protection against the common
   fingerprinting libraries at near-zero rebase cost; Blink patches for canvas and audio are the next step if needed.
-- Workers (branch `feat/websocket-and-worker-fingerprint`, not yet built): the same script runs in dedicated, shared and
+- Workers (branch `feat/websocket-and-worker-fingerprint`; built and checked 2026-11-10 with `scripts/test-adblock.ps1`: a blob worker and its page report the same `hardwareConcurrency` bucket and the same noised OffscreenCanvas pixel sum, the real 12 cores and the unmodified sum with the feature off): the same script runs in dedicated, shared and
   service workers, from `ChromeContentRendererClient::DidInitializeWorkerContextOnWorkerThread` (a new override,
   `patches/20-hooks/0001`; chrome does not override it) before the worker's script. It covers `WorkerNavigator`
   (`hardwareConcurrency`, `deviceMemory`), `OffscreenCanvas` readback and WebGL strings in workers, so a page and its

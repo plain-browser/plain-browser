@@ -68,8 +68,9 @@ Checked against Chromium 157.0.8103.38:
   on subresources. It replaces the renderer throttle and `WillSendRequest` redirect, so it is a rewrite of
   `adblock/renderer` and of 30-adblock/0003 behaviour, with the extensions' webRequest ordering to re-verify
   (uBO as MV2 extension must still see the requests it expects).
-Status: the WebSocket wrapper is written on branch `feat/websocket-and-worker-fingerprint` (2026-11-10; see
-[ADBLOCK.md](ADBLOCK.md), "WebSockets") and not yet compiled. `$document` and the factory proxy are not started. Order
+Status: the WebSocket wrapper is on branch `feat/websocket-and-worker-fingerprint` (2026-11-10; built and tested, see
+[ADBLOCK.md](ADBLOCK.md), "WebSockets"); it stops the page from using a blocked socket but not the handshake request, so a
+browser-side `WillCreateWebSocket` decision is the next step for real blocking. `$document` and the factory proxy are not started. Order
 when the build VM is on: compile and test the branch, then `$document`, then the factory proxy.
 
 ### Fingerprint protection: workers and Blink (written 2026-11-10, not implemented)
@@ -83,9 +84,8 @@ origin (same-site workers match the page; cross-site ones differ), the script mu
 (it is a Node-tested file, `fingerprint_script_test.js`, which can grow a worker harness first), and the session key is
 already on the renderer's command line. The alternative with the lowest detectability is Blink-level noise at the
 readback points (canvas, audio) as Brave does, which touches several Blink files and is the most expensive thing here
-to rebase. The worker hook is written on the same branch (see [FINGERPRINT.md](FINGERPRINT.md), "Workers"), not yet compiled;
-Blink-level noise is not started. Until the branch is built and checked, the store text should not promise worker
-coverage.
+to rebase. The worker hook is on the same branch (see [FINGERPRINT.md](FINGERPRINT.md), "Workers"), built and tested;
+Blink-level noise is not started. Worker coverage can be claimed once the branch is merged; the third-party-iframe worker case stays a known gap.
 
 ### Safe Browsing: terms of use (checked 2026-11-10)
 Google's terms (developers.google.com/safe-browsing/terms, `v4/usage-limits`) allow the Safe Browsing API only for

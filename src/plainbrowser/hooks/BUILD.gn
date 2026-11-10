@@ -9,7 +9,11 @@ source_set("browser") {
     "browser_hooks.cc",
     "browser_hooks.h",
   ]
-  public_deps = [ "//base" ]
+  public_deps = [
+    "//base",
+    "//services/network/public/cpp",
+    "//services/service_manager/public/cpp",
+  ]
   deps = [
     "//components/prefs",
     "//components/user_prefs",
@@ -22,8 +26,6 @@ source_set("browser") {
     "//plainbrowser/fingerprint:browser",
     "//plainbrowser/shields:browser",
     "//plainbrowser/shields:prefs",
-    "//services/network/public/cpp",
-    "//services/service_manager/public/cpp",
   ]
 }
 

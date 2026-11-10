@@ -3,6 +3,8 @@
 #define PLAINBROWSER_HOOKS_BROWSER_HOOKS_H_
 
 #include "base/memory/scoped_refptr.h"
+#include "services/network/public/cpp/shared_url_loader_factory.h"
+#include "services/service_manager/public/cpp/binder_registry.h"
 
 class PrefRegistrySimple;
 class PrefService;
@@ -17,14 +19,6 @@ class NavigationThrottleRegistry;
 class RenderProcessHost;
 class WebUIConfigMap;
 }  // namespace content
-
-namespace network {
-class SharedURLLoaderFactory;
-}
-
-namespace service_manager {
-class BinderRegistry;
-}
 
 namespace user_prefs {
 class PrefRegistrySyncable;

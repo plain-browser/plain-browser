@@ -59,7 +59,7 @@ void AdblockWebSocketHandshakeThrottle::OnDecision(bool block) {
   decided_ = true;
   failsafe_timer_.Stop();
   if (block) {
-    std::move(completion_).Run(blink::WebString::FromUTF8(
+    std::move(completion_).Run(blink::WebString::FromUtf8(
         "WebSocket connection blocked by the Plain Browser ad blocker"));
     return;  // `this` is gone.
   }

@@ -282,7 +282,7 @@ the click.
   `debounce-off` (headless: the local server never sees `/l.php` unless the kill switch is on). Verified 2026-10-28.
 
 ## WebSockets
-Branch `feat/websocket-and-worker-fingerprint`, not yet built. Blink does not send WebSocket handshakes through
+Branch `feat/websocket-and-worker-fingerprint`; built and checked 2026-11-10 (unit tests 86/86, `scripts/test-adblock.ps1`: blocked socket `error`, control `open`, both `open` with the blocker off). Blink does not send WebSocket handshakes through
 `URLLoaderThrottle`; `ContentRendererClient::CreateWebSocketHandshakeThrottleProvider()` is the hook (chrome returns its
 Safe Browsing provider there). `AdblockWebSocketThrottleProvider` wraps it (like `AdblockThrottleProvider` the URL loader
 one; `hooks::WrapWebSocketHandshakeThrottleProvider`, `patches/20-hooks/0001`), and every throttle it makes is an
@@ -291,8 +291,15 @@ one; `hooks::WrapWebSocketHandshakeThrottleProvider`, `patches/20-hooks/0001`), 
 types ws/wss URLs by their scheme) and reports an error to Blink when blocked, which fails the socket like a blocked
 request (counted for the tab, listed in the request log); otherwise it hands the handshake to chrome's throttle. Fails open
 after 3 s and when the filter is disconnected, like the URL throttle. The engine's scheme check now accepts ws/wss.
-Tests: `AdBlockEngineTest.WebSocketUrlsAreCheckedAgainstWebSocketRules`, and `scripts/test-adblock.ps1` opens a blocked
-and a control WebSocket (expected: the server log has `GET /ws` and, with the filter on, no `GET /ws/chat`).
+**Limit: the handshake still leaves the machine.** Blink starts the handshake in parallel with the throttle and only waits
+for the throttle's answer before it reports the connection open, so a blocked tracker still gets the TCP connection and
+the `GET` with its headers (seen in the test server's log); the page cannot use the socket. Real blocking needs a
+browser-side decision before the connection: `ContentBrowserClient::WillInterceptWebSocket`/`CreateWebSocket`
+(chrome uses them for the extensions' webRequest proxy, so ours has to chain with it) and failing the
+`WebSocketHandshakeClient` there. Not done.
+Tests: `AdBlockEngineTest.WebSocketUrlsAreCheckedAgainstWebSocketRules` (no port in the URL: a rule with a path like
+`||neowin.net/ws/` does not match `neowin.net:8000/ws/`), and `scripts/test-adblock.ps1` (with
+`scripts/test-http-ws-server.py`, which accepts a handshake) opens a blocked and a control WebSocket.
 
 ## Not done yet (alpha scope)
 - Scriptlets beyond our set (uBO's resources are GPLv3; we write our own), `$redirect` for request types the
