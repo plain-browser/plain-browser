@@ -16,6 +16,11 @@ How it works:
   publication time and source, signed with Ed25519 (secret `SIGNING_KEY`); manifest text and signature are one KV
   value (`signed-manifest`), so they always match. The list is written before the manifest that names it. Without
   `SIGNING_KEY` the cron publishes nothing.
+- The manifest carries a `sequence` (counts changes to the lists) and an `expires` time (Unix seconds, 14 days after the
+  run that signed it; the cron signs it again every 6 hours, so it stays valid while the cron works). The browser
+  remembers the highest sequence it accepted and refuses a manifest with a lower one, one past its expiry and one
+  without either: a taken-over server cannot serve old, validly signed lists again. If the cron fails for more than
+  14 days browsers keep their current lists and take no updates until it runs again.
 - The browser reads the manifest and its signature once a day, checks the signature with the public key compiled
   into it (`kListSigningKeys` in `src/plainbrowser/adblock/browser/filter_lists.h`), downloads only lists whose hash
   differs from its stored copy, and checks size and SHA-256 before using one. So even a mirror that served
@@ -32,7 +37,7 @@ browser sends no cookies.
 | Path | Response |
 |---|---|
 | `GET /v1/manifest.json.sig` | base64 Ed25519 signature of the exact bytes of `manifest.json` |
-| `GET /v1/manifest.json` | `{"format": 1, "generated": "...", "license": "...", "lists": {"easylist": {"sha256", "size", "rules", "updated", "source"}, ...}}`, `Cache-Control: public, max-age=300`; 503 before the first cron run |
+| `GET /v1/manifest.json` | `{"format": 1, "generated": "...", "license": "...", "sequence": 7, "expires": 1789000000, "lists": {"easylist": {"sha256", "size", "rules", "updated", "source"}, ...}}`, `Cache-Control: public, max-age=300`; 503 before the first cron run |
 | `GET /v1/lists/<name>.txt` | the list, `ETag: "<sha256>"`; `<name>` is `easylist`, `easyprivacy`, `easylistpolish`, `easylistcookie`, `fanboyannoyance` or `ublockfilters` |
 
 `HEAD` works too; any other path is 404, other methods 405, a missing or foreign `X-Client` 403 (a filter against

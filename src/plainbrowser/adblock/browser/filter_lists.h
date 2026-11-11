@@ -14,6 +14,7 @@
 #include "base/containers/span.h"
 #include "base/files/file_path.h"
 #include "base/functional/callback.h"
+#include "base/time/time.h"
 
 class GURL;
 
@@ -64,13 +65,35 @@ struct ListEntry {
 using Manifest = std::map<std::string, ListEntry>;
 
 // The Worker's manifest:
-//   {"format": 1, "lists": {"easylist": {"sha256": "<hex>", "size": 123,
-//    ...}, ...}}
+//   {"format": 1, "sequence": 7, "expires": 1789000000,
+//    "lists": {"easylist": {"sha256": "<hex>", "size": 123, ...}, ...}}
 // Unknown lists and extra fields are ignored; an entry with a bad hash or a
 // size outside 1..kMaxListBytes is dropped. nullopt when the JSON is not a
 // format-1 manifest.
 std::optional<Manifest> ParseManifest(std::string_view json);
 std::string SerializeManifest(const Manifest& manifest);
+
+// Protection against replay of an old, validly signed manifest (a taken-over
+// server could otherwise serve last year's lists again): the manifest carries
+// a `sequence` that grows with every change to the lists and an `expires`
+// time (Unix seconds) the Worker renews on each run. The browser remembers the
+// highest sequence it has accepted and takes only a manifest that is not older
+// and not past its expiry.
+struct Freshness {
+  int64_t sequence = 0;
+  int64_t expires = 0;
+};
+// nullopt unless `json` has an integer "sequence" >= 1 and an integer
+// "expires" > 0. Call it on a manifest whose signature was verified.
+std::optional<Freshness> ParseFreshness(std::string_view json);
+
+enum class Staleness { kFresh, kReplayed, kExpired };
+// kReplayed: sequence below `highest_sequence_seen`. kExpired: `now` is at or
+// after `expires`. The same sequence is fine (the Worker renews `expires`
+// without a change to the lists).
+Staleness CheckFreshness(const Freshness& manifest,
+                         int64_t highest_sequence_seen,
+                         base::Time now);
 
 // True when `text` is the list `entry` describes (size and SHA-256) and looks
 // like a filter list: first line "[Adblock Plus ...]", or "! Title: ..." (uBlock
@@ -102,6 +125,9 @@ std::vector<std::string> ChangedLists(
 // The verified content of a store directory.
 struct Store {
   Manifest manifest;  // Only entries whose file is present and matches.
+  // Highest manifest sequence accepted so far (0: none); see Freshness. Kept
+  // in its own file, so it survives a damaged manifest or list.
+  int64_t sequence = 0;
   std::vector<std::pair<std::string, std::string>> lists;  // Name, text.
 };
 
@@ -117,6 +143,10 @@ Store ReadStore(const base::FilePath& dir);
 bool WriteStore(const base::FilePath& dir,
                 const Manifest& manifest,
                 const std::vector<std::pair<std::string, std::string>>& lists);
+
+// Blocking. Records `sequence` as the highest accepted (atomically). Never
+// lowers a recorded value.
+bool WriteSequence(const base::FilePath& dir, int64_t sequence);
 
 // Blocking. Removes the store directory.
 bool DeleteStore(const base::FilePath& dir);

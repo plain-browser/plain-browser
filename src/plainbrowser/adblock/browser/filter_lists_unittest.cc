@@ -10,6 +10,7 @@
 #include "base/files/scoped_temp_dir.h"
 #include "base/functional/bind.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/time/time.h"
 #include "crypto/hash.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/boringssl/src/include/openssl/curve25519.h"
@@ -67,6 +68,62 @@ TEST(FilterListsTest, SerializedManifestParsesBack) {
   Manifest m = {{"easylist", EntryFor(kList)},
                 {"easyprivacy", EntryFor(std::string(kList) + "x")}};
   EXPECT_EQ(m, ParseManifest(SerializeManifest(m)));
+}
+
+TEST(FilterListsTest, FreshnessNeedsASequenceAndAnExpiry) {
+  std::optional<Freshness> f = ParseFreshness(
+      R"({"format": 1, "sequence": 7, "expires": 1789000000, "lists": {}})");
+  ASSERT_TRUE(f);
+  EXPECT_EQ(7, f->sequence);
+  EXPECT_EQ(1789000000, f->expires);
+
+  EXPECT_FALSE(ParseFreshness("not json"));
+  EXPECT_FALSE(ParseFreshness(R"({"format": 1, "lists": {}})"));  // Old format.
+  EXPECT_FALSE(ParseFreshness(R"({"sequence": 1, "lists": {}})"));
+  EXPECT_FALSE(ParseFreshness(R"({"expires": 1789000000, "lists": {}})"));
+  EXPECT_FALSE(ParseFreshness(R"({"sequence": 0, "expires": 1789000000})"));
+  EXPECT_FALSE(ParseFreshness(R"({"sequence": -1, "expires": 1789000000})"));
+  EXPECT_FALSE(ParseFreshness(R"({"sequence": 1.5, "expires": 1789000000})"));
+  EXPECT_FALSE(ParseFreshness(R"({"sequence": "1", "expires": 1789000000})"));
+  EXPECT_FALSE(ParseFreshness(R"({"sequence": 1, "expires": 0})"));
+}
+
+TEST(FilterListsTest, AReplayedOrExpiredManifestIsNotFresh) {
+  const base::Time now = base::Time::UnixEpoch() + base::Seconds(1000);
+  const Freshness manifest{/*sequence=*/5, /*expires=*/2000};
+  EXPECT_EQ(Staleness::kFresh, CheckFreshness(manifest, 0, now));
+  EXPECT_EQ(Staleness::kFresh, CheckFreshness(manifest, 4, now));
+  // The same sequence again: the Worker renewed the expiry, the lists are the same.
+  EXPECT_EQ(Staleness::kFresh, CheckFreshness(manifest, 5, now));
+  EXPECT_EQ(Staleness::kReplayed, CheckFreshness(manifest, 6, now));
+  EXPECT_EQ(Staleness::kFresh, CheckFreshness(manifest, 5, now + base::Seconds(999)));
+  EXPECT_EQ(Staleness::kExpired, CheckFreshness(manifest, 5, now + base::Seconds(1000)));
+  EXPECT_EQ(Staleness::kExpired, CheckFreshness(manifest, 5, now + base::Days(30)));
+}
+
+TEST(FilterListsTest, TheHighestAcceptedSequenceIsRemembered) {
+  base::ScopedTempDir temp;
+  ASSERT_TRUE(temp.CreateUniqueTempDir());
+  const base::FilePath dir = temp.GetPath().Append(kStoreDirName);
+  EXPECT_EQ(0, ReadStore(dir).sequence);  // No directory yet.
+
+  ASSERT_TRUE(WriteSequence(dir, 7));
+  EXPECT_EQ(7, ReadStore(dir).sequence);
+  // Never lowered, so a replay cannot move it back.
+  ASSERT_TRUE(WriteSequence(dir, 3));
+  EXPECT_EQ(7, ReadStore(dir).sequence);
+  ASSERT_TRUE(WriteSequence(dir, 8));
+  EXPECT_EQ(8, ReadStore(dir).sequence);
+
+  // It does not depend on the manifest or the lists, and a damaged record
+  // counts as none.
+  ASSERT_TRUE(WriteStore(dir, {{"easylist", EntryFor(kList)}}, {{"easylist", kList}}));
+  EXPECT_EQ(8, ReadStore(dir).sequence);
+  ASSERT_TRUE(base::WriteFile(dir.AppendASCII("sequence"), "garbage"));
+  EXPECT_EQ(0, ReadStore(dir).sequence);
+
+  EXPECT_TRUE(DeleteStore(dir));
+  EXPECT_EQ(0, ReadStore(dir).sequence);
 }
 
 TEST(FilterListsTest, ListMatchesChecksSizeHashAndHeader) {

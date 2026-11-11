@@ -244,7 +244,10 @@ parts 2-4) and the Worker's unit tests; `lists.plain-browser.app` is deployed se
   (Local State `plainbrowser.adblock.list_updates.last_check`, so restarts do not check more often; 1 h after a
   failure) it fetches the manifest and `manifest.json.sig`, checks the Ed25519 signature over the manifest's exact
   bytes against `filter_lists::kListSigningKeys` (BoringSSL `ED25519_verify`; two slots for key rotation; while
-  both are empty every manifest is refused), downloads the lists whose hash changed, verifies size, SHA-256 and
+  both are empty every manifest is refused), checks freshness (`sequence` counts changes to the lists, `expires` is
+  renewed by the Worker every 6 hours and lies 14 days ahead; a manifest without either, with a sequence below the
+  highest accepted one, which the browser keeps in `<store>\sequence`, or past its expiry is refused, so a taken-over
+  server cannot replay old signed lists), downloads the lists whose hash changed, verifies size, SHA-256 and
   the header, writes them atomically and loads the store again. Requests: no cookies, cache bypassed,
   `X-Client: PlainBrowser/<major.minor.patch>`, a network traffic annotation `plainbrowser_filter_lists`.
 - **Engine swap**: `AdBlockService::UseLists()` sends the lists to the engine process (`UseConfig()`, with the

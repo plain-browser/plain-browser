@@ -16,9 +16,12 @@
       ||redirect-test.example^$script,redirect=chartbeat.js (the bundled lists' redirect rules name paths, which the
       test server's :8000 URLs never match).
       2a. A wrong signature: the browser fetches manifest and signature, downloads nothing, stores nothing.
-      2b. The right one: it fetches the list, stores it in "<profile>\PlainBrowser Filter Lists", and a page then
+      2b. The right one (sequence 2): it fetches the list, stores it in "<profile>\PlainBrowser Filter Lists", and a page then
           has fresh-ads.test blocked and the div hidden; a script from redirect-test.example runs our chartbeat.js
           stand-in (window.pSUPERFLY exists) and never reaches the server.
+      2c. A validly signed manifest with a lower sequence (1, naming another hash) than the one accepted in 2b: the
+          browser fetches it but downloads nothing and keeps the stored manifest (replay refused).
+      2d. A validly signed manifest with a higher sequence but an expiry in the past: the same.
    3. Restart with the same profile and no server: the stored list is used at once (fresh-ads.test still blocked).
    4. Updates off in Local State (plainbrowser.adblock.list_updates.enabled = false): the stored lists are deleted,
       no request reaches the server, fresh-ads.test is allowed again (bundled EasyList).
@@ -99,14 +102,20 @@ $listText = "[Adblock Plus 2.0]`n! Title: Plain Browser test list`n||fresh-ads.t
 [IO.File]::WriteAllBytes("$Out\lists\v1\lists\easylist.txt", [Text.Encoding]::UTF8.GetBytes($listText))
 $hash = (Get-FileHash "$Out\lists\v1\lists\easylist.txt" -Algorithm SHA256).Hash.ToLower()
 $size = (Get-Item "$Out\lists\v1\lists\easylist.txt").Length
-# The manifest and its Ed25519 signature by a throwaway test key (the browser accepts the key only with
-# --plainbrowser-filter-lists-url). Fixed text: changing the list above needs a new signature
-# (infra/filter-lists/scripts/keygen.mjs and Node's crypto.sign).
-$manifest = "{`"format`": 1, `"lists`": {`"easylist`": {`"sha256`": `"$hash`", `"size`": $size}}}"
-$testKey = "j0mHrvmXO0MrbNgs2ETvb3ZqV76gQPIzXvpLFLmSN7Q="
-$goodSig = "v/raJqGpqls7sfmgtD3jCvjM6rLoifOqET19lXyB54FrjaAcLcvxANXcWdK0ay53lc4hGkyVX/u3dv/zggTDDg=="
-$badSig = "AAAAJqGpqls7sfmgtD3jCvjM6rLoifOqET19lXyB54FrjaAcLcvxANXcWdK0ay53lc4hGkyVX/u3dv/zggTDDg=="
-Check ($hash -eq "69c9931bef8c6f24c08beb0752380749471fece15c4d6ac645fb8c993ae8e0c6") "test list has the hash the signature was made for"
+# The manifests and their Ed25519 signatures by a throwaway test key (the browser accepts the key only with
+# --plainbrowser-filter-lists-url). Fixed texts: changing the list above or a manifest needs new signatures
+# (infra/filter-lists/scripts/keygen.mjs and Node's crypto.sign over the exact text). "expires" 4102444800 is the year
+# 2100; the expired one has 1. The replayed and the expired manifest name other hashes, so a browser that wrongly
+# accepted one would ask for the list.
+$manifest = "{`"format`": 1, `"sequence`": 2, `"expires`": 4102444800, `"lists`": {`"easylist`": {`"sha256`": `"$hash`", `"size`": $size}}}"
+$replayManifest = "{`"format`": 1, `"sequence`": 1, `"expires`": 4102444800, `"lists`": {`"easylist`": {`"sha256`": `"1111111111111111111111111111111111111111111111111111111111111111`", `"size`": $size}}}"
+$expiredManifest = "{`"format`": 1, `"sequence`": 3, `"expires`": 1, `"lists`": {`"easylist`": {`"sha256`": `"2222222222222222222222222222222222222222222222222222222222222222`", `"size`": $size}}}"
+$testKey = "W6rfsZ/cRbJZIfnasIYBG6ANDEHYOM/QEfNdC/0tu2Q="
+$goodSig = "6jzvtkuFTOZ/nZMsrq47v4pgRaGdVA0t3EdR0z9/apNALDKvKQcpaeapKiwDQkBHFCmzw9zhZHWqcDws+rIZCQ=="
+$badSig = "AAAAtkuFTOZ/nZMsrq47v4pgRaGdVA0t3EdR0z9/apNALDKvKQcpaeapKiwDQkBHFCmzw9zhZHWqcDws+rIZCQ=="
+$replaySig = "dtOEOZj2/Eu/tUvTMu2RrfuSKwvxQNFe974Lq9J1czxhOecYzu8sItcj3R0G6JB/3gTSKqZwpV4UuUEa0Gp4AA=="
+$expiredSig = "hyfUP+AeXL/m4TOGuwR+ac8aC4lc6zEH53q6apetU+WclM7/aF2iMKdVrVlD7jDCjr5nMYrRsf4goM9Q6gN/Dg=="
+Check ($hash -eq "69c9931bef8c6f24c08beb0752380749471fece15c4d6ac645fb8c993ae8e0c6" -and $size -eq 149) "test list has the hash and size the signatures were made for"
 $manifest | Set-Content "$Out\lists\v1\manifest.json" -Encoding ascii -NoNewline
 $badSig | Set-Content "$Out\lists\v1\manifest.json.sig" -Encoding ascii -NoNewline
 # --- helpers -------------------------------------------------------------------------------------------------------
@@ -191,6 +200,33 @@ Check ($r -like "*freshHost=error*") "downloaded network rule blocks fresh-ads.t
 Check ($r -like "*freshDiv=none*") "downloaded generic rule hides .plainbrowser-fresh-ad"
 $r = PageResult "http://example.org:8000/r.html"; Log "redirect: $r"
 Check ($r -like "*pSUPERFLY=object*" -and $r -like "*real=false*") '$redirect=chartbeat.js: our stand-in ran instead of the script' 
+StopBrowser $b
+Stop-Process -Id $lists.Id -Force -ErrorAction SilentlyContinue
+# --- 2c. a replayed manifest (sequence 1 after 2 was accepted): fetched, refused ------------------------------------
+$replayManifest | Set-Content "$Out\lists\v1\manifest.json" -Encoding ascii -NoNewline
+$replaySig | Set-Content "$Out\lists\v1\manifest.json.sig" -Encoding ascii -NoNewline
+$lists = StartServer "$Out\lists" 8001 "lists-replay"
+Start-Sleep 2
+$b = StartBrowser $updateArgs
+Start-Sleep 8
+Log ("server requests (replay): " + ((Requests "lists-replay") -join " "))
+Check ((Requests "lists-replay") -contains "/v1/manifest.json.sig") "replay: the browser asked for the signature"
+Check (-not ((Requests "lists-replay") -contains "/v1/lists/easylist.txt")) "replay: an older manifest downloads nothing"
+Check ((Get-Content "$store\manifest.json" -Raw -ErrorAction SilentlyContinue) -like "*$hash*") "replay: the stored manifest is unchanged"
+Check ((Get-Content "$store\sequence" -Raw -ErrorAction SilentlyContinue) -match "^\s*2\s*$") "the highest accepted sequence (2) is recorded"
+StopBrowser $b
+Stop-Process -Id $lists.Id -Force -ErrorAction SilentlyContinue
+# --- 2d. an expired manifest: fetched, refused ------------------------------------------------------------------------
+$expiredManifest | Set-Content "$Out\lists\v1\manifest.json" -Encoding ascii -NoNewline
+$expiredSig | Set-Content "$Out\lists\v1\manifest.json.sig" -Encoding ascii -NoNewline
+$lists = StartServer "$Out\lists" 8001 "lists-expired"
+Start-Sleep 2
+$b = StartBrowser $updateArgs
+Start-Sleep 8
+Log ("server requests (expired): " + ((Requests "lists-expired") -join " "))
+Check ((Requests "lists-expired") -contains "/v1/manifest.json.sig") "expired: the browser asked for the signature"
+Check (-not ((Requests "lists-expired") -contains "/v1/lists/easylist.txt")) "expired: nothing is downloaded"
+Check ((Get-Content "$store\sequence" -Raw -ErrorAction SilentlyContinue) -match "^\s*2\s*$") "expired: the recorded sequence stays 2"
 StopBrowser $b
 Stop-Process -Id $lists.Id -Force -ErrorAction SilentlyContinue
 # --- 3. restart without the server: the stored list is used -------------------------------------------------------

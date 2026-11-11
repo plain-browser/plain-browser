@@ -113,6 +113,9 @@ class FilterListUpdater {
 
   // The verified manifest of the store on disk.
   filter_lists::Manifest stored_;
+  // Highest manifest sequence accepted (see filter_lists::Freshness); kept in
+  // the store directory.
+  int64_t highest_sequence_ = 0;
   // The engine uses downloaded lists (so disabling has something to undo).
   bool using_downloaded_ = false;
   // Between Check() and FinishCheck().

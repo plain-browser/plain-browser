@@ -20,6 +20,7 @@ namespace plainbrowser::adblock::filter_lists {
 namespace {
 
 constexpr char kManifestFile[] = "manifest.json";
+constexpr char kSequenceFile[] = "sequence";
 constexpr int kFormat = 1;
 
 bool Updatable(std::string_view name) {
@@ -31,6 +32,31 @@ bool IsSha256Hex(std::string_view s) {
   return s.size() == 64 && std::all_of(s.begin(), s.end(), [](char c) {
            return base::IsAsciiDigit(c) || (c >= 'a' && c <= 'f');
          });
+}
+
+// An integer field of a verified manifest; JSON numbers are doubles, which
+// hold every value below 2^53 exactly.
+std::optional<int64_t> IntegerField(const base::DictValue& dict,
+                                    std::string_view key) {
+  const std::optional<double> value = dict.FindDouble(key);
+  if (!value || *value < 0 || *value > 9007199254740991.0 ||
+      *value != static_cast<int64_t>(*value)) {
+    return std::nullopt;
+  }
+  return static_cast<int64_t>(*value);
+}
+
+int64_t ReadSequence(const base::FilePath& dir) {
+  std::string text;
+  int64_t sequence = 0;
+  if (!base::ReadFileToStringWithMaxSize(dir.AppendASCII(kSequenceFile), &text,
+                                         32) ||
+      !base::StringToInt64(base::TrimWhitespaceASCII(text, base::TRIM_ALL),
+                           &sequence) ||
+      sequence < 0) {
+    return 0;
+  }
+  return sequence;
 }
 
 base::FilePath ListPath(const base::FilePath& dir, std::string_view name) {
@@ -81,6 +107,32 @@ std::string SerializeManifest(const Manifest& manifest) {
                              .Set("format", kFormat)
                              .Set("lists", std::move(lists)))
       .value_or(std::string());
+}
+
+std::optional<Freshness> ParseFreshness(std::string_view json) {
+  std::optional<base::DictValue> root =
+      base::JSONReader::ReadDict(json, base::JSON_PARSE_RFC);
+  if (!root) {
+    return std::nullopt;
+  }
+  const std::optional<int64_t> sequence = IntegerField(*root, "sequence");
+  const std::optional<int64_t> expires = IntegerField(*root, "expires");
+  if (!sequence || *sequence < 1 || !expires || *expires < 1) {
+    return std::nullopt;
+  }
+  return Freshness{*sequence, *expires};
+}
+
+Staleness CheckFreshness(const Freshness& manifest,
+                         int64_t highest_sequence_seen,
+                         base::Time now) {
+  if (manifest.sequence < highest_sequence_seen) {
+    return Staleness::kReplayed;
+  }
+  if ((now - base::Time::UnixEpoch()).InSeconds() >= manifest.expires) {
+    return Staleness::kExpired;
+  }
+  return Staleness::kFresh;
 }
 
 bool ListMatches(const ListEntry& entry, std::string_view text) {
@@ -150,6 +202,7 @@ std::vector<std::string> ChangedLists(
 
 Store ReadStore(const base::FilePath& dir) {
   Store store;
+  store.sequence = ReadSequence(dir);
   std::string json;
   if (!base::ReadFileToStringWithMaxSize(dir.AppendASCII(kManifestFile), &json,
                                          kMaxManifestBytes)) {
@@ -186,6 +239,17 @@ bool WriteStore(const base::FilePath& dir,
   }
   return base::ImportantFileWriter::WriteFileAtomically(
       dir.AppendASCII(kManifestFile), SerializeManifest(manifest));
+}
+
+bool WriteSequence(const base::FilePath& dir, int64_t sequence) {
+  if (sequence <= ReadSequence(dir)) {
+    return true;
+  }
+  if (!base::CreateDirectory(dir)) {
+    return false;
+  }
+  return base::ImportantFileWriter::WriteFileAtomically(
+      dir.AppendASCII(kSequenceFile), base::NumberToString(sequence));
 }
 
 bool DeleteStore(const base::FilePath& dir) {

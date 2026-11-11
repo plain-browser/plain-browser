@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { countRules, handle, MIN_RULES, refresh, rejectReason, SOURCES, type Env, type Manifest } from "../src/index.ts";
+import { countRules, handle, MIN_RULES, refresh, rejectReason, SOURCES, VALIDITY_SECONDS, type Env, type Manifest } from "../src/index.ts";
 
 class FakeKv {
   data = new Map<string, string>();
@@ -108,8 +108,10 @@ test("refresh keeps the published version when a source fails or looks wrong", a
   assert.equal(report.easylist, "kept: HTTP 503");
   assert.equal(report.easyprivacy, "kept: no [Adblock Plus] or ! Title: header");
   assert.match(report.easylistpolish, /^kept: (only|shrank)/);
-  assert.deepEqual(kv.puts, []); // nothing written, manifest untouched
-  assert.deepEqual(manifestOf(kv), before);
+  // No list is written; the manifest is signed again with a later expiry and the same sequence.
+  assert.deepEqual(kv.puts, ["signed-manifest"]);
+  assert.deepEqual(manifestOf(kv), { ...before, expires: manifestOf(kv).expires });
+  assert.equal(manifestOf(kv).sequence, before.sequence);
 });
 
 test("refresh writes only what changed", async () => {
@@ -125,10 +127,46 @@ test("refresh writes only what changed", async () => {
   );
   assert.equal(report.ublockfilters, "kept: HTTP 404");
   assert.deepEqual(kv.puts, ["list:easyprivacy", "signed-manifest"]);
-  // Nothing new and the same key: nothing written at all.
+  // Nothing new: no list is written, only the manifest is signed again (new expiry, same sequence).
   kv.puts = [];
   await refresh(signing(kv));
-  assert.deepEqual(kv.puts, []);
+  assert.deepEqual(kv.puts, ["signed-manifest"]);
+});
+
+test("the manifest carries a sequence that grows with every change and an expiry that moves on every run", async () => {
+  const kv = new FakeKv();
+  const t0 = new Date("2026-11-11T06:00:00Z");
+  mockPublishers({ easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") });
+  await refresh(signing(kv), t0);
+  assert.equal(manifestOf(kv).sequence, 1);
+  assert.equal(manifestOf(kv).expires, Math.floor(t0.getTime() / 1000) + VALIDITY_SECONDS);
+
+  // Nothing changed six hours later: the same sequence, a later expiry, a new signature over the new text.
+  const t1 = new Date(t0.getTime() + 6 * 3600 * 1000);
+  const first = signedOf(kv);
+  await refresh(signing(kv), t1);
+  assert.equal(manifestOf(kv).sequence, 1);
+  assert.equal(manifestOf(kv).expires, Math.floor(t1.getTime() / 1000) + VALIDITY_SECONDS);
+  assert.notEqual(signedOf(kv).signature, first.signature);
+  assert.ok(await verify(signedOf(kv).manifest, signedOf(kv).signature));
+
+  // A list changes: the next sequence.
+  mockPublishers({ easylist: list("a"), easyprivacy: list("p-new"), easylistpolish: list("pl") });
+  await refresh(signing(kv), new Date(t1.getTime() + 6 * 3600 * 1000));
+  assert.equal(manifestOf(kv).sequence, 2);
+});
+
+test("a manifest published before sequences existed gets sequence 1 on the next run", async () => {
+  const kv = new FakeKv();
+  mockPublishers({ easylist: list("a"), easyprivacy: list("p"), easylistpolish: list("pl") });
+  await refresh(signing(kv));
+  const old = manifestOf(kv) as Partial<Manifest>;
+  delete old.sequence;
+  delete old.expires;
+  kv.data.set("signed-manifest", JSON.stringify({ manifest: JSON.stringify(old), signature: "x" }));
+  await refresh(signing(kv));
+  assert.equal(manifestOf(kv).sequence, 1);
+  assert.ok(manifestOf(kv).expires > Date.now() / 1000);
 });
 
 test("rejectReason bounds", () => {

@@ -40,6 +40,8 @@ export const MAX_BYTES = 16 * 1024 * 1024;
 export const MIN_RULES = 1000;
 // A new version that drops more than this share of the published one's rules is held back as suspicious.
 export const MAX_SHRINK = 0.5;
+// How long a signed manifest stays acceptable. The cron runs every 6 hours and a browser checks once a day.
+export const VALIDITY_SECONDS = 14 * 24 * 3600;
 
 const USER_AGENT = "PlainBrowserListMirror/1 (+https://plain-browser.app)";
 const CLIENT_HEADER = /^([A-Za-z0-9._-]{1,40})\/(\d{1,4}(\.\d{1,4}){0,3})$/;
@@ -59,6 +61,12 @@ export interface Manifest {
   format: 1;
   generated: string;
   license: string;
+  // Counts changes to the lists (1, 2, ...): the browser remembers the highest it has accepted and refuses a
+  // manifest with a lower one, so an old, validly signed manifest cannot be served again.
+  sequence: number;
+  // Unix seconds. Renewed on every cron run; a browser does not take a manifest from then on. If the cron stops
+  // for longer than VALIDITY_SECONDS the browsers keep the lists they have and take no updates.
+  expires: number;
   lists: Record<string, Entry>;
 }
 
@@ -142,6 +150,8 @@ export async function refresh(env: Env, now = new Date()): Promise<Record<string
   const manifest: Manifest = published?.manifest ?? {
     format: 1,
     generated: "",
+    sequence: 0,
+    expires: 0,
     license:
       "EasyList lists: GPLv3 or CC BY-SA 3.0, https://easylist.to/pages/licence.html; uBlock filters: GPLv3, " +
       "https://github.com/uBlockOrigin/uAssets",
@@ -184,13 +194,14 @@ export async function refresh(env: Env, now = new Date()): Promise<Record<string
     report[name] = "published";
     changed = true;
   }
-  // Signed again when nothing was published yet under this key (first run, or a new key).
+  // A change to the lists is a new sequence; a manifest published before sequences existed becomes number 1.
   if (changed) manifest.generated = now.toISOString();
+  if (changed || !manifest.sequence) manifest.sequence = (manifest.sequence || 0) + 1;
+  // The expiry moves on every run, so the manifest is signed and stored again each time (every 6 hours).
+  manifest.expires = Math.floor(now.getTime() / 1000) + VALIDITY_SECONDS;
   const text = JSON.stringify(manifest);
   const signature = await sign(text, env.SIGNING_KEY);
-  if (changed || !published || published.signed.signature !== signature) {
-    await env.LISTS.put(SIGNED_KEY, JSON.stringify({ manifest: text, signature } satisfies Signed));
-  }
+  await env.LISTS.put(SIGNED_KEY, JSON.stringify({ manifest: text, signature } satisfies Signed));
   return report;
 }
 

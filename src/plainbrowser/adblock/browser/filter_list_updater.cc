@@ -235,6 +235,7 @@ void FilterListUpdater::OnEnabledChanged() {
     return;
   }
   stored_.clear();
+  highest_sequence_ = 0;  // The store, with its record, is deleted below.
   if (using_downloaded_) {
     using_downloaded_ = false;
     AdBlockService::GetInstance()->UseLists({});
@@ -253,6 +254,7 @@ void FilterListUpdater::LoadStore() {
 
 void FilterListUpdater::OnStoreRead(filter_lists::Store store) {
   stored_ = std::move(store.manifest);
+  highest_sequence_ = std::max(highest_sequence_, store.sequence);
   if (store.lists.empty() && !using_downloaded_) {
     return;  // Nothing downloaded yet: the compiled-in engine stays.
   }
@@ -346,6 +348,33 @@ void FilterListUpdater::OnSignature(std::string manifest_json,
     FinishCheck(/*success=*/false);
     return;
   }
+  // The signature proves who wrote the manifest, not when: refuse one without
+  // a sequence and an expiry, one that is older than a manifest already
+  // accepted (replayed) and one that has expired.
+  const std::optional<filter_lists::Freshness> freshness =
+      filter_lists::ParseFreshness(manifest_json);
+  if (!freshness) {
+    LOG(WARNING) << "Plain Browser filter lists: manifest has no sequence or "
+                    "expiry; keeping the current lists";
+    FinishCheck(/*success=*/false);
+    return;
+  }
+  switch (filter_lists::CheckFreshness(*freshness, highest_sequence_,
+                                       base::Time::Now())) {
+    case filter_lists::Staleness::kReplayed:
+      LOG(WARNING) << "Plain Browser filter lists: manifest " << freshness->sequence
+                   << " is older than " << highest_sequence_
+                   << " that was accepted before; keeping the current lists";
+      FinishCheck(/*success=*/false);
+      return;
+    case filter_lists::Staleness::kExpired:
+      LOG(WARNING) << "Plain Browser filter lists: manifest expired; keeping "
+                      "the current lists";
+      FinishCheck(/*success=*/false);
+      return;
+    case filter_lists::Staleness::kFresh:
+      break;
+  }
   std::optional<filter_lists::Manifest> manifest =
       filter_lists::ParseManifest(manifest_json);
   if (!manifest) {
@@ -353,6 +382,14 @@ void FilterListUpdater::OnSignature(std::string manifest_json,
             << server_.spec();
     FinishCheck(/*success=*/false);
     return;
+  }
+  if (freshness->sequence > highest_sequence_) {
+    // Recorded as soon as the manifest is accepted, whether or not every list
+    // download succeeds: nothing older is taken after this.
+    highest_sequence_ = freshness->sequence;
+    file_runner_->PostTask(
+        FROM_HERE, base::BindOnce(base::IgnoreResult(&filter_lists::WriteSequence),
+                                  store_dir_, highest_sequence_));
   }
   wanted_ = std::move(*manifest);
   pending_ = filter_lists::ChangedLists(
