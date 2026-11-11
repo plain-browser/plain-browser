@@ -73,12 +73,21 @@ jobs:
           grep -F " $msix" SHA256SUMS.txt | sha256sum -c -
           # The signature says who published the files, not how they were made. Tie the package to a source revision:
           # the tag's commit has to be on main, and the .msix has to be byte for byte what a successful build-windows
-          # run of this repository made for exactly that commit (its artifact lives 14 days: later, build again).
+          # run of this repository made for exactly that commit: shown by its provenance attestation or, for older builds,
+          # by the run's artifact (it lives 14 days: later, build again).
           sha=$(gh api "repos/$REPO/commits/$TAG" --jq .sha)
           state=$(gh api "repos/$REPO/compare/main...$sha" --jq .status)
           case "$state" in identical|behind) ;; *) echo "::error::$TAG ($sha) is not a commit of main (compare: $state)"; exit 1;; esac
           matched=""
-          for run in $(gh api "repos/$REPO/actions/workflows/build-windows.yml/runs?branch=$TAG&status=success&per_page=20" \
+          # Preferred: the provenance attestation made by build-windows.yml on this tag (no expiry, no download).
+          if gh attestation verify "$msix" --repo "$REPO" --signer-workflow "$REPO/.github/workflows/build-windows.yml" \
+               --source-ref "refs/tags/$TAG" --source-digest "$sha" > attestation.txt 2>&1; then
+            matched="attestation"
+          else
+            echo "No valid attestation for $msix ($(tail -n 1 attestation.txt)); looking for the build run's artifact"
+          fi
+          # Fallback for builds that predate the attestations (remove once every release has one).
+          [ -n "$matched" ] || for run in $(gh api "repos/$REPO/actions/workflows/build-windows.yml/runs?branch=$TAG&status=success&per_page=20" \
               --jq ".workflow_runs[] | select(.head_sha == \"$sha\" and .head_repository.full_name == \"$REPO\" and (.event == \"push\" or .event == \"workflow_dispatch\") and (.path | startswith(\".github/workflows/build-windows.yml\"))) | .id"); do
             art=$(gh api "repos/$REPO/actions/runs/$run/artifacts" --jq '[.artifacts[] | select(.expired == false and (.name | startswith("plainbrowser-"))) | .name][0] // ""')
             [ -n "$art" ] || continue
@@ -88,7 +97,11 @@ jobs:
           done
           [ -n "$matched" ] || { echo "::error::$msix is not the output of a successful build-windows run on $TAG ($sha); build the tag again"; exit 1; }
           rm -rf ../built
-          echo "Package built by https://github.com/$REPO/actions/runs/$matched from $sha" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$matched" = attestation ]; then
+            echo "Package attested as built by build-windows.yml on $TAG ($sha)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Package built by https://github.com/$REPO/actions/runs/$matched from $sha (no attestation)" >> "$GITHUB_STEP_SUMMARY"
+          fi
           # A dev package (identity PlainBrowser.Dev) is the sign of a build without the MSIX_* variables.
           manifest=$(unzip -p "$msix" AppxManifest.xml)
           grep -q "<Identity Name=\"$IDENTITY_NAME\"" <<< "$manifest" \

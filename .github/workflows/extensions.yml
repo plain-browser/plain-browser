@@ -101,6 +101,8 @@ jobs:
   build:
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.propose)
     runs-on: ubuntu-latest
+    # The signing keys and the Cloudflare token are secrets of this environment, which only main may use.
+    environment: extensions
     concurrency:
       group: extensions
       cancel-in-progress: false

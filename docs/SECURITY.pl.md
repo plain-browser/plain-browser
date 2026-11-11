@@ -29,6 +29,12 @@ cosign verify-blob --bundle <plik>.bundle \
 sha256sum -c SHA256SUMS.txt
 ```
 
+Od wydania 0.2.2 pliki mają też atestację pochodzenia buildu (który przebieg workflow i commit je wytworzył):
+
+```
+gh attestation verify <plik> --repo plain-browser/plain-browser
+```
+
 Podpis pokazuje, kto opublikował plik i że nie został on później zmieniony. Nie dowodzi, jak plik binarny został
 zbudowany. Wspieranym sposobem instalacji Plain Browser jest pakiet MSIX z Microsoft Store: Store podpisuje go
 i dostarcza aktualizacje. Pliki dołączone do wydań na GitHubie (archiwum przenośne, instalator) to kompilacje

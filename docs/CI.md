@@ -85,6 +85,25 @@ Every action is pinned to a commit SHA with its version in a comment (`actions/c
 v7.1.0, `upload-artifact` v7.0.2, `download-artifact` v8.0.2); Dependabot (`.github/dependabot.yml`) proposes bumps.
 The release is created with the preinstalled `gh` CLI and `GITHUB_TOKEN`, not a third-party action.
 
+### Security checks on the repository itself
+
+- `workflow-lint.yml`: zizmor on `.github/` (template injection, excessive permissions, unpinned actions, secrets
+  outside an environment); fails on a finding. `uvx zizmor .github` runs it locally. Permissions are declared per job
+  (`permissions: {}` at the top of the workflows that need write access).
+- `codeql.yml`: CodeQL for `actions`, `python` and `javascript-typescript` (not C++/Rust or the Chromium tree).
+- `dependency-review.yml`: a pull request that brings in a dependency with a high-severity advisory fails.
+- `scorecard.yml`: OpenSSF Scorecard, weekly and on pushes to `main`.
+- Dependabot (`.github/dependabot.yml`): GitHub Actions, cargo, pip (`scripts/ci/requirements.txt`, with hashes) and npm,
+  weekly, a 7-day cooldown for new releases, grouped.
+- Provenance: the `release` job attests the packages and `SHA256SUMS.txt` (`actions/attest-build-provenance`);
+  `store-submit.yml` requires the attestation (or, for builds that predate it, the build run's artifact).
+- Environments: `store` (Partner Center), `extensions` (extension signing keys, Cloudflare token) and `build` (compile
+  cache credentials) accept deployments from `main` only (`build` also from `v*` tags); `website` has no rule.
+  Because of that a build-windows run on another branch is refused: merge to `main` or tag to build.
+  Status 2026-11-11: the environments exist, but their secrets are not set yet (the keys and tokens are still
+  repository secrets, which jobs fall back to); move them as `docs/GITHUB_SETUP.md` section 2 says, then delete the
+  repository copies.
+
 ### Profiles
 
 - **release** (default, since 2026-11-10, not yet built): `is_official_build=true`, `chrome_pgo_phase=0`,

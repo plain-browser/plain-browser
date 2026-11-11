@@ -67,6 +67,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
           # Everything prepare-tree.ps1 reads: the pinned tag and version, patches, our sources, branding, the
           # Python and PowerShell helpers it calls, and the profile (flags.windows.gn differs).
           TREE_NAME: tree-0-${{ env.PROFILE }}-${{ hashFiles('versions.toml', 'patches/**', 'src/**', 'branding/**', 'scripts/*.py', 'scripts/*.ps1', 'scripts/ci/common.ps1', 'scripts/ci/install-tools.ps1', 'scripts/ci/prepare-tree.ps1') }}
@@ -91,7 +92,7 @@ jobs:
             "Reused tree-0 from run $runId ($env:TREE_NAME)" >> $env:GITHUB_STEP_SUMMARY
           } else {
             Write-Host "no usable $env:TREE_NAME: preparing the tree"
-            $runId = "${{ github.run_id }}"
+            $runId = $env:RUN_ID
           }
           "tree_name=$env:TREE_NAME" >> $env:GITHUB_OUTPUT
           "tree_run_id=$runId" >> $env:GITHUB_OUTPUT
@@ -123,6 +124,8 @@ jobs:
     needs: prepare
     # Stage 1 also writes args.gn and runs gn gen and bindgen (build.py --ci does that on its first pass).
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     permissions:
       contents: read
@@ -188,6 +191,8 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: needs.build-1.outputs.finished != 'true'
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -248,6 +253,8 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: needs.build-2.outputs.finished != 'true'
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -308,6 +315,8 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: needs.build-3.outputs.finished != 'true'
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -369,6 +378,8 @@ jobs:
     # here: stages 1-4 are skipped and tree-4 comes from that run (see build-6 for why the condition looks like this).
     if: ${{ !cancelled() && ((inputs.resume_run != '' && inputs.resume_stage == '5') || (needs.build-4.result == 'success' && needs.build-4.outputs.finished != 'true')) }}
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     permissions:
       contents: read
@@ -439,6 +450,8 @@ jobs:
     # unless the condition has !cancelled(), hence the explicit results from here on.)
     if: ${{ !cancelled() && ((inputs.resume_run != '' && inputs.resume_stage == '6') || (needs.build-5.result == 'success' && needs.build-5.outputs.finished != 'true')) }}
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     permissions:
       contents: read
@@ -507,6 +520,8 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build; resume_stage 7 starts here from that run's tree-6.
     if: ${{ !cancelled() && ((inputs.resume_run != '' && inputs.resume_stage == '7') || (needs.build-6.result == 'success' && needs.build-6.outputs.finished != 'true')) }}
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     permissions:
       contents: read
@@ -572,6 +587,8 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: ${{ !cancelled() && needs.build-7.result == 'success' && needs.build-7.outputs.finished != 'true' }}
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -632,6 +649,8 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: ${{ !cancelled() && needs.build-8.result == 'success' && needs.build-8.outputs.finished != 'true' }}
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -692,6 +711,8 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: ${{ !cancelled() && needs.build-9.result == 'success' && needs.build-9.outputs.finished != 'true' }}
     runs-on: windows-2022
+    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
+    environment: build
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -762,7 +783,9 @@ jobs:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(join(needs.*.outputs.finished), 'true') && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write      # the draft release
+      id-token: write      # the attestation is signed with this run's OIDC identity
+      attestations: write
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -802,6 +825,15 @@ jobs:
             gh release create "$TAG" --repo "$REPO" --draft --verify-tag --title "Plain Browser $TAG" --notes-file notes.md PlainBrowser_* SHA256SUMS.txt
           fi
           { echo "Draft release $TAG"; echo; cat notes.md; } >> "$GITHUB_STEP_SUMMARY"
+      # Build provenance: a signed statement that these files are the output of this workflow run (repository,
+      # workflow, tag, commit). Anyone checks it with `gh attestation verify <file> --repo <owner>/<repo>`, and
+      # store-submit.yml requires it before a package goes to the Store. Subjects: the files as they were built here.
+      - name: Attest the build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/PlainBrowser_*
+            dist/SHA256SUMS.txt
 
   # The handed-over trees are tens of GB each; drop them once the build is done (they expire after 2 days anyway).
   # tree-0-* stays: prepare reuses it in later runs for the same inputs.

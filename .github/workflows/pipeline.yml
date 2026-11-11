@@ -15,10 +15,7 @@ on:
         description: "Only check that a commit made through the API with this token is signed (scratch branch)"
         type: boolean
         default: false
-permissions:
-  contents: write   # signed version-bump commit on main, tag, release edit
-  actions: write    # dispatch and rerun workflows
-  issues: write
+permissions: {}
 concurrency:
   group: pipeline
   cancel-in-progress: false
@@ -26,6 +23,10 @@ jobs:
   pass:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write   # signed version-bump commit on main, tag, release edit
+      actions: write    # dispatch and rerun workflows
+      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

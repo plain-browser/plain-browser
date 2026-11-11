@@ -28,6 +28,12 @@ cosign verify-blob --bundle <file>.bundle \
 sha256sum -c SHA256SUMS.txt
 ```
 
+From release 0.2.2 on the files also carry a build provenance attestation (which workflow run and commit made them):
+
+```
+gh attestation verify <file> --repo plain-browser/plain-browser
+```
+
 The signature shows who published the file and that it was not changed afterwards. It does not prove how the binary was
 built. The supported way to install Plain Browser is the MSIX package from the Microsoft Store: the Store signs it and
 delivers updates. Files attached to GitHub releases (portable zip, installer) are test builds without Authenticode

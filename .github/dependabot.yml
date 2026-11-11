@@ -1,8 +1,28 @@
 version: 2
+# Weekly, grouped per ecosystem so a week is one pull request each. `cooldown` holds a new release back for 7 days
+# (a release that is pulled or found malicious within a week never reaches us); security updates ignore it.
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      actions: { patterns: ["*"] }
   - package-ecosystem: cargo
     directory: /src/plainbrowser/adblock/rs
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+  - package-ecosystem: pip
+    directory: /scripts/ci
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+  - package-ecosystem: npm
+    directories:
+      - /website
+      - /infra/extensions
+      - /infra/filter-lists
+      - /infra/safebrowsing-proxy
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    groups:
+      npm: { patterns: ["*"] }
