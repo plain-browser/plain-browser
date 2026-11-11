@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Copyright Plain Browser contributors. MPL-2.0.
-// Builds what ext.plain-browser.app serves: for each extension in SOURCES, the latest upstream release zip,
-// repacked with our update_url and signed as a CRX3 with that extension's key.
+// Builds what ext.plain-browser.app serves: for each extension in SOURCES, the upstream release zip that pins.json
+// names (tag, version, sha256, permissions; a zip that differs in any of them is refused), repacked with our
+// update_url and signed as a CRX3 with that extension's key. scripts/propose.mjs moves the pins.
 //
 //   node scripts/build.mjs [--keys-dir DIR] [--out DIR] [--previous URL|FILE|none] [--only slug,...]
 //
@@ -11,15 +12,15 @@
 //
 // Writes <out>/crx/<slug>-<version>.crx, <out>/crx/<slug>.crx (the same bytes), <out>/catalog.json and
 // <out>/updates.xml. Exit status 1 when a key is missing or nothing could be built or kept.
-import { createHash, createPrivateKey, createPublicKey } from "node:crypto";
+import { createPrivateKey, createPublicKey } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { extensionId, packCrx3, verifyCrx3 } from "./crx3.mjs";
-import { BASE_URL, compareVersions, crxFileName, repack, SOURCES, updatesXml } from "./extensions.mjs";
+import { BASE_URL, compareVersions, crxFileName, permissionsOf, repack, SOURCES, updatesXml } from "./extensions.mjs";
+import { fetchUpstream, readPins, sha256, USER_AGENT } from "./upstream.mjs";
 
-const MAX_ASSET = 64 * 1024 * 1024;
-const USER_AGENT = "PlainBrowserExtensionBuild/1 (+https://plain-browser.app)";
+const PINS = readPins();
 
 const { values: args } = parseArgs({
   options: {
@@ -72,12 +73,6 @@ async function loadPrevious(where) {
   }
 }
 
-async function fetchOk(url, headers = {}) {
-  const res = await fetch(url, { headers: { "User-Agent": USER_AGENT, ...headers }, redirect: "follow" });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  return res;
-}
-
 const previous = await loadPrevious(args.previous);
 for (const slug of slugs) {
   const old = previous[slug]?.id;
@@ -90,28 +85,25 @@ for (const slug of slugs) {
 }
 
 // 3. Each extension.
-const github = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
-if (process.env.GITHUB_TOKEN) github.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
-
 async function build(slug) {
   const src = SOURCES[slug];
-  const release = await fetchOk(`https://api.github.com/repos/${src.repo}/releases/latest`, github).then((r) => r.json());
-  if (release.draft || release.prerelease) throw new Error(`latest release ${release.tag_name} is a pre-release`);
-  const asset = release.assets?.find((a) => src.asset.test(a.name));
-  if (!asset) throw new Error(`release ${release.tag_name} has no asset matching ${src.asset}`);
-  if (asset.size > MAX_ASSET) throw new Error(`${asset.name} is ${asset.size} bytes`);
-  const upstream = Buffer.from(await fetchOk(asset.browser_download_url).then((r) => r.arrayBuffer()));
-  if (upstream.length > MAX_ASSET) throw new Error(`${asset.name} is ${upstream.length} bytes`);
+  const pin = PINS[slug];
+  if (!pin) throw new Error("no entry in pins.json");
+  const { release, asset, bytes: upstream } = await fetchUpstream(src, pin.tag);
+  const digest = sha256(upstream);
+  if (digest !== pin.sha256) throw new Error(`${asset.name} of ${pin.tag} has sha256 ${digest}, pins.json has ${pin.sha256}`);
 
   const { zip, manifest, name } = repack(upstream);
-  const notes = [];
-  if (manifest.version !== release.tag_name.replace(/^v/, "")) {
-    notes.push(`manifest version ${manifest.version}, tag ${release.tag_name}`);
+  if (manifest.version !== pin.version) throw new Error(`manifest version ${manifest.version}, pins.json has ${pin.version}`);
+  // Follows from the sha256 unless pins.json was edited by hand: the list a reviewer saw is the list that ships.
+  if (JSON.stringify(permissionsOf(manifest)) !== JSON.stringify(pin.permissions)) {
+    throw new Error("the manifest's permissions differ from pins.json (run scripts/propose.mjs)");
   }
+  const notes = [];
   if (manifest.key) notes.push("dropped the upstream manifest key");
   const prev = previous[slug];
   if (prev && compareVersions(manifest.version, prev.version) < 0) {
-    throw new Error(`upstream ${manifest.version} is older than published ${prev.version}`);
+    throw new Error(`pinned ${manifest.version} is older than published ${prev.version}`);
   }
 
   const crx = packCrx3(zip, keys[slug].key);
@@ -126,7 +118,7 @@ async function build(slug) {
       name,
       version: manifest.version,
       manifest_version: manifest.manifest_version,
-      sha256: createHash("sha256").update(crx).digest("hex"),
+      sha256: sha256(crx),
       size: crx.length,
       source_url: release.html_url,
       license: src.license,

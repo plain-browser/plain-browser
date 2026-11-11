@@ -1,0 +1,93 @@
+{
+  "ublock": {
+    "tag": "1.76.0",
+    "version": "1.76.0",
+    "sha256": "e76a1912426caa7b8679ad11dd140d1529c23db22ddbe892b6f901e9b7763456",
+    "permissions": [
+      "<all_urls>",
+      "alarms",
+      "content_script:http://*/*",
+      "content_script:https://*.fanboy.co.nz/*",
+      "content_script:https://*.github.io/*",
+      "content_script:https://*.reddit.com/r/uBlockOrigin/*",
+      "content_script:https://*/*",
+      "content_script:https://easylist.to/*",
+      "content_script:https://filterlists.com/*",
+      "content_script:https://forums.lanik.us/*",
+      "content_script:https://github.com/*",
+      "content_script:https://github.com/uBlockOrigin/*",
+      "content_script:https://ublockorigin.github.io/*",
+      "contextMenus",
+      "privacy",
+      "storage",
+      "tabs",
+      "unlimitedStorage",
+      "webNavigation",
+      "webRequest",
+      "webRequestBlocking"
+    ]
+  },
+  "umatrix": {
+    "tag": "1.4.4",
+    "version": "1.4.4",
+    "sha256": "28ec25a6c064e893c44c6aed9a3e28d13e36361789207a718b59a097c72da37f",
+    "permissions": [
+      "<all_urls>",
+      "browsingData",
+      "content_script:http://*/*",
+      "content_script:https://*/*",
+      "cookies",
+      "privacy",
+      "storage",
+      "tabs",
+      "unlimitedStorage",
+      "webNavigation",
+      "webRequest",
+      "webRequestBlocking"
+    ]
+  },
+  "noscript": {
+    "tag": "13.6.38",
+    "version": "13.6.38",
+    "sha256": "016bdade929be19ad6985000b35914b4b978352b562aa493947fa8f826841c98",
+    "permissions": [
+      "<all_urls>",
+      "content_script:<all_urls>",
+      "contextMenus",
+      "debugger",
+      "declarativeNetRequest",
+      "dns",
+      "scripting",
+      "storage",
+      "tabs",
+      "unlimitedStorage",
+      "webNavigation",
+      "webRequest"
+    ]
+  },
+  "adguard": {
+    "tag": "v5.5.4",
+    "version": "5.5.4.55",
+    "sha256": "2c8dfeb35f00fe9e6b12510ca493b19aae29aaf5c446b6f31c08b6b71e45f616",
+    "permissions": [
+      "<all_urls>",
+      "content_script:*://*.adguard.app/*/thankyou.html*",
+      "content_script:*://*.adguard.com/*/thankyou.html*",
+      "content_script:*://*.adguard.info/*/thankyou.html*",
+      "content_script:*://reports.adguard.app/*",
+      "content_script:*://reports.adguard.com/*",
+      "content_script:*://reports.adguard.info/*",
+      "content_script:http://*/*",
+      "content_script:https://*/*",
+      "contextMenus",
+      "cookies",
+      "optional:privacy",
+      "storage",
+      "tabs",
+      "unlimitedStorage",
+      "webNavigation",
+      "webRequest",
+      "webRequestBlocking"
+    ]
+  }
+}

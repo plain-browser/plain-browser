@@ -1,23 +1,109 @@
 name: extensions
-# Builds the curated extensions (infra/extensions) from their latest upstream releases, signs them with the
-# extension keys and uploads them to the R2 bucket behind ext.plain-browser.app.
+# The curated extensions (infra/extensions) behind ext.plain-browser.app, in two steps with a person in between:
+#   propose (weekly): moves infra/extensions/pins.json to the latest upstream releases on the branch
+#     extensions/update and opens a pull request that names each release, the sha256 of its zip and any new
+#     permissions. It has no signing key and no Cloudflare token.
+#   build (a push to main that changes pins.json, or by hand): builds exactly what pins.json names (tag, version,
+#     sha256, permissions), signs it with the extension keys and uploads it to R2.
+# So an upstream release reaches users only after someone has merged its pin.
 on:
   schedule:
     - cron: "41 5 * * 1" # Mondays 05:41 UTC
+  push:
+    branches: [main]
+    paths: ["infra/extensions/pins.json"]
   workflow_dispatch:
     inputs:
       first_build:
         description: "Nothing published yet: do not read the live catalog.json"
         type: boolean
         default: false
+      propose:
+        description: "Only look for new upstream releases and open the pull request (what the weekly run does)"
+        type: boolean
+        default: false
 permissions:
   contents: read
-concurrency:
-  group: extensions
-  cancel-in-progress: false
 jobs:
-  build:
+  propose:
+    if: github.event_name == 'schedule' || inputs.propose
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write        # the branch extensions/update
+      pull-requests: write
+      issues: write          # fallback when Actions may not open pull requests
+    concurrency:
+      group: extensions-propose
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: infra/extensions
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24
+      - run: npm test
+      - name: Look for new upstream releases
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/propose.mjs --summary "$RUNNER_TEMP/summary.md"
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: extensions/update
+          FILE: infra/extensions/pins.json
+        run: |
+          set -euo pipefail
+          cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          if git diff --quiet -- pins.json; then echo "pins.json is current"; exit 0; fi
+          # Nothing to do when the branch already proposes exactly this.
+          if gh api "repos/$REPO/contents/$FILE?ref=$BRANCH" -H "Accept: application/vnd.github.raw" > "$RUNNER_TEMP/proposed.json" 2>/dev/null \
+             && cmp -s "$RUNNER_TEMP/proposed.json" pins.json; then
+            echo "$BRANCH already has this proposal"; exit 0
+          fi
+          head=$(gh api "repos/$REPO/git/ref/heads/main" --jq .object.sha)
+          # The branch restarts from main every time: one commit, pins.json only.
+          gh api -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" -f sha="$head" -F force=true >/dev/null 2>&1 \
+            || gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$head" >/dev/null
+          # createCommitOnBranch: GitHub signs the commit (main requires signed commits).
+          jq -n --arg repo "$REPO" --arg branch "$BRANCH" --arg head "$head" --arg path "$FILE" --arg contents "$(base64 -w0 pins.json)" \
+            '{query: "mutation($in: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $in) { commit { oid } } }",
+              variables: {in: {branch: {repositoryNameWithOwner: $repo, branchName: $branch}, expectedHeadOid: $head,
+                message: {headline: "extensions: pins moved to the latest upstream releases (proposal)"},
+                fileChanges: {additions: [{path: $path, contents: $contents}]}}}}' \
+            | gh api graphql --input - --jq '.data.createCommitOnBranch.commit.oid'
+          {
+            echo "Upstream releases found by the weekly \`extensions\` run. Merging builds, signs and publishes exactly these files to ext.plain-browser.app; until then users keep what is published."
+            echo
+            cat "$RUNNER_TEMP/summary.md"
+            echo
+            echo "Before merging: read the release notes and the source diff, and look at every added line under \`permissions\` in the diff of \`pins.json\`."
+          } > "$RUNNER_TEMP/body.md"
+          title="Extensions: new upstream releases"
+          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // ""')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --repo "$REPO" --body-file "$RUNNER_TEMP/body.md"
+          elif ! gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$title" --body-file "$RUNNER_TEMP/body.md"; then
+            # Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests" is off.
+            echo "::warning::could not open the pull request; opening an issue with the link instead"
+            { echo "Open the pull request: https://github.com/$REPO/compare/main...$BRANCH?expand=1"; echo; cat "$RUNNER_TEMP/body.md"; } > "$RUNNER_TEMP/issue.md"
+            issue=$(gh issue list --repo "$REPO" --state open --search "in:title \"$title\"" --json number --jq '.[0].number // ""')
+            if [ -n "$issue" ]; then gh issue edit "$issue" --repo "$REPO" --body-file "$RUNNER_TEMP/issue.md"
+            else gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/issue.md"; fi
+          fi
+
+  build:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.propose)
+    runs-on: ubuntu-latest
+    concurrency:
+      group: extensions
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: infra/extensions

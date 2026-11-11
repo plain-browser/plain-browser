@@ -7,6 +7,7 @@ import { readZip, unsafeName, writeZip } from "../scripts/zip.mjs";
 import {
   compareVersions,
   injectUpdateUrl,
+  permissionsOf,
   repack,
   SOURCES,
   UPDATE_URL,
@@ -15,6 +16,7 @@ import {
   xmlAttr,
 } from "../scripts/extensions.mjs";
 import { SLUGS } from "../src/index.ts";
+import { readPins } from "../scripts/upstream.mjs";
 
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const other = generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey;
@@ -183,4 +185,30 @@ test("updates.xml: gupdate format, attributes escaped", () => {
 
 test("the Worker serves exactly the extensions the build makes", () => {
   assert.deepEqual(SLUGS, Object.keys(SOURCES));
+});
+
+test("permissionsOf lists API, host and content-script permissions, sorted and without duplicates", () => {
+  assert.deepEqual(
+    permissionsOf({
+      permissions: ["tabs", "<all_urls>", "tabs", 7],
+      optional_permissions: ["downloads"],
+      host_permissions: ["https://*/*"],
+      optional_host_permissions: ["file:///*"],
+      content_scripts: [{ matches: ["https://example.com/*"] }, { js: ["a.js"] }, null],
+    }),
+    ["<all_urls>", "content_script:https://example.com/*", "https://*/*", "optional:downloads", "optional:file:///*", "tabs"],
+  );
+  assert.deepEqual(permissionsOf({}), []);
+});
+
+test("pins.json pins every extension the build makes: tag, version, sha256 of the zip, permissions", () => {
+  const pins = readPins();
+  assert.deepEqual(Object.keys(pins), Object.keys(SOURCES));
+  for (const [slug, pin] of Object.entries(pins) as [string, any][]) {
+    assert.deepEqual(Object.keys(pin), ["tag", "version", "sha256", "permissions"], slug);
+    assert.ok(typeof pin.tag === "string" && pin.tag, slug);
+    assert.ok(validVersion(pin.version), slug);
+    assert.match(pin.sha256, /^[0-9a-f]{64}$/, slug);
+    assert.deepEqual(pin.permissions, [...new Set(pin.permissions as string[])].sort(), slug);
+  }
 });

@@ -7,7 +7,8 @@ export const BASE_URL = "https://ext.plain-browser.app/v1/";
 export const UPDATE_URL = `${BASE_URL}updates.xml`;
 
 // slug -> upstream. `asset` matches the release asset; the browser's catalogue uses the same slugs. Keep in sync
-// with SLUGS in src/index.ts (a test checks).
+// with SLUGS in src/index.ts (a test checks). Which release is built is in ../pins.json (tag, version, sha256 of the
+// asset, permissions), not here.
 export const SOURCES = {
   ublock: { repo: "gorhill/uBlock", asset: /^uBlock0_[\w.]+\.chromium\.zip$/, license: "GPL-3.0" },
   // Archived upstream since 2021; 1.4.4 is the last release.
@@ -55,6 +56,20 @@ export function injectUpdateUrl(manifest, updateUrl = UPDATE_URL) {
   const out = { ...manifest, update_url: updateUrl };
   delete out.key;
   return Buffer.from(JSON.stringify(out, null, 2) + "\n");
+}
+
+// What the extension may touch, as one sorted list: API and host permissions (required and optional) and the match
+// patterns of its content scripts ("content_script:<pattern>"). pins.json records it, so a release that asks for
+// more shows as added lines in the pull request that proposes it.
+export function permissionsOf(manifest) {
+  const strings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string") : []);
+  const out = new Set();
+  for (const k of ["permissions", "host_permissions"]) for (const p of strings(manifest[k])) out.add(p);
+  for (const k of ["optional_permissions", "optional_host_permissions"]) for (const p of strings(manifest[k])) out.add(`optional:${p}`);
+  for (const cs of Array.isArray(manifest.content_scripts) ? manifest.content_scripts : []) {
+    for (const p of strings(cs?.matches)) out.add(`content_script:${p}`);
+  }
+  return [...out].sort();
 }
 
 // "__MSG_x__" names resolve through _locales/<default_locale>/messages.json, as Chromium shows them.

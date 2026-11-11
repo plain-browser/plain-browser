@@ -6,10 +6,19 @@ extension updater then keeps it current through the `update_url` that every serv
 from here and not from the Chrome Web Store or the authors' servers.
 
 How it works:
-- A weekly GitHub Actions run (`.github/workflows/extensions.yml`) runs `scripts/build.mjs`: for each extension in
-  `SOURCES` (`scripts/extensions.mjs`) it takes the latest non-pre-release GitHub release, downloads the Chromium
-  zip, checks the manifest (name, version in Chromium's format, `manifest_version` 2 or 3, not older than the
-  published version), and repacks it with one change: `"update_url": "https://ext.plain-browser.app/v1/updates.xml"`
+- `pins.json` names the one release of each extension that is built: its tag, the manifest version, the sha256 of
+  the upstream zip and the permissions it asks for (API and host permissions, required and `optional:`, and
+  `content_script:` match patterns).
+- A weekly GitHub Actions run (`.github/workflows/extensions.yml`, job `propose`) runs `scripts/propose.mjs`: for each
+  extension in `SOURCES` (`scripts/extensions.mjs`) it takes the latest non-pre-release GitHub release, checks the
+  zip as the build would, and moves the pin. If anything changed it puts the new `pins.json` on the branch
+  `extensions/update` and opens a pull request that links each release and source diff and calls out new
+  permissions (and an asset that changed under the same tag). That job has neither the signing keys nor the
+  Cloudflare token. **Nothing reaches users until someone merges the pull request.**
+- A push to `main` that changes `pins.json` (or a manual run) starts the job `build`: `scripts/build.mjs` downloads
+  the pinned release, refuses a zip whose sha256, manifest version or permissions differ from the pin, checks the
+  manifest (name, version in Chromium's format, `manifest_version` 2 or 3, not older than the published version),
+  and repacks it with one change: `"update_url": "https://ext.plain-browser.app/v1/updates.xml"`
   in `manifest.json` (moved to the root if the zip has it one directory down; an upstream `key` is dropped, the CRX
   key decides the ID). Zip entries with absolute paths, `..` or backslashes are refused.
 - The zip is signed as a CRX3 (`scripts/crx3.mjs`, RSA-2048, SHA-256) with that extension's own key, and checked
@@ -67,10 +76,15 @@ node scripts/publish.mjs            # --dry-run prints the wrangler commands
 ```
 
 `ext.plain-browser.app` is a custom domain of the `plain-browser.app` zone; `wrangler deploy` creates the record.
-After that the weekly workflow builds and publishes; it needs the `EXT_KEY_*` secrets and `CLOUDFLARE_API_TOKEN`
-(R2 write; set the variable `CLOUDFLARE_ACCOUNT_ID` too if the token reaches more than one account). Without the
-token it builds and does not publish. Run it by hand from the Actions tab; tick "first build" while nothing is
-published yet.
+After that the workflow builds and publishes whenever `pins.json` changes on `main`; it needs the `EXT_KEY_*`
+secrets and `CLOUDFLARE_API_TOKEN` (R2 write; set the variable `CLOUDFLARE_ACCOUNT_ID` too if the token reaches more
+than one account). Without the token it builds and does not publish. Run it by hand from the Actions tab; tick
+"first build" while nothing is published yet, or "propose" to look for new upstream releases now.
+
+For the weekly run to open its pull request, turn on Settings → Actions → General → "Allow GitHub Actions to create
+and approve pull requests". With it off the run still pushes `extensions/update` and opens an issue with the link
+that opens the pull request. To move a pin by hand: `node scripts/propose.mjs [--only ublock]`, look at the diff of
+`pins.json`, commit.
 
 Check:
 
