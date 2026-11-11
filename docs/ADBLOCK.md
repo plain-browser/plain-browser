@@ -24,8 +24,14 @@ disconnected filters and fails open after 3 s.
   defers the navigation, asks the engine for `rewritten_url`, and when it differs cancels the navigation and
   re-issues it with the clean URL, so the address bar and history never see the tracking parameters; kill switch
   `--disable-features=PlainBrowserTrackingParams`; POST navigations are left alone).
-- `renderer/` – `AdblockURLLoaderThrottle` (defers each http(s) subresource, asks the
-  browser, cancels with `ERR_BLOCKED_BY_CLIENT`), `AdblockThrottleFactory` (owned by
+- `browser/subframe_navigation_throttle.*` – frame documents (`<iframe>`, `<frame>`) are navigations loaded by the
+  browser process, which no renderer throttle sees. `SubframeNavigationThrottle` (registered by
+  `hooks::AddNavigationThrottles`, no new patch; kill switch `--disable-features=PlainBrowserAdblock`) defers each
+  subframe navigation and each redirect on its way, asks the engine through `DecideRequest` as a `sub_frame` request
+  (per-site exceptions, counters and request log as for subresources) and cancels a blocked one with
+  `ERR_BLOCKED_BY_CLIENT`, which makes the renderer collapse the frame. Main-frame navigations are not filtered.
+- `renderer/` – `AdblockURLLoaderThrottle` (defers each http(s) subresource and asks the
+  browser again for every redirect target, cancels with `ERR_BLOCKED_BY_CLIENT`), `AdblockThrottleFactory` (owned by
   `AdblockThrottleProvider`, which wraps chrome's `URLLoaderThrottleProviderImpl` and puts the throttle first;
   cloned per worker thread like SafeBrowsing),
   `CosmeticFilterAgent` (per frame, inserts hide-selector CSS as a user stylesheet, and generic class/id rules
@@ -309,7 +315,9 @@ Tests: `AdBlockEngineTest.WebSocketUrlsAreCheckedAgainstWebSocketRules` (no port
 ## Not done yet (alpha scope)
 - Scriptlets beyond our set (uBO's resources are GPLv3; we write our own), `$redirect` for request types the
   file extension does not reveal, procedural operators `:others()`, `:watch-attr()`, `:matches-prop()`.
-- Navigation (`$document`) blocking; requests started from the browser process.
+- Navigation (`$document`) blocking of main-frame navigations; requests started from the browser process.
+- The subframe and redirect checks (2026-11-11) are written but not compiled or run in a browser yet:
+  `scripts/test-adblock.ps1` has the cases (`fr_adnxs` frame document, `rd_adnxs` redirect to a blocked host).
 - `$removeparam` on subresources: the renderer throttle decides asynchronously and a deferred request's URL may
   only be edited synchronously (`URLLoaderThrottle::WillStartRequest`), so only navigations are cleaned today.
 - Tracking-parameter stripping verified 2026-10-26 with `scripts/test-privacy.ps1` (headless, local server): the

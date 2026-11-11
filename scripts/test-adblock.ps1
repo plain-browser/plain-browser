@@ -9,6 +9,11 @@
    and ws_control are opened too. The local server (scripts\test-http-ws-server.py) accepts a handshake. The browser
    decides before it opens a socket. Expected ON: ws_duckdns=error AND no `GET /ws/chat` in the server log, ws_control=open
    with `GET /ws`. Expected OFF_killswitch: both open, both in the log.
+   Frame documents and redirects (adblock/browser/subframe_navigation_throttle, renderer throttle): the page loads an
+   <iframe> whose document is on a blocked host (fr_adnxs: /pb-iframe-ad.html) and fetches an allowed URL that
+   redirects (scripts\test-http-ws-server.py /redirect?to=) to a blocked host (rd_adnxs: /pb-redirect-target.js).
+   Expected ON: rd_adnxs=error and neither path in the server log. Expected OFF_killswitch: rd_adnxs allowed and both
+   paths in the log.
    Workers (fingerprint protection): the page is served over http (file:// pages are never protected) and also
    starts a blob: Worker; pg_* and wk_* are hardwareConcurrency and the pixel sum of an OffscreenCanvas/canvas fill.
    Expected ON: wk_hwc = pg_hwc in {2,4,8}, wk_cv = pg_cv (both noised, not 218880). OFF_fingerprint (feature
@@ -55,6 +60,10 @@ function w(u){ return new Promise(res => { let done = false; const fin = v => { 
   const cv = document.createElement("canvas"); cv.width = 16; cv.height = 16; const cx = cv.getContext("2d"); cx.fillStyle = "#c8c8c8"; cx.fillRect(0,0,16,16);
   const pd = cx.getImageData(0,0,16,16).data; let ps = 0; for (let i = 0; i < pd.length; i++) ps += pd[i];
   out.push("pg_hwc=" + navigator.hardwareConcurrency, "pg_cv=" + ps, "wk_hwc=" + wkr.hwc, "wk_cv=" + wkr.cv, "wk_origin=" + wkr.origin, "wk_err=" + (wkr.err || "none"));
+  out.push("rd_adnxs=" + await t("http://example.com:8000/redirect?to=" + encodeURIComponent("http://ib.adnxs.com:8000/pb-redirect-target.js")));
+  const fr = document.createElement("iframe"); fr.src = "http://ib.adnxs.com:8000/pb-iframe-ad.html"; document.body.appendChild(fr);
+  await new Promise(res => setTimeout(res, 2500));
+  out.push("fr_adnxs=requested");
   out.push("ws_duckdns=" + await w("ws://pb-test.duckdns.org:8000/ws/chat"));
   out.push("ws_control=" + await w("ws://example.com:8000/ws"));
   document.title = "RESULT " + out.join(" ");
@@ -77,6 +86,8 @@ function Run($extra, $tag, $port) {
   Get-Process chrome -ErrorAction SilentlyContinue | Where-Object { $_.Path -like $exeDir } | Stop-Process -Force -ErrorAction SilentlyContinue
   Stop-Process -Id $srv.Id -Force -ErrorAction SilentlyContinue
   Start-Sleep 1
+  $seen = (Get-Content $log -ErrorAction SilentlyContinue | Out-String)
+  "[$tag] frame document requested: " + ($seen -match "GET /pb-iframe-ad.html") + ", redirect target requested: " + ($seen -match "GET /pb-redirect-target.js")
   "[$tag] $title"
   "   server received: " + ((Get-Content $log -ErrorAction SilentlyContinue | Select-String "GET" | ForEach-Object { ($_.Line -split '"')[1] }) -join " | ")
 }

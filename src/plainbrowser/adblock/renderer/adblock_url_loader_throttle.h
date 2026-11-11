@@ -18,8 +18,10 @@
 namespace plainbrowser::adblock {
 
 // Defers each subresource request, asks the browser-side filter, then cancels
-// with ERR_BLOCKED_BY_CLIENT or resumes. Frame (navigation) requests are not
-// handled here.
+// with ERR_BLOCKED_BY_CLIENT or resumes; every redirect target is asked again
+// (a request to an allowed URL that redirects to a blocked one is blocked at
+// the redirect). Frame (navigation) requests never reach a renderer throttle:
+// SubframeNavigationThrottle (browser side) handles those.
 class AdblockURLLoaderThrottle : public blink::URLLoaderThrottle {
  public:
   // `filter` is owned by the AdblockThrottleFactory of the creating
@@ -37,12 +39,24 @@ class AdblockURLLoaderThrottle : public blink::URLLoaderThrottle {
   void DetachFromCurrentSequence() override;
   void WillStartRequest(network::ResourceRequest* request,
                         bool* defer) override;
+  void WillRedirectRequest(
+      net::RedirectInfo* redirect_info,
+      const network::mojom::URLResponseHead& response_head,
+      bool* defer,
+      network::HttpRequestHeadersUpdateParams* headers_update_params) override;
   const char* NameForLoggingWillStartRequest() override;
 
   // Maps a fetch destination to an adblock-rust request type.
   static std::string RequestTypeFor(const network::ResourceRequest& request);
 
  private:
+  // The filter to ask, or null when there is none that works (then the request
+  // goes through).
+  mojom::AdblockFilter* Filter();
+  // Defers the request and asks the filter about `url`; `*defer` stays false
+  // when there is no filter. The request type and the source are those of the
+  // request this throttle was started for.
+  void Ask(const GURL& url, bool* defer);
   void OnDecision(bool block);
 
   // Fail open: if the browser never answers, let the request through after this long.
@@ -55,6 +69,8 @@ class AdblockURLLoaderThrottle : public blink::URLLoaderThrottle {
   mojo::PendingRemote<mojom::AdblockFilter> pending_filter_;
   mojo::Remote<mojom::AdblockFilter> own_filter_;
   GURL url_;
+  GURL source_url_;
+  std::string request_type_;
   const GURL top_level_url_;
   const std::optional<blink::LocalFrameToken> frame_token_;
   base::WeakPtrFactory<AdblockURLLoaderThrottle> weak_factory_{this};

@@ -201,6 +201,8 @@ source_set("browser") {
     "browser/engine_launcher.h",
     "browser/renderer_interfaces.cc",
     "browser/renderer_interfaces.h",
+    "browser/subframe_navigation_throttle.cc",
+    "browser/subframe_navigation_throttle.h",
     "browser/tracking_params_navigation_throttle.cc",
     "browser/tracking_params_navigation_throttle.h",
     "browser/websocket_filter.cc",

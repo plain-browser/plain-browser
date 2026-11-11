@@ -8,6 +8,12 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 Written 2026-11-09 and checked with `scripts/check-patches.py` (all patches apply to 157.0.8103.38-1.1), the Rust
 tests and the Node tests; not yet compiled or run in a browser.
 
+### Fixed
+- Ad blocking: a document loaded in an `<iframe>`/`<frame>` is now checked against the network rules (it is a
+  navigation the browser process loads, which the renderer-side filter never saw), and every redirect target of a
+  subresource is checked again (a request to an allowed URL that redirected to a blocked one went through).
+  Written, not yet compiled or run in a browser.
+
 ### Added
 - Global Privacy Control on by default: the `Sec-GPC: 1` header and `navigator.globalPrivacyControl`, with
   Chromium's own toggle under Settings > Privacy and security > Third-party cookies and site data

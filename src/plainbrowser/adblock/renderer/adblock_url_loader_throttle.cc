@@ -5,6 +5,7 @@
 #include "base/time/time.h"
 #include "mojo/public/cpp/bindings/callback_helpers.h"
 #include "net/base/net_errors.h"
+#include "net/url_request/redirect_info.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/mojom/fetch_api.mojom-shared.h"
 
@@ -66,28 +67,50 @@ std::string AdblockURLLoaderThrottle::RequestTypeFor(
   }
 }
 
-void AdblockURLLoaderThrottle::WillStartRequest(
-    network::ResourceRequest* request,
-    bool* defer) {
-  if (!request->url.SchemeIsHTTPOrHTTPS()) {
-    return;
-  }
+mojom::AdblockFilter* AdblockURLLoaderThrottle::Filter() {
   if (pending_filter_) {
     own_filter_.Bind(std::move(pending_filter_));
   }
-  mojom::AdblockFilter* filter = nullptr;
   if (own_filter_.is_bound()) {
-    filter = own_filter_.is_connected() ? own_filter_.get() : nullptr;
-  } else {
-    filter = filter_.get();
+    return own_filter_.is_connected() ? own_filter_.get() : nullptr;
   }
+  return filter_.get();
+}
+
+void AdblockURLLoaderThrottle::WillStartRequest(
+    network::ResourceRequest* request,
+    bool* defer) {
+  // Kept for the redirects: they are asked about with the same source and type.
+  source_url_ = request->request_initiator.has_value()
+                    ? request->request_initiator->GetURL()
+                    : request->url;
+  request_type_ = RequestTypeFor(*request);
+  if (!request->url.SchemeIsHTTPOrHTTPS()) {
+    return;
+  }
+  Ask(request->url, defer);
+}
+
+void AdblockURLLoaderThrottle::WillRedirectRequest(
+    net::RedirectInfo* redirect_info,
+    const network::mojom::URLResponseHead& response_head,
+    bool* defer,
+    network::HttpRequestHeadersUpdateParams* headers_update_params) {
+  // The first URL was allowed (or the filter was off); the redirect target is
+  // a new URL the rules may name.
+  if (!redirect_info->new_url.SchemeIsHTTPOrHTTPS()) {
+    return;
+  }
+  Ask(redirect_info->new_url, defer);
+}
+
+void AdblockURLLoaderThrottle::Ask(const GURL& url, bool* defer) {
+  mojom::AdblockFilter* filter = Filter();
   if (!filter) {
     return;  // No working filter: let the request through.
   }
-  url_ = request->url;
-  const GURL source_url = request->request_initiator.has_value()
-                              ? request->request_initiator->GetURL()
-                              : request->url;
+  url_ = url;
+  decided_ = false;
   *defer = true;
   failsafe_timer_.Start(FROM_HERE, kDecisionTimeout,
                         base::BindOnce(&AdblockURLLoaderThrottle::OnDecision,
@@ -96,8 +119,7 @@ void AdblockURLLoaderThrottle::WillStartRequest(
   // binds it), mojo drops the callback; default to "allow" so the deferred
   // request cannot hang.
   filter->ShouldBlockRequest(
-      request->url, source_url, RequestTypeFor(*request), top_level_url_,
-      frame_token_,
+      url, source_url_, request_type_, top_level_url_, frame_token_,
       mojo::WrapCallbackWithDefaultInvokeIfNotRun(
           base::BindOnce(&AdblockURLLoaderThrottle::OnDecision,
                          weak_factory_.GetWeakPtr()),

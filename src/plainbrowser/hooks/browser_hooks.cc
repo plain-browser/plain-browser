@@ -7,6 +7,7 @@
 #include "content/public/browser/webui_config_map.h"
 #include "plainbrowser/adblock/browser/filter_list_updater.h"
 #include "plainbrowser/adblock/browser/renderer_interfaces.h"
+#include "plainbrowser/adblock/browser/subframe_navigation_throttle.h"
 #include "plainbrowser/adblock/browser/tracking_params_navigation_throttle.h"
 #include "plainbrowser/adblock/browser/websocket_filter.h"
 #include "plainbrowser/adblock/ui/adblock_ui.h"
@@ -32,6 +33,8 @@ void AppendRendererCommandLineSwitches(base::CommandLine* command_line,
 }
 
 void AddNavigationThrottles(content::NavigationThrottleRegistry& registry) {
+  // The network rules first: a blocked frame needs no cleaning of its URL.
+  adblock::SubframeNavigationThrottle::MaybeCreateAndAdd(registry);
   adblock::TrackingParamsNavigationThrottle::MaybeCreateAndAdd(registry);
 }
 
