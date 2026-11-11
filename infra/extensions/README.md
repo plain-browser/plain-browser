@@ -1,7 +1,7 @@
 # Extension repository (Cloudflare Worker + R2)
 
-Serves the extensions Plain Browser offers to install, at `ext.plain-browser.app`: uBlock Origin, uMatrix, NoScript
-and AdGuard, built from their upstream GitHub releases. The browser installs one from its CRX URL; Chromium's
+Serves the extensions Plain Browser offers to install, at `ext.plain-browser.app`: uBlock Origin, NoScript and
+AdGuard, built from their upstream GitHub releases. The browser installs one from its CRX URL; Chromium's
 extension updater then keeps it current through the `update_url` that every served manifest carries, so updates come
 from here and not from the Chrome Web Store or the authors' servers.
 
@@ -43,7 +43,7 @@ required, since Chromium's updater cannot send one.
 | `GET /v1/crx/<slug>.crx` | the latest CRX, `application/x-chrome-extension`, `ETag` |
 | `GET /v1/crx/<slug>-<version>.crx` | that version's CRX (what `updates.xml` points at) |
 
-`<slug>` is `ublock`, `umatrix`, `noscript` or `adguard`. `HEAD` works too; any other path is 404 (also before the
+`<slug>` is `ublock`, `noscript` or `adguard`. `HEAD` works too; any other path is 404 (also before the
 first publish), other methods 405, more than 60 requests a minute from one IP 429.
 
 ## Keys and extension IDs
@@ -60,7 +60,7 @@ node scripts/keygen.mjs ublock ~/plainbrowser-extension-keys/ublock.pem   # prin
 gh secret set EXT_KEY_UBLOCK < ~/plainbrowser-extension-keys/ublock.pem
 ```
 
-The same for `umatrix`, `noscript` and `adguard`. Keep the PEM files offline (a password manager, say) and never
+The same for `noscript` and `adguard`. Keep the PEM files offline (a password manager, say) and never
 commit them (`.gitignore` covers `*.pem` here). The build takes a key from `EXT_KEY_<SLUG>` (PEM text) or
 `--keys-dir DIR` (`DIR/<slug>.pem`) and refuses to start when one is missing.
 
@@ -109,7 +109,6 @@ All four extensions are GPLv3 and are redistributed under it, with one change to
 file. The source is upstream, at the release each build names in `catalog.json` (`source_url`):
 
 - uBlock Origin: https://github.com/gorhill/uBlock
-- uMatrix: https://github.com/gorhill/uMatrix (archived upstream; 1.4.4 is the last release)
 - NoScript: https://github.com/hackademix/noscript
 - AdGuard: https://github.com/AdguardTeam/AdguardBrowserExtension
 

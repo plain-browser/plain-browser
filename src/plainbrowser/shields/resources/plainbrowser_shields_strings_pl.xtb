@@ -61,7 +61,7 @@
 <translation id="5878792354718601832">Używaj filtrów uBlock</translation>
 <translation id="2841785305420134566">Dodaje własną listę uBlock Origin, która wyłapuje więcej reklam i elementów śledzących. Część jej reguł wymaga samego uBlock Origin i jest pomijana.</translation>
 <translation id="9183677069987945187">Polecane rozszerzenia</translation>
-<translation id="742381309192239181">uBlock Origin, AdGuard, NoScript i uMatrix, instalowane i aktualizowane przez Plain Browser</translation>
+<translation id="3357479668854659176">uBlock Origin, AdGuard i NoScript, instalowane i aktualizowane przez Plain Browser</translation>
 <translation id="5956302341139390512">Banery cookie, elementy irytujące i filtry uBlock włącza się i wyłącza w Ustawieniach.</translation>
 <translation id="3811627340506092408">Moje filtry</translation>
 <translation id="8595482019578114552">Własne reguły w składni Adblock Plus lub uBlock Origin, jedna w wierszu. Działają oprócz list; reguła zaczynająca się od @@ zezwala na to, co blokuje lista.</translation>
@@ -98,5 +98,4 @@
 <translation id="865140396727925358">Blokowanie reklam i elementów śledzących z pełną kontrolą: własne listy, wybieranie elementów, dziennik żądań i reguły dla witryn.</translation>
 <translation id="6698716151471216779">Bloker reklam z własnymi listami filtrów, także regionalnymi, i trybem ochrony przed śledzeniem.</translation>
 <translation id="6157317252121055591">Uruchamia JavaScript tylko na zaufanych stronach, z ochroną przed atakami cross-site scripting.</translation>
-<translation id="3496963251766846974">Macierz tego, co każda strona może wczytać: skrypty, ramki, pliki cookie i inne, dla każdej domeny. Dla zaawansowanych.</translation>
 </translationbundle>

@@ -19,8 +19,8 @@ tests and the Node tests; not yet compiled or run in a browser.
 - chrome://adblock: "My filters" (own rules in Adblock Plus / uBlock Origin syntax, Local State
   `plainbrowser.adblock.custom_filters`) and a request log (blocked and replaced requests, removed tracking
   parameters, skipped redirectors), recorded only while the page is open and kept in memory only.
-- chrome://recommended-extensions (`//plainbrowser/extensions`, registered by `20-hooks/0003`): uBlock Origin, AdGuard, NoScript
-  and uMatrix from `ext.plain-browser.app` (new `infra/extensions`: CRX3 repacking with an `update_url`, one key
+- chrome://recommended-extensions (`//plainbrowser/extensions`, registered by `20-hooks/0003`): uBlock Origin, AdGuard and NoScript
+  from `ext.plain-browser.app` (new `infra/extensions`: CRX3 repacking with an `update_url`, one key
   per extension, Worker on R2, weekly workflow), installed with the normal permission dialog and the ID pinned,
   updated by Chromium's extension updater; a Chrome Web Store copy can be switched to ours with its settings; an
   offer to turn the built-in blocker off while uBlock Origin or AdGuard runs. Linked from Settings.

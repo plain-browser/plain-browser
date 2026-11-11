@@ -106,7 +106,7 @@ oferuje to bez przekazywania Google czegokolwiek o Tobie:
 Rozszerzenia, które instalujesz, mogą odczytywać i wysyłać dane zgodnie z nadanymi im uprawnieniami. Odpowiadają za
 to ich autorzy, a nie Plain Browser, i to oni mają własne polityki prywatności.
 
-Strona **chrome://recommended-extensions** oferuje uBlock Origin, AdGuard, NoScript i uMatrix, które udostępniamy
+Strona **chrome://recommended-extensions** oferuje uBlock Origin, AdGuard i NoScript, które udostępniamy
 na **ext.plain-browser.app** (Cloudflare Worker), bo Chrome Web Store nie jest częścią przeglądarki:
 
 - Nic nie jest pobierane, dopóki nie klikniesz Zainstaluj (lub Przełącz). Pobranie nie zawiera plików cookie,

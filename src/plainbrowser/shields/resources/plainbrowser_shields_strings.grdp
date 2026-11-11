@@ -120,7 +120,7 @@
     Recommended extensions
   </message>
   <message meaning="Plain Browser shields" name="IDS_SETTINGS_PLAINBROWSER_EXTENSIONS_DESC" desc="Description of the settings row that opens the recommended extensions page.">
-    uBlock Origin, AdGuard, NoScript and uMatrix, installed and updated from Plain Browser
+    uBlock Origin, AdGuard and NoScript, installed and updated from Plain Browser
   </message>
 
   <!-- chrome://adblock -->
@@ -296,9 +296,6 @@
   </message>
   <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_NOSCRIPT_DESC" desc="Description of NoScript on chrome://recommended-extensions.">
     Runs JavaScript only on sites you trust, with protection against cross-site scripting.
-  </message>
-  <message meaning="Plain Browser shields" name="IDS_PLAINBROWSER_EXTENSIONS_UMATRIX_DESC" desc="Description of uMatrix on chrome://recommended-extensions.">
-    A matrix of what each site may load: scripts, frames, cookies and more, per domain. For advanced users.
   </message>
 
   <!-- About page (chrome://settings/help). -->

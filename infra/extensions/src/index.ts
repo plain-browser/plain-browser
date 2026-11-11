@@ -24,7 +24,7 @@ export interface Env {
 }
 
 // The slugs of scripts/extensions.mjs SOURCES (a test checks they match).
-export const SLUGS = ["ublock", "umatrix", "noscript", "adguard"];
+export const SLUGS = ["ublock", "noscript", "adguard"];
 
 // /v1/crx/<slug>.crx (latest) or /v1/crx/<slug>-<version>.crx; versions as Chromium writes them.
 const CRX_PATH = /^\/v1\/crx\/([a-z]{1,32})(?:-(\d{1,5}(?:\.\d{1,5}){0,3}))?\.crx$/;

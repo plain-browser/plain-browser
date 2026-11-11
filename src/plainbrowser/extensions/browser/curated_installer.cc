@@ -53,8 +53,8 @@ constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
         semantics {
           sender: "Plain Browser recommended extensions"
           description:
-            "Downloads an extension (uBlock Origin, AdGuard, NoScript or "
-            "uMatrix) that Plain Browser hosts at ext.plain-browser.app, when "
+            "Downloads an extension (uBlock Origin, AdGuard or NoScript) that "
+            "Plain Browser hosts at ext.plain-browser.app, when "
             "the user clicks Install on chrome://recommended-extensions."
           trigger: "The user clicks Install or Switch on that page."
           data:

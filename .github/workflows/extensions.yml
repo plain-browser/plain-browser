@@ -119,7 +119,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EXT_KEY_UBLOCK: ${{ secrets.EXT_KEY_UBLOCK }}
-          EXT_KEY_UMATRIX: ${{ secrets.EXT_KEY_UMATRIX }}
           EXT_KEY_NOSCRIPT: ${{ secrets.EXT_KEY_NOSCRIPT }}
           EXT_KEY_ADGUARD: ${{ secrets.EXT_KEY_ADGUARD }}
           FIRST_BUILD: ${{ inputs.first_build }}

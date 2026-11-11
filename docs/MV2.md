@@ -127,8 +127,9 @@ Expected on a current build: `[WITH_UBO]` with `manifest_version 2`, `state ENAB
 ## Distribution without the Chrome Web Store (2026-11-09, not yet built)
 
 - **chrome://recommended-extensions** (`src/plainbrowser/extensions`, registered by `patches/20-hooks`, linked
-  from Settings > Privacy and security > "Recommended extensions"): uBlock Origin, AdGuard (both MV2), NoScript
-  (MV3 upstream now) and uMatrix (MV2, archived upstream in 2021, marked "No longer developed"). Install downloads
+  from Settings > Privacy and security > "Recommended extensions"): uBlock Origin, AdGuard (both MV2) and NoScript
+  (MV3 upstream now). uMatrix (MV2, archived upstream in 2021) was in the first version of the list and withdrawn
+  2026-11-11: no catalogue entry, no build, no key use. Install downloads
   `https://ext.plain-browser.app/v1/crx/<slug>.crx` and hands it to `CrxInstaller` with the normal install dialog,
   the extension ID pinned (`set_expected_id`; a CRX signed by another key is refused) and off-store installation
   allowed as for a file dropped on chrome://extensions. The copy is an ordinary user-installed (`kInternal`)
@@ -140,7 +141,7 @@ Expected on a current build: `[WITH_UBO]` with `manifest_version 2`, `state ENAB
   list, so its `www.google.com/update2/response` namespace stays as Chromium expects). IDs, from keys generated
   2026-11-09 (kept outside the repository, GitHub secrets `EXT_KEY_<SLUG>`): ublock
   `noejjobmnfhiaelnmphhjiidpaokblob`, adguard `alcnakdfglecaojndbbbianibfbhhohb`, noscript
-  `ohmnffldfkgpeipdpknpchnalghalfdc`, umatrix `knaimpmmofdakmoedpbpaneafhcgnfei`. Losing a key means a new ID
+  `ohmnffldfkgpeipdpknpchnalghalfdc`, umatrix `knaimpmmofdakmoedpbpaneafhcgnfei` (withdrawn; keep its key, the ID stays taken). Losing a key means a new ID
   and a reinstall for every user.
 - **Moving from the Chrome Web Store copy**: an extension installed under its store ID (e.g. uBO
   `cjpalhdlnbpafiamejdnhcphjbkeiagm`) gets a "Switch" button: the store copy is disabled, its

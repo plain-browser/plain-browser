@@ -37,7 +37,7 @@ struct CuratedExtension {
 };
 
 // In the order the page lists them.
-const std::array<CuratedExtension, 4>& Catalog();
+const std::array<CuratedExtension, 3>& Catalog();
 
 const CuratedExtension* FindBySlug(std::string_view slug);
 

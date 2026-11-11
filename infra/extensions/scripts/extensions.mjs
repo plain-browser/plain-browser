@@ -11,8 +11,6 @@ export const UPDATE_URL = `${BASE_URL}updates.xml`;
 // asset, permissions), not here.
 export const SOURCES = {
   ublock: { repo: "gorhill/uBlock", asset: /^uBlock0_[\w.]+\.chromium\.zip$/, license: "GPL-3.0" },
-  // Archived upstream since 2021; 1.4.4 is the last release.
-  umatrix: { repo: "gorhill/uMatrix", asset: /^uMatrix_[\w.]+\.chromium\.zip$/, license: "GPL-3.0" },
   noscript: { repo: "hackademix/noscript", asset: /^noscript-[\w.]+-chrome\.zip$/, license: "GPL-3.0" },
   adguard: { repo: "AdguardTeam/AdguardBrowserExtension", asset: /^chrome\.zip$/, license: "GPL-3.0" },
 };

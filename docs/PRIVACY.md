@@ -104,7 +104,7 @@ without Google learning anything about you:
 Extensions you install can read and send data according to the permissions you grant them. Their developers, not
 Plain Browser, are responsible for that data and for their own privacy policies.
 
-The page **chrome://recommended-extensions** offers uBlock Origin, AdGuard, NoScript and uMatrix, which we host at
+The page **chrome://recommended-extensions** offers uBlock Origin, AdGuard and NoScript, which we host at
 **ext.plain-browser.app** (a Cloudflare Worker) because the Chrome Web Store is not part of the browser:
 
 - Nothing is downloaded until you click Install (or Switch). The download carries no cookies, only the browser's

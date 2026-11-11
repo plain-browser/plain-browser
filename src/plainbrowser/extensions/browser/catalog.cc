@@ -17,11 +17,11 @@ constexpr char kDefaultServer[] = "https://ext.plain-browser.app/v1/";
 
 }  // namespace
 
-const std::array<CuratedExtension, 4>& Catalog() {
+const std::array<CuratedExtension, 3>& Catalog() {
   // IDs: infra/extensions/scripts/keygen.mjs, one RSA key per extension
   // (generated 2026-11-09). A new key means a new ID, and users would have to
   // install again: never rotate them casually.
-  static const std::array<CuratedExtension, 4> kCatalog = {{
+  static const std::array<CuratedExtension, 3> kCatalog = {{
       {"ublock", "noejjobmnfhiaelnmphhjiidpaokblob",
        "cjpalhdlnbpafiamejdnhcphjbkeiagm", "uBlock Origin",
        IDS_PLAINBROWSER_EXTENSIONS_UBLOCK_DESC,
@@ -37,11 +37,6 @@ const std::array<CuratedExtension, 4>& Catalog() {
        IDS_PLAINBROWSER_EXTENSIONS_NOSCRIPT_DESC,
        "https://github.com/hackademix/noscript", 3, /*ad_blocker=*/false,
        /*unmaintained=*/false},
-      {"umatrix", "knaimpmmofdakmoedpbpaneafhcgnfei",
-       "ogfcmafjalglgifnmanfmnieipoejdcf", "uMatrix",
-       IDS_PLAINBROWSER_EXTENSIONS_UMATRIX_DESC,
-       "https://github.com/gorhill/uMatrix", 2, /*ad_blocker=*/false,
-       /*unmaintained=*/true},
   }};
   return kCatalog;
 }

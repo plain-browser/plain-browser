@@ -27,25 +27,6 @@
       "webRequestBlocking"
     ]
   },
-  "umatrix": {
-    "tag": "1.4.4",
-    "version": "1.4.4",
-    "sha256": "28ec25a6c064e893c44c6aed9a3e28d13e36361789207a718b59a097c72da37f",
-    "permissions": [
-      "<all_urls>",
-      "browsingData",
-      "content_script:http://*/*",
-      "content_script:https://*/*",
-      "cookies",
-      "privacy",
-      "storage",
-      "tabs",
-      "unlimitedStorage",
-      "webNavigation",
-      "webRequest",
-      "webRequestBlocking"
-    ]
-  },
   "noscript": {
     "tag": "13.6.38",
     "version": "13.6.38",
