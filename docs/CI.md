@@ -50,7 +50,9 @@ of ninja. Nothing uses the Actions cache: it is capped at 10 GB per repository, 
 `prepare` names its artifact `tree-0-<profile>-<hash>`, where the hash covers everything `prepare-tree.ps1` reads
 (`versions.toml`, `patches/`, `src/`, `branding/`, the `scripts/*.py` and `scripts/*.ps1` helpers, and the three CI
 scripts it runs), and first asks the artifacts API (`GET /repos/{repo}/actions/artifacts?name=...`) for a non-expired
-artifact of that name from any earlier run. If one exists, the job stops after that lookup and `build-1` downloads
+artifact of that name from an earlier `build-windows` run of this repository on `main` or a `v*` tag (the lookup
+filters on the run's repository, branch, workflow file and event: a pull request from a fork runs its own workflow
+file and could upload an artifact under the same name, which is computable from public files). If one exists, the job stops after that lookup and `build-1` downloads
 it from the earlier run (`download-artifact` with `run-id`, which is why `prepare` and `build-1` have
 `actions: read`). Otherwise the tree is built and uploaded with a 14-day retention; `cleanup` leaves `tree-0-*`
 alone. A change to any of the hashed inputs, or to the profile, gives a new name and a fresh tree. Saves about an
@@ -162,10 +164,16 @@ runs, the draft release), so a pass that dies half way is finished by the next o
 variable `PIPELINE_ENABLED=false`; `DRY_RUN=1 python3 scripts/ci/pipeline.py` prints what a pass would do.
 
 1. **Upstream.** A newer `ungoogled-chromium-windows` tag than the one in `versions.toml`: dry-run our patches on it
-   (`check-patches.py`). All apply: `scripts/ci/bump-release.py` pins the tag and raises the product version by one patch
+   (`check-patches.py`). All apply: `scripts/ci/bump-release.py` pins the tag and the commit it points at
+   (`ungoogled_chromium_windows_commit`; `prepare-tree.ps1` stops when the cloned tag is at another commit, so a tag
+   moved after it was pinned is not built) and raises the product version by one patch
    level (`0.1.5-alpha.1` -> `0.1.6-alpha.1`; the Store package version is `major.minor.patch.0` and must grow with every
    submission), the files go to `main` as one commit made through the GitHub API (that commit is signed by GitHub, which
    the `protect-main` ruleset requires), the tag `vX.Y.Z-alpha.1` is created and `build-windows` is dispatched on it.
+   A pass that dies between the commit and the tag is finished by the next one (the pipeline's own bump commit
+   without its tag is tagged and built); the commit is refused when `main` moved after the pass checked it out.
+   A bump that fails (a file no longer names the version where `bump-release.py` looks for it) is reported in the
+   same issue with label `needs-human`.
    A patch that does not apply, applies with fuzz (context changed: `check-patches.py --regenerate`, then review),
    or an upstream patch whose dropped hunks no longer match `patches/upstream-revert.hunks`: issue
    `Upstream update: ...` with label `needs-human`; the build starts by itself in the first pass after the patches
@@ -174,7 +182,11 @@ variable `PIPELINE_ENABLED=false`; `DRY_RUN=1 python3 scripts/ci/pipeline.py` pr
    classified. Runner and network problems (curl, shutdown signal, artifact transfer) are rerun with `gh run rerun --failed`
    (up to 4 times; finished stages are kept), unknown ones twice. Source problems (compile error, patch that does not
    apply) are not rerun: issue `Build failed: <tag>` with the log excerpt, label `needs-human`. After the fix the run
-   is resumed from the last stage tree with `resume_run` / `resume_stage` (see Triggers and inputs).
+   is resumed from the last stage tree with `resume_run` / `resume_stage` (see Triggers and inputs). A run that was
+   cancelled as a whole was stopped by a person and is left alone: start `build-windows` on the tag by hand to go on.
+   Only the newest release tag is taken further: builds of the three tags before it that are still running are
+   cancelled and their `Upstream update` issues closed (a draft release of a superseded tag stays until someone
+   deletes it).
 3. **Release.** Finished build: `sign-release` on the draft, then `store-submit` with `commit=true`, then the release is
    published as a pre-release and the upstream issue is closed. `store-submit` leaves an earlier submission that is
    still in certification alone (the Store keeps one pending submission) and fails with `DEFERRED`; the pipeline then

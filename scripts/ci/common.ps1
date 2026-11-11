@@ -12,6 +12,12 @@ function Get-PinnedTag {
   $m.Matches[0].Groups[1].Value
 }
 
+function Get-PinnedCommit {
+  $m = Select-String -Path (Join-Path (Get-RepoRoot) "versions.toml") -Pattern '^ungoogled_chromium_windows_commit\s*=\s*"([0-9a-f]{40})"'
+  if (-not $m) { throw "versions.toml: ungoogled_chromium_windows_commit not found" }
+  $m.Matches[0].Groups[1].Value
+}
+
 function Get-ProductVersion {
   $text = Get-Content (Join-Path (Get-RepoRoot) "versions.toml") -Raw
   $m = [regex]::Match($text, '(?ms)^\[product\].*?^version\s*=\s*"([^"]+)"')

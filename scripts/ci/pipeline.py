@@ -81,21 +81,28 @@ def release_key(tag):
     return tuple(int(x) for x in m.groups()) if m else None
 
 
+def all_tags(repo):
+    """{name: commit} of every tag: all pages, since the API promises no order and the newest need not be on the first."""
+    out = sh("gh", "api", "--paginate", f"repos/{repo}/tags?per_page=100", "--jq", '.[] | .name + " " + .commit.sha').stdout
+    return dict(line.split(" ", 1) for line in out.splitlines() if line.strip())
+
+
 def pinned_ucw_tag():
     text = (ROOT / "versions.toml").read_text(encoding="utf-8")
     return re.search(r'^ungoogled_chromium_windows\s*=\s*"([^"]+)"', text, re.M).group(1)
 
 
 def latest_upstream_tag():
-    tags = [t["name"] for t in api(f"repos/{UPSTREAM}/tags?per_page=30")]
-    tags = [t for t in tags if re.match(r"^\d+\.\d+\.\d+\.\d+-\d+(\.\d+)?$", t)]
-    return max(tags, key=ucw_key)
+    """(tag, commit) of the highest upstream tag; the commit is pinned next to the tag, since a tag can be moved."""
+    tags = all_tags(UPSTREAM)
+    tags = {n: sha for n, sha in tags.items() if re.match(r"^\d+\.\d+\.\d+\.\d+-\d+(\.\d+)?$", n)}
+    latest = max(tags, key=ucw_key)
+    return latest, tags[latest]
 
 
-def newest_release_tag():
-    tags = [t["name"] for t in api(f"repos/{REPO}/tags?per_page=50")]
-    keyed = [(release_key(t), t) for t in tags if release_key(t)]
-    return max(keyed)[1] if keyed else None
+def release_tags():
+    """Our release tags, newest first."""
+    return [t for _, t in sorted(((release_key(t), t) for t in all_tags(REPO) if release_key(t)), reverse=True)]
 
 
 # ---- classification (pure) ---------------------------------------------------------------------------------------
@@ -203,9 +210,12 @@ def dispatch(workflow, ref, **inputs):
 
 # ---- 1. upstream -----------------------------------------------------------------------------------------------
 
-def signed_commit(branch, message, files):
-    """One commit on `branch` with the given files, made through the API so GitHub signs it (main requires signed commits)."""
-    head = api(f"repos/{REPO}/git/ref/heads/{branch}")["object"]["sha"]
+def signed_commit(branch, message, files, head=None):
+    """One commit on `branch` with the given files, made through the API so GitHub signs it (main requires signed commits).
+    `head` is the commit the files were edited on (default: the checkout's HEAD): the API refuses the commit when the
+    branch has moved since, instead of replacing someone's newer version of a file with ours. The next pass starts
+    from a fresh checkout."""
+    head = head or sh("git", "-C", str(ROOT), "rev-parse", "HEAD").stdout.strip()
     adds = [{"path": p, "contents": base64.b64encode((ROOT / p).read_bytes()).decode()} for p in files]
     body = {"query": "mutation($input: CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){commit{oid}}}",
             "variables": {"input": {"branch": {"repositoryNameWithOwner": REPO, "branchName": branch},
@@ -218,8 +228,37 @@ def signed_commit(branch, message, files):
     return data["data"]["createCommitOnBranch"]["commit"]["oid"]
 
 
+def product_version():
+    text = (ROOT / "versions.toml").read_text(encoding="utf-8")
+    return re.search(r'(?ms)^\[product\].*?^version\s*=\s*"([^"]+)"', text).group(1)
+
+
+def bump_message(ucw_tag, version):
+    return f"upstream: ungoogled-chromium-windows {ucw_tag}, version {version} (automated)"
+
+
+def finish_interrupted_bump():
+    """A pass that died after the bump commit and before the tag leaves main at a version nobody builds: the upstream
+    tag is pinned already, so step_upstream sees nothing new, and the release step only knows tags. Tag that commit
+    now. Only the pipeline's own bump commit counts; a version raised by hand is not released from here."""
+    version = product_version()
+    tag = f"v{version}"
+    if sh("gh", "api", f"repos/{REPO}/git/ref/tags/{tag}", check=False).returncode == 0:
+        return False
+    last = api(f"repos/{REPO}/commits?path=versions.toml&per_page=1")
+    if not last or last[0]["commit"]["message"].splitlines()[0] != bump_message(pinned_ucw_tag(), version):
+        return False
+    oid = last[0]["sha"]
+    log(f"bump commit {oid} for {tag} has no tag: finishing the interrupted pass")
+    act(f"tag {tag} at {oid}", lambda: sh("gh", "api", f"repos/{REPO}/git/refs", "-f", f"ref=refs/tags/{tag}", "-f", f"sha={oid}"))
+    dispatch(BUILD, tag, profile="alpha")
+    return True
+
+
 def step_upstream():
-    pinned, latest = pinned_ucw_tag(), latest_upstream_tag()
+    if finish_interrupted_bump():
+        return
+    pinned, (latest, latest_commit) = pinned_ucw_tag(), latest_upstream_tag()
     log(f"upstream: pinned {pinned}, latest {latest}")
     if ucw_key(latest) <= ucw_key(pinned):
         return
@@ -255,12 +294,19 @@ def step_upstream():
     if DRY:
         log(f"[dry-run] patches apply on {latest}: would bump, commit, tag and build")
         return
-    version = sh(sys.executable, "-I", str(ROOT / "scripts/ci/bump-release.py"), "--ucw-tag", latest).stdout.strip()
+    try:
+        version = sh(sys.executable, "-I", str(ROOT / "scripts/ci/bump-release.py"), "--ucw-tag", latest, "--ucw-commit", latest_commit).stdout.strip()
+    except RuntimeError as e:
+        # Usually a file that no longer names the version where bump-release.py expects it: nothing a later pass fixes.
+        ensure_issue(title, body + f"\n\n**The patches apply, but the version bump failed, so nothing was built:**\n\n```\n{e}\n```\n\n"
+                     "Fix the file it names on main (or scripts/ci/bump-release.py); the pipeline tries again on every pass.",
+                     ["needs-human"], comment_marker=f"bump-failed-{latest}")
+        raise
     changed = sh("git", "-C", str(ROOT), "diff", "--name-only").stdout.split()
     tag = f"v{version}"
     ensure_issue(title, body + f"\n\nAutomated: release `{tag}` is built, signed and submitted to the Store by scripts/ci/pipeline.py.",
                  ["auto-release"])
-    oid = act(f"commit {changed} to main", lambda: signed_commit("main", f"upstream: ungoogled-chromium-windows {latest}, version {version} (automated)", changed))
+    oid = act(f"commit {changed} to main", lambda: signed_commit("main", bump_message(latest, version), changed))
     act(f"tag {tag} at {oid}", lambda: sh("gh", "api", f"repos/{REPO}/git/refs", "-f", f"ref=refs/tags/{tag}", "-f", f"sha={oid}"))
     dispatch(BUILD, tag, profile="alpha")
 
@@ -277,9 +323,13 @@ def step_release(tag):
     if last["status"] != "completed":
         log(f"build run {last['id']} is {last['status']}")
         return
+    if last["conclusion"] == "cancelled":
+        # The whole run was cancelled: someone stopped it (a lost runner or a timeout fails the run instead).
+        log(f"build run {last['id']} was cancelled: not rerun; start build-windows on {tag} by hand to go on")
+        return
     if last["conclusion"] != "success":
         return handle_failed_build(tag, last)
-    return handle_release(tag)
+    return handle_release(tag, last["updated_at"])
 
 
 def handle_failed_build(tag, run):
@@ -303,7 +353,10 @@ def handle_failed_build(tag, run):
                  ["needs-human"], comment_marker=f"build-failed-{run['id']}")
 
 
-def handle_release(tag):
+def handle_release(tag, built_at):
+    """built_at: when the build that made the draft's packages finished. A build that is run again for the same tag
+    replaces the packages and removes the old signatures (release job of build-windows.yml), so sign-release and
+    store-submit runs from before that moment say nothing about what is in the draft now."""
     releases = api(f"repos/{REPO}/releases?per_page=30")
     rel = next((r for r in releases if r["tag_name"] == tag), None)
     if rel is None:
@@ -314,7 +367,7 @@ def handle_release(tag):
         return
     names = [a["name"] for a in rel["assets"]]
     if not any(n.endswith(".bundle") for n in names):
-        signs = runs_of(SIGN, title_prefix=f"sign-release {tag}")
+        signs = [r for r in runs_of(SIGN, title_prefix=f"sign-release {tag}") if r["created_at"] >= built_at]
         if any(r["status"] != "completed" or r["conclusion"] == "success" for r in signs):
             log("sign-release is running or done, waiting for the assets")
             return
@@ -323,7 +376,7 @@ def handle_release(tag):
             return
         dispatch(SIGN, "main", tag=tag)
         return
-    subs = [r for r in runs_of(STORE, title_prefix=f"store-submit {tag}") if r["created_at"] >= STORE_VERDICT_SINCE]
+    subs = [r for r in runs_of(STORE, title_prefix=f"store-submit {tag}") if r["created_at"] >= max(STORE_VERDICT_SINCE, built_at)]
     if any(r["status"] != "completed" for r in subs):
         log("store-submit is running")
         return
@@ -331,13 +384,22 @@ def handle_release(tag):
         act(f"publish the release {tag} as a pre-release", lambda: sh("gh", "release", "edit", tag, "--repo", REPO, "--draft=false", "--prerelease"))
         close_issue(f"Upstream update: ungoogled-chromium-windows {pinned_ucw_tag()}", f"{tag} built, signed and submitted to Microsoft Store certification.")
         return
-    failed = [r for r in subs if r["conclusion"] == "failure"]
-    if failed and "DEFERRED" in annotation_text(failed[0]["id"]):
-        log("store-submit deferred: an earlier submission is still in certification")
-        failed = [r for r in failed if "DEFERRED" not in annotation_text(r["id"])]
+    # Real failures, newest first; a DEFERRED run only waited for an earlier submission and is never one of them.
+    # Stops reading annotations once the limit is reached.
+    failed = []
+    for r in subs:
+        if r["conclusion"] != "failure" or len(failed) >= MAX_STORE_FAILURES:
+            continue
+        notes = annotation_text(r["id"])
+        if "DEFERRED" in notes:
+            if r is subs[0]:
+                log("store-submit deferred: an earlier submission is still in certification")
+            continue
+        failed.append((r, notes))
     if len(failed) >= MAX_STORE_FAILURES:
-        ensure_issue(f"Store submission failed: {tag}", f"store-submit failed {len(failed)} times for {tag}; last run {failed[0]['html_url']}\n\n"
-                     f"```\n{excerpt(annotation_text(failed[0]['id']))}\n```", ["needs-human"], comment_marker=f"store-failed-{failed[0]['id']}")
+        last, notes = failed[0]
+        ensure_issue(f"Store submission failed: {tag}", f"store-submit failed {len(failed)} times for {tag}; last run {last['html_url']}\n\n"
+                     f"```\n{excerpt(notes)}\n```", ["needs-human"], comment_marker=f"store-failed-{last['id']}")
         return
     dispatch(STORE, "main", tag=tag, commit="true")
 
@@ -352,7 +414,7 @@ def selftest():
     try:
         scratch = ROOT / ".pipeline-selftest"
         scratch.write_text("selftest\n")
-        oid = signed_commit(branch, "pipeline selftest", [".pipeline-selftest"])
+        oid = signed_commit(branch, "pipeline selftest", [".pipeline-selftest"], head=main_sha)
         v = api(f"repos/{REPO}/git/commits/{oid}")["verification"]
         log(f"commit {oid}: verified={v['verified']} reason={v['reason']}")
         if not v["verified"]:
@@ -361,10 +423,29 @@ def selftest():
         sh("gh", "api", "-X", "DELETE", f"repos/{REPO}/git/refs/heads/{branch}", check=False)
 
 
+def retire_superseded(newest, older):
+    """Only the newest release tag is taken further (a newer upstream version replaces the one before it, also in the
+    Store queue). What an older tag still has under way is stopped, so it does not hold runners for a build nobody
+    will release, and its upstream issue is closed. Its draft release, if any, is left for a person to delete."""
+    for tag in older:
+        for run in runs_of(BUILD, branch=tag):
+            if run["status"] != "completed":
+                act(f"cancel build run {run['id']} of {tag}, superseded by {newest}",
+                    lambda run=run: sh("gh", "run", "cancel", str(run["id"]), "--repo", REPO, check=False))
+    current = f"Upstream update: ungoogled-chromium-windows {pinned_ucw_tag()}"
+    r = sh("gh", "issue", "list", "--repo", REPO, "--state", "open", "--search", '"Upstream update" in:title', "--json", "number,title", "--limit", "50")
+    for i in json.loads(r.stdout):
+        if i["title"].startswith("Upstream update: ") and i["title"] != current:
+            act(f"close issue #{i['number']} (superseded)", lambda i=i: sh(
+                "gh", "issue", "close", str(i["number"]), "--repo", REPO, "--comment",
+                f"Superseded by {newest}: this version is not taken further (a draft release of it, if there is one, can be deleted)."))
+
+
 def release_pass():
-    tag = newest_release_tag()
-    if tag:
-        step_release(tag)
+    tags = release_tags()
+    if tags:
+        retire_superseded(tags[0], tags[1:4])
+        step_release(tags[0])
 
 
 def main():

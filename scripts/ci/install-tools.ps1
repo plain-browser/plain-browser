@@ -18,6 +18,12 @@ if (Test-Path "$kits\Include\10.0.28000.0\um") {
 } else {
   $installer = Join-Path $Work "winsdksetup.exe"
   Invoke-WebRequest -Uri "https://download.microsoft.com/download/38ab8f6d-3676-4860-ae84-3361308b9d7f/KIT_BUNDLE_WINDOWSSDK_MEDIACREATION/winsdksetup.exe" -OutFile $installer
+  # The installer runs elevated on the machine that makes the release: only with a valid Microsoft signature. (No
+  # pinned checksum: Microsoft replaces the file behind this URL with SDK servicing updates.)
+  $sig = Get-AuthenticodeSignature $installer
+  if ($sig.Status -ne "Valid" -or $sig.SignerCertificate.Subject -notmatch '(^|, )O=Microsoft Corporation(,|$)') {
+    throw "winsdksetup.exe: signature $($sig.Status), signer '$($sig.SignerCertificate.Subject)': not run"
+  }
   $features = "/features OptionId.DesktopCPPx64 OptionId.DesktopCPPx86 OptionId.DesktopCPPArm64 OptionId.WindowsDesktopDebuggers OptionId.UWPCPP OptionId.SigningTools /q /norestart /ceip off"
   $p = Start-Process -FilePath $installer -ArgumentList $features -PassThru -Wait
   if ($p.ExitCode -ne 0) { throw "winsdksetup.exe failed with exit code $($p.ExitCode)" }
@@ -29,7 +35,7 @@ foreach ($need in "Include\10.0.28000.0\um", "Debuggers\x64\dbghelp.dll") {
 
 # 2. Python modules build.py needs (httplib2 for the downloader, clang bindings for V8's metagen).
 Write-Step "Python modules"
-Run python -m pip install --quiet "httplib2==0.22.0" "clang==21.1.7"
+Run python -m pip install --quiet --require-hashes -r "$PSScriptRoot\requirements.txt"
 
 # 3. The repository scripts find Python under %ProgramFiles%\Python3* or %LOCALAPPDATA%\Programs\Python
 #    (where the installer puts it on the VM). actions/setup-python installs into C:\hostedtoolcache instead, so

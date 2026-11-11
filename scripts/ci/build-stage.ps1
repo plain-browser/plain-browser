@@ -40,7 +40,7 @@ if ($useCache) {
 }
 Set-Content $flags -Value $flagText -NoNewline
 
-Run python -m pip install --quiet "httplib2==0.22.0" "clang==21.1.7"
+# The Python modules build.py imports come from install-tools.ps1, which every stage runs first.
 
 Push-Location $ucw
 try {

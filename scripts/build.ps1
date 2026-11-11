@@ -56,6 +56,9 @@ try {
   Push-Location $ucw
   git fetch --tags; git checkout --recurse-submodules $ver
   if ($LASTEXITCODE) { throw "git checkout $ver failed" }
+  $want = (Select-String -Path "$root\versions.toml" -Pattern '^ungoogled_chromium_windows_commit\s*=\s*"([0-9a-f]{40})"').Matches[0].Groups[1].Value
+  $head = (git rev-parse HEAD).Trim()
+  if ($head -ne $want) { throw "upstream tag $ver is at $head, versions.toml pins $want: the tag has moved (or the pin is stale)" }
 
   # Local flag overrides (work copy only; marker keeps this idempotent).
   $flags = "$ucw\flags.windows.gn"

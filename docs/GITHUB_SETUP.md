@@ -35,7 +35,8 @@ Adres: https://github.com/plain-browser/plain-browser/settings/security_analysis
 - **Konto bota do wydań** (opcjonalnie, gdy zaczniemy publikować regularnie): osobne konto typu machine user
   z rolą Write tylko do tego repozytorium, albo GitHub App. Tokeny CI nigdy na koncie osobistym.
 - **Domyślne uprawnienia tokena workflow**: Settings → Actions → General → „Read repository contents and packages
-  permissions” oraz zaznacz „Require approval for all outside collaborators” dla uruchomień z forków.
+  permissions” oraz zaznacz „Require approval for all external contributors” (dawniej „… outside collaborators”) dla uruchomień z
+  forków (ustawione 2026-11-10; sprawdzenie: `gh api repos/plain-browser/plain-browser/actions/permissions/fork-pr-contributor-approval`).
 
 ## 4. Pierwsze uruchomienie workflow
 

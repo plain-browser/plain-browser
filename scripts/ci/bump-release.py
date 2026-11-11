@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Prepare the next automated release for a new ungoogled-chromium-windows tag (scripts/ci/pipeline.py runs this).
 
-Pins the tag in versions.toml, raises the product version by one patch level (0.1.5-alpha.1 -> 0.1.6-alpha.1, 0.2.0-beta.1 -> 0.2.1-beta.1: the
+Pins the tag and the commit it points at in versions.toml, raises the product version by one patch level (0.1.5-alpha.1 -> 0.1.6-alpha.1, 0.2.0-beta.1 -> 0.2.1-beta.1: the
 Store package version is major.minor.patch.0 and must grow with every submission), regenerates version.h and updates
 the places that name the version (README, website, PRIVACY, CHANGELOG). Prints the new product version on stdout and
 leaves the edited files in the working tree; the caller commits them.
 
-usage: bump-release.py --ucw-tag 156.0.8078.79-1.1 [--date 2026-11-04]
+usage: bump-release.py --ucw-tag 156.0.8078.79-1.1 --ucw-commit <40 hex> [--date 2026-11-04]
 """
 import argparse, datetime, re, subprocess, sys
 from pathlib import Path
@@ -15,11 +15,14 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 TAG_RE = re.compile(r"^(\d+\.\d+\.\d+\.\d+)-\d+(\.\d+)?$")
 
 
-def edit(path, fn):
+def edit(path, fn, optional=False):
     p = ROOT / path
     old = p.read_text(encoding="utf-8")
     new = fn(old)
     if new == old:
+        if optional:
+            print(f"{path}: the version is not named there, left as it is", file=sys.stderr)
+            return
         raise SystemExit(f"{path}: nothing to change (the expected text was not found)")
     p.write_text(new, encoding="utf-8")
 
@@ -41,12 +44,15 @@ def next_version(full):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ucw-tag", required=True)
+    ap.add_argument("--ucw-commit", required=True, help="the commit the tag points at (prepare-tree.ps1 checks the clone against it)")
     ap.add_argument("--date", default=datetime.date.today().isoformat())
     args = ap.parse_args()
     m = TAG_RE.match(args.ucw_tag)
     if not m:
         raise SystemExit("unexpected ungoogled-chromium-windows tag: " + args.ucw_tag)
     chromium = m.group(1)
+    if not re.fullmatch(r"[0-9a-f]{40}", args.ucw_commit):
+        raise SystemExit("unexpected commit: " + args.ucw_commit)
 
     toml = (ROOT / "versions.toml").read_text(encoding="utf-8")
     old_tag = re.search(r'^ungoogled_chromium_windows\s*=\s*"([^"]+)"', toml, re.M).group(1)
@@ -58,11 +64,12 @@ def main():
     def versions_toml(t):
         t = sub_once(r'^(ungoogled_chromium_windows\s*=\s*)"[^"]+"[^\n]*',
                      rf'\g<1>"{args.ucw_tag}"   # Chromium {chromium}; checked {args.date}', t, re.M, "ucw tag")
+        t = sub_once(r'^(ungoogled_chromium_windows_commit\s*=\s*)"[^"]+"', rf'\g<1>"{args.ucw_commit}"', t, re.M, "ucw commit")
         return sub_once(r'(?ms)(^\[product\].*?^version\s*=\s*)"[^"]+"', rf'\g<1>"{new_ver}"', t, 0, "product version")
     edit("versions.toml", versions_toml)
     subprocess.run([sys.executable, "-I", str(ROOT / "scripts" / "sync-version.py")], check=True, stdout=sys.stderr)
 
-    edit("README.md", lambda t: t.replace(f"`{old_ver}`", f"`{new_ver}`", 1) if f"`{old_ver}`" in t else t)
+    edit("README.md", lambda t: t.replace(f"`{old_ver}`", f"`{new_ver}`", 1), optional=True)
     edit("website/lib/site.ts", lambda t: t.replace(f'"{old_ver}"', f'"{new_ver}"', 1))
     for doc in ("docs/PRIVACY.md", "docs/PRIVACY.pl.md"):
         # only the line that says which version the policy describes (line 6), not the "from version X" history

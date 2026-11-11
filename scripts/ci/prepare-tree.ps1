@@ -29,6 +29,11 @@ Write-Step "ungoogled-chromium-windows $tag"
 if (-not (Test-Path "$ucw\build.py")) {
   Run git clone --recurse-submodules --shallow-submodules --depth 1 --branch $tag https://github.com/ungoogled-software/ungoogled-chromium-windows.git $ucw
 }
+# A git tag can be moved; the commit cannot. The submodule (ungoogled-chromium) and downloads.ini with the checksums of
+# the Chromium sources are part of that commit.
+$want = Get-PinnedCommit
+$head = (git -C $ucw rev-parse HEAD).Trim()
+if ($head -ne $want) { throw "upstream tag $tag is at $head, versions.toml pins $want: the tag has moved (or the pin is stale)" }
 # Profile flags, appended to the upstream GN flags (same block as scripts\build.ps1; the marker keeps it idempotent).
 # release: official build (is_official_build=true), no PGO, ThinLTO or PCH. alpha: the same with is_official_build=false.
 # official: upstream's flags unchanged (ThinLTO + PGO).

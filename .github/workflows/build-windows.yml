@@ -71,9 +71,21 @@ jobs:
           # Python and PowerShell helpers it calls, and the profile (flags.windows.gn differs).
           TREE_NAME: tree-0-${{ env.PROFILE }}-${{ hashFiles('versions.toml', 'patches/**', 'src/**', 'branding/**', 'scripts/*.py', 'scripts/*.ps1', 'scripts/ci/common.ps1', 'scripts/ci/install-tools.ps1', 'scripts/ci/prepare-tree.ps1') }}
         run: |
+          # Only a tree made by this workflow in this repository, from main or a release tag. The artifacts API lists
+          # every run's artifacts, and a pull request from a fork runs its own workflow file and can upload one under
+          # any name (the name is computable from public files), so the name alone proves nothing.
           $runId = gh api "repos/$env:REPO/actions/artifacts?name=$env:TREE_NAME&per_page=20" `
-            --jq '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].workflow_run.id // ""'
+            --jq '[.artifacts[] | select(.expired == false and .workflow_run.repository_id == .workflow_run.head_repository_id and (.workflow_run.head_branch == "main" or (.workflow_run.head_branch // "" | startswith("v"))))] | sort_by(.created_at) | reverse | .[0].workflow_run.id // ""'
           if ($LASTEXITCODE -ne 0) { throw "artifact lookup failed" }
+          if ($runId) {
+            $run = gh api "repos/$env:REPO/actions/runs/$runId" --jq '[.path, .event, .head_repository.full_name] | join(" ")'
+            if ($LASTEXITCODE -ne 0) { throw "run lookup failed" }
+            $path, $trigger, $from = $run -split " "
+            if (($path -split "@")[0] -ne ".github/workflows/build-windows.yml" -or $trigger -notin @("push", "workflow_dispatch") -or $from -ne $env:REPO) {
+              Write-Host "::warning::ignoring $env:TREE_NAME from run $runId ($run): not a build-windows run of this repository"
+              $runId = ""
+            }
+          }
           if ($runId) {
             Write-Host "reusing $env:TREE_NAME from run $runId"
             "Reused tree-0 from run $runId ($env:TREE_NAME)" >> $env:GITHUB_STEP_SUMMARY
@@ -775,7 +787,16 @@ jobs:
             echo
             echo '```'; cat SHA256SUMS.txt; echo '```'
           } > notes.md
-          if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
+          if draft=$(gh release view "$TAG" --repo "$REPO" --json isDraft --jq .isDraft 2> /dev/null); then
+            if [ "$draft" != "true" ]; then
+              # Published files are what people have downloaded and what the signatures and the Store package match.
+              echo "::warning::release $TAG is already published: its files are left as they are (this build is in the plainbrowser-$PROFILE artifact)"
+              exit 0
+            fi
+            # A build run again for a draft: the signatures of the earlier packages go, so nothing pairs them with
+            # the new files; scripts/ci/pipeline.py then signs and submits again.
+            gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name | select(endswith(".bundle"))' |
+              while read -r asset; do gh release delete-asset "$TAG" "$asset" --repo "$REPO" --yes; done
             gh release upload "$TAG" --repo "$REPO" --clobber PlainBrowser_* SHA256SUMS.txt
           else
             gh release create "$TAG" --repo "$REPO" --draft --verify-tag --title "Plain Browser $TAG" --notes-file notes.md PlainBrowser_* SHA256SUMS.txt
@@ -786,7 +807,9 @@ jobs:
   # tree-0-* stays: prepare reuses it in later runs for the same inputs.
   cleanup:
     needs: [build-1, build-2, build-3, build-4, build-5, build-6, build-7, build-8, build-9, build-10]
-    if: ${{ !cancelled() && contains(join(needs.*.outputs.finished), 'true') }}
+    # Not after a failed stage: a stage that finished ninja and then failed while packaging still reports finished,
+    # and rerunning it needs the tree of the stage before.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(join(needs.*.outputs.finished), 'true') }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
