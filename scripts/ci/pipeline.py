@@ -423,22 +423,39 @@ def selftest():
         sh("gh", "api", "-X", "DELETE", f"repos/{REPO}/git/refs/heads/{branch}", check=False)
 
 
+def delete_superseded_draft(tag, newest):
+    """Deletes the draft release of an older tag (the tag itself stays). Never a published release, and not a draft whose
+    package went to Store certification or is on its way there: that submission is a fact the draft documents."""
+    r = sh("gh", "release", "view", tag, "--repo", REPO, "--json", "isDraft", "--jq", ".isDraft", check=False)
+    if r.returncode != 0 or r.stdout.strip() != "true":
+        return
+    if any(s["status"] != "completed" or s["conclusion"] == "success" for s in runs_of(STORE, title_prefix=f"store-submit {tag}")):
+        log(f"draft release of {tag} kept: it has a Store submission")
+        return
+    act(f"delete the draft release of {tag}, superseded by {newest}",
+        lambda: sh("gh", "release", "delete", tag, "--repo", REPO, "--yes"))
+
+
 def retire_superseded(newest, older):
     """Only the newest release tag is taken further (a newer upstream version replaces the one before it, also in the
     Store queue). What an older tag still has under way is stopped, so it does not hold runners for a build nobody
-    will release, and its upstream issue is closed. Its draft release, if any, is left for a person to delete."""
+    will release, its upstream issue is closed and its draft release is deleted (see delete_superseded_draft)."""
     for tag in older:
+        running = False
         for run in runs_of(BUILD, branch=tag):
             if run["status"] != "completed":
+                running = True
                 act(f"cancel build run {run['id']} of {tag}, superseded by {newest}",
                     lambda run=run: sh("gh", "run", "cancel", str(run["id"]), "--repo", REPO, check=False))
+        if not running:  # a run just cancelled may still be finishing its release job: the next pass deletes the draft
+            delete_superseded_draft(tag, newest)
     current = f"Upstream update: ungoogled-chromium-windows {pinned_ucw_tag()}"
     r = sh("gh", "issue", "list", "--repo", REPO, "--state", "open", "--search", '"Upstream update" in:title', "--json", "number,title", "--limit", "50")
     for i in json.loads(r.stdout):
         if i["title"].startswith("Upstream update: ") and i["title"] != current:
             act(f"close issue #{i['number']} (superseded)", lambda i=i: sh(
                 "gh", "issue", "close", str(i["number"]), "--repo", REPO, "--comment",
-                f"Superseded by {newest}: this version is not taken further (a draft release of it, if there is one, can be deleted)."))
+                f"Superseded by {newest}: this version is not taken further (its builds are cancelled and its draft release deleted)."))
 
 
 def release_pass():

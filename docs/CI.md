@@ -185,8 +185,8 @@ variable `PIPELINE_ENABLED=false`; `DRY_RUN=1 python3 scripts/ci/pipeline.py` pr
    is resumed from the last stage tree with `resume_run` / `resume_stage` (see Triggers and inputs). A run that was
    cancelled as a whole was stopped by a person and is left alone: start `build-windows` on the tag by hand to go on.
    Only the newest release tag is taken further: builds of the three tags before it that are still running are
-   cancelled and their `Upstream update` issues closed (a draft release of a superseded tag stays until someone
-   deletes it).
+   cancelled, their `Upstream update` issues closed and their draft releases deleted (the tags stay; a draft whose
+   package went to Store certification, and any published release, is kept).
 3. **Release.** Finished build: `sign-release` on the draft, then `store-submit` with `commit=true`, then the release is
    published as a pre-release and the upstream issue is closed. `store-submit` leaves an earlier submission that is
    still in certification alone (the Store keeps one pending submission) and fails with `DEFERRED`; the pipeline then
