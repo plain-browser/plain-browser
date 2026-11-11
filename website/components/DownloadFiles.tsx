@@ -68,7 +68,7 @@ Get-Content .\\SHA256SUMS.txt
 
 # cosign (releases published through sign-release.yml)
 cosign verify-blob --bundle ${installer || "<file>"}.bundle \\
-  --certificate-identity-regexp 'https://github.com/plain-browser/plain-browser/.github/workflows/sign-release.yml@.*' \\
+  --certificate-identity 'https://github.com/plain-browser/plain-browser/.github/workflows/sign-release.yml@refs/heads/main' \\
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \\
   ${installer || "<file>"}`}</code></pre>
 

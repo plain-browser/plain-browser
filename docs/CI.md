@@ -205,8 +205,10 @@ signed the commit. Run it after changing the token permissions or the `protect-m
 network for a day and a half and must not see the Partner Center credentials. It is dispatched by the pipeline (or by
 hand for any tag) and has two jobs:
 
-1. `verify` (Ubuntu, no secrets): downloads the draft release, checks the cosign bundles (signed by `sign-release.yml`)
-   and the checksum, checks that `AppxManifest.xml` carries `MSIX_IDENTITY_NAME` (a dev package is refused) and hands
+1. `verify` (Ubuntu, no secrets): downloads the draft release, checks the cosign bundles (the identity is exactly
+   `sign-release.yml@refs/heads/main`: a copy of the workflow on another branch is refused) and the checksum, checks that
+   the tag's commit is on `main` and that the `.msix` is byte for byte the one a successful `build-windows` run of this
+   repository made for that commit (its artifact lives 14 days; for an older tag build again), checks that `AppxManifest.xml` carries `MSIX_IDENTITY_NAME` (a dev package is refused) and hands
    only the verified `.msix` on as an artifact;
 2. `submit` (Windows, environment `store`): `msstore reconfigure`, then `msstore publish <file.msix> -id <STORE_PRODUCT_ID>
    --packageRolloutPercentage <n>` (Microsoft Store Developer CLI, `microsoft/setup-msstore-cli` pinned to a commit).

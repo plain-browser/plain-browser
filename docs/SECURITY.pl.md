@@ -24,7 +24,7 @@ Wydania mają plik `SHA256SUMS.txt` i bezkluczowy pakiet cosign dla każdego pli
 
 ```
 cosign verify-blob --bundle <plik>.bundle \
-  --certificate-identity-regexp 'https://github.com/plain-browser/plain-browser/.github/workflows/sign-release.yml@.*' \
+  --certificate-identity 'https://github.com/plain-browser/plain-browser/.github/workflows/sign-release.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com <plik>
 sha256sum -c SHA256SUMS.txt
 ```
