@@ -22,6 +22,10 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/redirect?"):  # 302 to ?to=<url>, for the redirect checks of test-adblock.ps1
             target = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("to", [""])[0]
+            target = target.replace("\r", "").replace("\n", "")  # no header injection (CodeQL py/http-response-splitting)
+            if not target.startswith(("http://", "https://")):
+                self.send_error(400, "to= must be an http(s) URL")
+                return
             self.send_response(302)
             self.send_header("Location", target)
             self.send_header("Content-Length", "0")
