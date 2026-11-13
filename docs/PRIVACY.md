@@ -3,7 +3,7 @@
 Last updated: 9 November 2026 · [Polski](PRIVACY.pl.md)
 
 Plain Browser is a web browser built from Chromium with the ungoogled-chromium patch set. This policy says what the
-browser does with your data. It describes version 0.2.1-beta.1 and the release after it (Global Privacy Control, optional filter lists,
+browser does with your data. It describes version 0.2.2-beta.1 and the release after it (Global Privacy Control, optional filter lists,
 recommended extensions), and is updated whenever a release changes it.
 
 ## Summary

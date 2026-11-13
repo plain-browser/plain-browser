@@ -5,6 +5,13 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.2-beta.1] - 2026-11-13 [Chromium 157.0.8103.78, ungoogled-chromium-windows 157.0.8103.78-1.1]
+
+### Changed
+- Chromium base updated from 157.0.8103.50 to 157.0.8103.78 (upstream update, built and submitted to the
+  Microsoft Store by the automated release pipeline).
+- Package version 0.2.2.0.
+
 Written 2026-11-09 and checked with `scripts/check-patches.py` (all patches apply to 157.0.8103.38-1.1), the Rust
 tests and the Node tests; not yet compiled or run in a browser.
 
