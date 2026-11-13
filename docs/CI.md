@@ -100,9 +100,9 @@ The release is created with the preinstalled `gh` CLI and `GITHUB_TOKEN`, not a 
 - Environments: `store` (Partner Center), `extensions` (extension signing keys, Cloudflare token) and `build` (compile
   cache credentials) accept deployments from `main` only (`build` also from `v*` tags); `website` has no rule.
   Because of that a build-windows run on another branch is refused: merge to `main` or tag to build.
-  Status 2026-11-11: the environments exist, but their secrets are not set yet (the keys and tokens are still
-  repository secrets, which jobs fall back to); move them as `docs/GITHUB_SETUP.md` section 2 says, then delete the
-  repository copies.
+  Status 2026-11-13: the extension signing keys (`EXT_KEY_*`) are secrets of `extensions` only. `CLOUDFLARE_API_TOKEN`
+  and the `SCCACHE_*` credentials are still repository secrets (jobs fall back to them): move them as
+  `docs/GITHUB_SETUP.md` section 2 says, then delete the repository copies.
 
 ### Profiles
 
