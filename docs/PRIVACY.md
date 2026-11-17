@@ -91,8 +91,10 @@ without Google learning anything about you:
   `User-Agent` and the hash prefixes.
 - The only thing the browser adds is the header `X-Client: PlainBrowser/<version>`. No install ID, user ID or
   Chromium build number is sent.
-- **The proxy keeps no logs.** Request logging and observability are switched off and it has no storage. We cannot
-  see which prefixes you asked about. Cloudflare still handles the connection and can see your IP address the way
+- **The proxy does not store requests.** Request logging and observability are switched off and it has no storage.
+  The Worker does process the hash prefixes in transit, in memory, to forward them to Google, so this is a
+  statement about what it is configured and written to do (the code is in `infra/safebrowsing-proxy`), not
+  something you can verify from outside. Cloudflare still handles the connection and can see your IP address the way
   any website's host does; its own privacy policy applies to that.
 - Enhanced Protection, real-time URL lookups and extended reporting, which would send full URLs and page
   content, are disabled and cannot be turned on.
