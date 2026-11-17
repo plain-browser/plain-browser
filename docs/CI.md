@@ -98,8 +98,10 @@ The release is created with the preinstalled `gh` CLI and `GITHUB_TOKEN`, not a 
 - Provenance: the `release` job attests the packages and `SHA256SUMS.txt` (`actions/attest-build-provenance`);
   `store-submit.yml` requires the attestation (or, for builds that predate it, the build run's artifact).
 - Environments: `store` (Partner Center), `extensions` (extension signing keys, Cloudflare token) and `build` (compile
-  cache credentials) accept deployments from `main` only (`build` also from `v*` tags); `website` has no rule.
-  Because of that a build-windows run on another branch is refused: merge to `main` or tag to build.
+  cache read-write credentials) accept deployments from `main` only (`build` also from `v*` tags); `website` has no rule.
+  The build jobs use `build` on `main` and `v*` tags and `build-readonly` (no secrets, no rule) on any other ref, where
+  the cache is read with the read-only credentials (`SCCACHE_RO_*`, repository secrets) and never written
+  (`docs/BUILD_CACHE.md`).
   Status 2026-11-13: the extension signing keys (`EXT_KEY_*`) are secrets of `extensions` only. `CLOUDFLARE_API_TOKEN`
   and the `SCCACHE_*` credentials are still repository secrets (jobs fall back to them): move them as
   `docs/GITHUB_SETUP.md` section 2 says, then delete the repository copies.

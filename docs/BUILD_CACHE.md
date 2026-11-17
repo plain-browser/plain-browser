@@ -84,11 +84,17 @@ runs the preprocessor).
 `cc_wrapper="sccache"` to `flags.windows.gn` for the build stages, both only when the repository variable
 `SCCACHE_BUCKET` is set; without it nothing changes. The credentials reach only the build steps, never `prepare`.
 Not measured yet (no bucket, and the build VM was off). To switch it on:
-1. Cloudflare: an R2 bucket (e.g. `plainbrowser-sccache`) and an API token limited to that bucket with Object Read and
-   Write.
+1. Cloudflare: an R2 bucket (e.g. `plainbrowser-sccache`) and two R2 API tokens limited to that bucket (R2 > Manage API
+   Tokens, preferably Account API tokens): **Object Read & Write** and **Object Read only**.
 2. GitHub, Settings > Secrets and variables > Actions: variables `SCCACHE_BUCKET` (bucket name) and `SCCACHE_ENDPOINT`
-   (`https://<account id>.r2.cloudflarestorage.com`), secrets `SCCACHE_ACCESS_KEY_ID` and
-   `SCCACHE_SECRET_ACCESS_KEY` (the token's S3 credentials).
+   (`https://<account id>.r2.cloudflarestorage.com`). Secrets: the read-write token's S3 credentials as
+   `SCCACHE_ACCESS_KEY_ID` and `SCCACHE_SECRET_ACCESS_KEY` **in the environment `build`** (main and `v*` tags only), the
+   read-only token's as `SCCACHE_RO_ACCESS_KEY_ID` and `SCCACHE_RO_SECRET_ACCESS_KEY` as repository secrets.
+   `build-windows.yml` picks by ref: on `main` and `v*` tags the jobs run in `build` with the read-write credentials
+   (`SCCACHE_S3_RW_MODE=READ_WRITE`); any other ref runs in `build-readonly` (an environment without secrets) and gets
+   the read-only ones with `SCCACHE_S3_RW_MODE=READ_ONLY`, so a branch build can use the cache but never write to it
+   (a poisoned entry would end up in a release). Without credentials for the ref `build-stage.ps1` builds without the
+   cache.
 3. Run `build-windows` twice on the same tag: the first fills the cache, the second shows the hit rate in the
    "sccache statistics" part of each stage's log and how many stages are still needed. Then measure a real bump.
 The cache is only valid while the Visual Studio and Windows SDK versions and the path `C:\pb` stay the same (the

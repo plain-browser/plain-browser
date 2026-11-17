@@ -36,6 +36,9 @@ concurrency:
 
 env:
   PROFILE: ${{ inputs.profile || 'release' }}
+  # Write access to the compile cache (docs/BUILD_CACHE.md) only for main and v* tags, whose jobs run in the environment
+  # `build` and use its read-write credentials; every other ref reads the cache with the read-only credentials.
+  SCCACHE_CAN_WRITE: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
   # Same absolute path on every runner of a run: args.gn and the ninja logs in the handed-over tree contain it.
   PB_WORK: C:\pb
 
@@ -124,8 +127,9 @@ jobs:
     needs: prepare
     # Stage 1 also writes args.gn and runs gn gen and bindgen (build.py --ci does that on its first pass).
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     permissions:
       contents: read
@@ -156,8 +160,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 2
         if: steps.stage.outputs.finished != 'true'
@@ -191,8 +196,9 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: needs.build-1.outputs.finished != 'true'
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -218,8 +224,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 3
         if: steps.stage.outputs.finished != 'true'
@@ -253,8 +260,9 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: needs.build-2.outputs.finished != 'true'
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -280,8 +288,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 4
         if: steps.stage.outputs.finished != 'true'
@@ -315,8 +324,9 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: needs.build-3.outputs.finished != 'true'
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -342,8 +352,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 5
         if: steps.stage.outputs.finished != 'true'
@@ -378,8 +389,9 @@ jobs:
     # here: stages 1-4 are skipped and tree-4 comes from that run (see build-6 for why the condition looks like this).
     if: ${{ !cancelled() && ((inputs.resume_run != '' && inputs.resume_stage == '5') || (needs.build-4.result == 'success' && needs.build-4.outputs.finished != 'true')) }}
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     permissions:
       contents: read
@@ -413,8 +425,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 6
         if: steps.stage.outputs.finished != 'true'
@@ -450,8 +463,9 @@ jobs:
     # unless the condition has !cancelled(), hence the explicit results from here on.)
     if: ${{ !cancelled() && ((inputs.resume_run != '' && inputs.resume_stage == '6') || (needs.build-5.result == 'success' && needs.build-5.outputs.finished != 'true')) }}
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     permissions:
       contents: read
@@ -485,8 +499,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 7
         if: steps.stage.outputs.finished != 'true'
@@ -520,8 +535,9 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build; resume_stage 7 starts here from that run's tree-6.
     if: ${{ !cancelled() && ((inputs.resume_run != '' && inputs.resume_stage == '7') || (needs.build-6.result == 'success' && needs.build-6.outputs.finished != 'true')) }}
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     permissions:
       contents: read
@@ -552,8 +568,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 8
         if: steps.stage.outputs.finished != 'true'
@@ -587,8 +604,9 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: ${{ !cancelled() && needs.build-7.result == 'success' && needs.build-7.outputs.finished != 'true' }}
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -614,8 +632,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 9
         if: steps.stage.outputs.finished != 'true'
@@ -649,8 +668,9 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: ${{ !cancelled() && needs.build-8.result == 'success' && needs.build-8.outputs.finished != 'true' }}
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -676,8 +696,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 10
         if: steps.stage.outputs.finished != 'true'
@@ -711,8 +732,9 @@ jobs:
     # Skipped (no runner) once an earlier stage finished the build.
     if: ${{ !cancelled() && needs.build-9.result == 'success' && needs.build-9.outputs.finished != 'true' }}
     runs-on: windows-2022
-    # Secrets of the compile cache (docs/BUILD_CACHE.md) come from this environment: main and v* tags only.
-    environment: build
+    # `build` (read-write cache credentials) accepts main and v* tags only; any other ref runs in `build-readonly`, an
+    # environment without secrets, so a branch build can never reach the credentials that can write to the cache.
+    environment: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && 'build' || 'build-readonly' }}
     timeout-minutes: 360
     outputs:
       finished: ${{ steps.stage.outputs.finished }}
@@ -738,8 +760,9 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
           SCCACHE_ENDPOINT: ${{ vars.SCCACHE_ENDPOINT }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SCCACHE_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCCACHE_SECRET_ACCESS_KEY }}
+          SCCACHE_S3_RW_MODE: ${{ env.SCCACHE_CAN_WRITE == 'true' && 'READ_WRITE' || 'READ_ONLY' }}
+          AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_ACCESS_KEY_ID || secrets.SCCACHE_RO_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_CAN_WRITE == 'true' && secrets.SCCACHE_SECRET_ACCESS_KEY || secrets.SCCACHE_RO_SECRET_ACCESS_KEY }}
         run: ./scripts/ci/build-stage.ps1 -Work $env:PB_WORK -Profile $env:PROFILE
       - name: Save the tree for stage 11
         if: steps.stage.outputs.finished != 'true'

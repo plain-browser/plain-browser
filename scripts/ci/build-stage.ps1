@@ -28,13 +28,19 @@ Write-DiskFree
 $flags = "$ucw\flags.windows.gn"
 $flagText = (Get-Content $flags -Raw) -replace '(?s)\r?\n# PLAINBROWSER-SCCACHE-BEGIN.*?# PLAINBROWSER-SCCACHE-END\r?\n', ''
 $useCache = [bool]$env:SCCACHE_BUCKET
+if ($useCache -and -not ($env:AWS_ACCESS_KEY_ID -and $env:AWS_SECRET_ACCESS_KEY)) {
+  # A ref that has no cache credentials (a branch build before the read-only ones are set): build without the cache.
+  Write-Host "::warning::SCCACHE_BUCKET is set but this run has no cache credentials: building without the compile cache"
+  $useCache = $false
+}
 if ($useCache) {
   if (-not (Get-Command sccache -ErrorAction SilentlyContinue)) { throw "SCCACHE_BUCKET is set but sccache is not installed" }
   $flagText += "`n# PLAINBROWSER-SCCACHE-BEGIN`ncc_wrapper=`"sccache`"`n# PLAINBROWSER-SCCACHE-END`n"
   if (-not $env:SCCACHE_REGION) { $env:SCCACHE_REGION = "auto" }
   & sccache --stop-server 2>$null | Out-Null
   & sccache --start-server
-  Write-Host "compile cache: sccache, bucket $env:SCCACHE_BUCKET"
+  $mode = if ($env:SCCACHE_S3_RW_MODE) { $env:SCCACHE_S3_RW_MODE } else { "READ_WRITE" }
+  Write-Host "compile cache: sccache, bucket $env:SCCACHE_BUCKET, $mode"
 } else {
   Write-Host "compile cache: off"
 }
