@@ -1,8 +1,8 @@
 {
   "ublock": {
-    "tag": "1.76.0",
-    "version": "1.76.0",
-    "sha256": "e76a1912426caa7b8679ad11dd140d1529c23db22ddbe892b6f901e9b7763456",
+    "tag": "1.76.4",
+    "version": "1.76.4",
+    "sha256": "4b1b27ed82e734d508ae6d255933c334f62f256e8a8aece92724b826828e3d5f",
     "permissions": [
       "<all_urls>",
       "alarms",
