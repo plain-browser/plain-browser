@@ -61,6 +61,10 @@ offline (it is only needed to set the secret again) and never commit it. Rotatin
 second slot, release, then `wrangler secret put SIGNING_KEY` with the new private key; the next cron run re-signs
 the manifest.
 
+Check what is served the way the browser does (signature against the key in `filter_lists.h`, `sequence`, `expires`,
+size and SHA-256 of every list): `node scripts/verify-live.mjs`. After a deploy the new manifest fields appear with the
+next cron run (every 6 hours); until then it fails on `sequence` and `expires`.
+
 `lists.plain-browser.app` is a custom domain of the `plain-browser.app` zone; `wrangler deploy` creates the record.
 The manifest exists after the first cron run. To publish right away, trigger the cron once from the dashboard
 (Workers → plainbrowser-filter-lists → Settings → Triggers) or locally with `npx wrangler dev --test-scheduled`
