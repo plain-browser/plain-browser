@@ -91,7 +91,9 @@ aktualizuje istniejący produkt. Dalej:
    `PARTNER_CENTER_CLIENT_ID`, `PARTNER_CENTER_CLIENT_SECRET`. Sekrety repozytorium nie, bo zobaczyłby je build.
    Tak samo środowisko **`extensions`** (reguła: tylko `main`; sekrety `EXT_KEY_UBLOCK`, `EXT_KEY_NOSCRIPT`,
    `EXT_KEY_ADGUARD`, `CLOUDFLARE_API_TOKEN`) i **`build`** (reguła: `main` i tagi `v*`; sekrety `SCCACHE_ACCESS_KEY_ID`,
-   `SCCACHE_SECRET_ACCESS_KEY`). Sekret środowiska ma pierwszeństwo przed sekretem repozytorium o tej samej nazwie;
+   `SCCACHE_SECRET_ACCESS_KEY` z tokenu R2 do zapisu). Dla pozostałych gałęzi: środowisko **`build-readonly`** (bez reguł i
+   sekretów) oraz sekrety repozytorium `SCCACHE_RO_ACCESS_KEY_ID`, `SCCACHE_RO_SECRET_ACCESS_KEY` z tokenu R2 tylko do
+   odczytu (`docs/BUILD_CACHE.md`). Sekret środowiska ma pierwszeństwo przed sekretem repozytorium o tej samej nazwie;
    kopie w sekretach repozytorium usuń dopiero, gdy środowisko ma własne (`gh secret list --env <nazwa>`).
    Reguła zestawu dla tagów `v*` (bez zmiany i usunięcia) i „Immutable releases” są włączone w ustawieniach repozytorium.
 3. Zmienne repozytorium: `STORE_PRODUCT_ID` (Store ID produktu, 12 znaków, z Partner Center → Product identity),
