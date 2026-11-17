@@ -104,7 +104,7 @@ npm test
 
 ## Licenses
 
-All four extensions are GPLv3 and are redistributed under it, with one change to each: the `update_url` line in
+All three extensions are GPLv3 and are redistributed under it, with one change to each: the `update_url` line in
 `manifest.json` (and the upstream `key`, if any, removed). Everything else is the upstream release zip, file for
 file. The source is upstream, at the release each build names in `catalog.json` (`source_url`):
 
