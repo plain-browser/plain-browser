@@ -115,6 +115,10 @@ class FilterListUpdater {
   filter_lists::Manifest stored_;
   // Highest manifest sequence accepted (see filter_lists::Freshness); kept in
   // the store directory.
+  // The store is read on a BEST_EFFORT sequence, which may run late during
+  // start-up. Until it has answered, the stored lists and the highest accepted
+  // sequence are unknown and a check would take a replayed manifest as new.
+  bool store_loaded_ = false;
   int64_t highest_sequence_ = 0;
   // The engine uses downloaded lists (so disabling has something to undo).
   bool using_downloaded_ = false;

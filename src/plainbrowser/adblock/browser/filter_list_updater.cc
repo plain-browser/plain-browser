@@ -246,6 +246,7 @@ void FilterListUpdater::OnEnabledChanged() {
 }
 
 void FilterListUpdater::LoadStore() {
+  store_loaded_ = false;
   file_runner_->PostTaskAndReplyWithResult(
       FROM_HERE, base::BindOnce(&filter_lists::ReadStore, store_dir_),
       base::BindOnce(&FilterListUpdater::OnStoreRead,
@@ -253,6 +254,7 @@ void FilterListUpdater::LoadStore() {
 }
 
 void FilterListUpdater::OnStoreRead(filter_lists::Store store) {
+  store_loaded_ = true;
   stored_ = std::move(store.manifest);
   highest_sequence_ = std::max(highest_sequence_, store.sequence);
   if (store.lists.empty() && !using_downloaded_) {
@@ -272,6 +274,12 @@ void FilterListUpdater::ScheduleCheck(base::TimeDelta delay) {
 
 void FilterListUpdater::Check() {
   if (!Enabled()) {
+    return;
+  }
+  if (!store_loaded_) {
+    // The store read is still queued: the stored lists and the highest
+    // accepted sequence are not known yet.
+    ScheduleCheck(base::Seconds(1));
     return;
   }
   checking_ = true;
