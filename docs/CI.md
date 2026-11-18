@@ -178,7 +178,7 @@ costs nothing but time; the storage of the `tree-*` artifacts (several tens of G
   is not called. The MSIX gets the Store identity from the repository variables `MSIX_IDENTITY_NAME`,
   `MSIX_PUBLISHER`, `MSIX_PUBLISHER_DISPLAY` (Partner Center, Product identity); without them it is the dev package.
 
-## Release pipeline (hourly, no human step)
+## Release pipeline (hourly, one human step: the Store approval)
 
 `.github/workflows/pipeline.yml` runs `scripts/ci/pipeline.py` on a schedule (three times an hour; GitHub runs schedules on a best-effort basis and delayed them by hours here). All state is read from GitHub (tags, workflow
 runs, the draft release), so a pass that dies half way is finished by the next one. Stop it with the repository
@@ -238,12 +238,15 @@ hand for any tag) and has two jobs:
    `commit=true`, commits it to certification. The first argument must be the package file: a directory is not
    recognised as a project.
 
-The `store` environment has no required reviewer (the pipeline must run without a person); it only lets branch `main`
-read the Partner Center secrets. `commit=false` passes `--noCommit` and leaves a draft in Partner Center. Rollout is the
+The `store` environment has a required reviewer (the maintainer; self-review is allowed because there is only one):
+the `verify` job runs by itself, then `submit` waits for "Review deployments" on the run before anything is sent to
+Partner Center. The pipeline sees a waiting run as running and does not start another; a run that is rejected or times
+out (30 days) counts as a failed submission, and after three of those it opens an issue. The environment also lets
+only branch `main` read the Partner Center secrets. `commit=false` passes `--noCommit` and leaves a draft in Partner Center. Rollout is the
 `rollout` input, else the variable `STORE_ROLLOUT_PERCENT`, else **100**, which means no gradual rollout (the rollout is
 switched off in the submission metadata). Partner Center accepts no new submission while a gradual rollout of the
 previous one is in progress (`CommitFailed` / `InvalidState`, and the portal says "halt or finalize the rollout"), and
-with no person in the loop nobody finalizes a 10 % rollout; a value below 100 therefore needs
+the approval covers only the submission, nobody finalizes a 10 % rollout; a value below 100 therefore needs
 `msstore submission rollout finalize` by hand before the next release. After the commit the job waits for the verdict
 (`CommitStarted` becomes `PreProcessing`/`Certification`, or `CommitFailed`, which fails the job); certification itself
 takes hours to days and is not waited for. The submission also gets certification notes for the restricted capability

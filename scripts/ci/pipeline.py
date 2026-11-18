@@ -10,7 +10,8 @@ pass that dies half way is finished by the next one. In order:
   2. build      The newest release tag has no build: start one. A build that failed: look at the failed jobs' logs;
                 a runner or network problem is rerun (jobs that already finished are kept), a source problem
                 (compile error, patch that does not apply) goes to an issue, because rerunning cannot fix it.
-  3. release    A finished build: sign-release on the draft, then store-submit with commit=true (certification), then
+  3. release    A finished build: sign-release on the draft, then store-submit with commit=true (certification; its submit job waits for the
+                maintainer's approval in the `store` environment), then
                 publish the release as a pre-release. store-submit that finds an earlier submission still in
                 certification waits (it says DEFERRED); other failures are retried a few times, then an issue.
 

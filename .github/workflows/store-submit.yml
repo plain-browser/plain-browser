@@ -2,8 +2,9 @@ name: store-submit
 # the exact title is how scripts/ci/pipeline.py finds the real submissions; diagnose and draft runs get a suffix
 run-name: store-submit ${{ inputs.tag }}${{ (inputs.diagnose || !inputs.commit) && ' (draft)' || '' }}
 # Sends the MSIX of a GitHub release to Microsoft Store certification (docs/CI.md, "Microsoft Store"). Started by
-# scripts/ci/pipeline.py (every hour, after sign-release.yml) or by hand for any tag. Nothing here waits for a person:
-# the `store` environment only limits which branch may read the Partner Center secrets (main).
+# scripts/ci/pipeline.py (every hour, after sign-release.yml) or by hand for any tag. The `submit` job waits for the maintainer's
+# approval (required reviewer of the `store` environment); `verify` runs without it. The environment also limits which
+# branch may read the Partner Center secrets (main).
 # Needs: a release already signed by sign-release.yml (SHA256SUMS.txt and cosign bundles), the Store product created
 # and submitted once by hand in Partner Center, and the variables and secrets of docs/GITHUB_SETUP.md section 5.
 # A submission of an earlier release that is still in certification is not touched (the Store keeps one pending

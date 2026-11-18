@@ -85,8 +85,9 @@ aktualizuje istniejący produkt. Dalej:
 1. Partner Center → Account settings → User management → Azure AD applications: dodaj aplikację (Entra ID) z rolą
    Manager lub Developer, utwórz dla niej sekret. Zapisz tenant ID, client ID, secret oraz seller ID (Account
    settings → Organization profile → Legal info).
-2. GitHub → Settings → Environments → nowe środowisko **`store`**: **bez Required reviewers** (potok `pipeline.yml` wysyła
-   zgłoszenia bez udziału człowieka) i z regułą wdrożeń tylko dla gałęzi `main`: sekrety Partner Center czyta wyłącznie
+2. GitHub → Settings → Environments → nowe środowisko **`store`**: z **Required reviewers** (Ty; „Prevent self-review" wyłączone,
+   bo jesteś jedynym opiekunem): potok przygotowuje i weryfikuje paczkę, a zadanie `submit` czeka, aż je zatwierdzisz
+   (mail i Actions → run → Review deployments; po 30 dniach bez decyzji run się kończy błędem) i z regułą wdrożeń tylko dla gałęzi `main`: sekrety Partner Center czyta wyłącznie
    workflow uruchomiony z `main`. Sekrety środowiska: `PARTNER_CENTER_TENANT_ID`, `PARTNER_CENTER_SELLER_ID`,
    `PARTNER_CENTER_CLIENT_ID`, `PARTNER_CENTER_CLIENT_SECRET`. Sekrety repozytorium nie, bo zobaczyłby je build.
    Tak samo środowisko **`extensions`** (reguła: tylko `main`; sekrety `EXT_KEY_UBLOCK`, `EXT_KEY_NOSCRIPT`,
