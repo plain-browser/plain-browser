@@ -127,7 +127,7 @@ $store = "$Out\profile\PlainBrowser Filter Lists"
 $page = "http://example.org:8000/c.html"
 function StartServer($dir, $p, $name) { Start-Process -FilePath $py -ArgumentList @("-m","http.server","$p","--bind","127.0.0.1","--directory",$dir) -PassThru -WindowStyle Hidden -RedirectStandardError "$Out\srv-$name.log" }
 function StartBrowser([string[]]$extra) {
-  $a = @("--headless=new","--disable-gpu","--no-first-run","--user-data-dir=$Out\profile","--remote-debugging-port=$port",
+  $a = @("--headless=new","--disable-gpu","--no-first-run","--enable-logging=stderr","--user-data-dir=$Out\profile","--remote-debugging-port=$port",
          ("--host-resolver-rules=" + [char]34 + $rules + [char]34)) + $extra + @("about:blank")
   $b = Start-Process -FilePath $Exe -ArgumentList $a -PassThru -RedirectStandardError "$Out\chrome-$(Get-Random).txt"
   for ($i = 0; $i -lt 30; $i++) { Start-Sleep 1; try { Invoke-RestMethod "http://127.0.0.1:$port/json/version" -TimeoutSec 2 | Out-Null; break } catch {} }

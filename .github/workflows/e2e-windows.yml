@@ -85,6 +85,7 @@ jobs:
           path: |
             C:\e2e\adblock.txt
             C:\e2e\lists\lists.log
+            C:\e2e\lists\chrome-*.txt
             C:\dw-test3\*.txt
             C:\dw-test3\srv_*.log
           retention-days: 7
