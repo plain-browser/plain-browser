@@ -40,6 +40,7 @@ Remove-Item $Out -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory "$Out\srv", "$Out\lists\v1\lists", "$Out\profile" | Out-Null
 Log "exe: $Exe"
 $py = (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe" | Select-Object -First 1).FullName
+if (-not $py) { $py = (Get-Command python -ErrorAction SilentlyContinue).Source }   # a CI runner has no per-user Python
 # --- pages ---------------------------------------------------------------------------------------------------------
 @'
 <html><head><title>pending</title></head><body>

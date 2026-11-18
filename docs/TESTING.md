@@ -12,6 +12,11 @@ Three layers, from fast to slow:
 | headless | the whole browser: `scripts/test-adblock.ps1`, `test-privacy.ps1`, `test-safebrowsing.ps1`, `test-shields.ps1`, `test-cosmetic-lists.ps1` (generic hiding incl. content added 35 s after load, `$redirect`, scriptlets, procedural filters; signed list updates from a local server, bad signature, restart, switch off), `test-live-lists.ps1` (the real mirror lists.plain-browser.app with the compiled-in key: a fresh profile downloads manifest and lists by itself, stored = served by SHA-256, the downloaded EasyList blocks and hides; run once the Worker has published) | `scripts/` | the build VM, against `out\Default\chrome.exe` |
 | UI | toolbar button and bubble in a normal window, driven by UI Automation: `scripts/test-shields-ui.ps1` (opens, toggles, closes; checks the pushed exception list in the running renderer, the blocked count on the button and the "Manage sites" link; English UI via `--lang`; screenshots); the Polish strings and the exception list in Settings: `scripts/test-shields-settings.ps1` (plural form of the count, add a URL and see its site, remove, the pref on disk); the Safe Browsing settings: `scripts/test-safebrowsing-settings.ps1` (the toggle under You and Google, no Enhanced protection, the pref on disk) | `scripts/` | the build VM's interactive desktop session (a scheduled task with `-LogonType Interactive`, not SSH) |
 
+The headless layer also runs on a GitHub runner without the build VM: the workflow `e2e-windows.yml` (run it by hand
+with a release tag) downloads the `.zip` of that release, requires its build provenance, runs `test-adblock.ps1` and
+`test-cosmetic-lists.ps1` against the browser inside it and fails on a wrong result; the logs are in the run summary
+and the `e2e-logs` artifact.
+
 ## plainbrowser_unittests
 
 GN target `//plainbrowser:plainbrowser_unittests` (`src/plainbrowser/BUILD.gn`). It is a plain `test()` with

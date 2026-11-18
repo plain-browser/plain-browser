@@ -33,6 +33,7 @@ if ($ExePath) {
 }
 $exeDir = (Split-Path $exe.FullName) + "\*"
 $py = (Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe" | Select-Object -First 1).FullName
+if (-not $py) { $py = (Get-Command python -ErrorAction SilentlyContinue).Source }   # a CI runner has no per-user Python
 Set-Content C:\dw-test3\srv\index.html "ok"
 @'
 <html><head><title>pending</title></head><body><script>

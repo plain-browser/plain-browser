@@ -1,0 +1,91 @@
+name: e2e-windows
+run-name: e2e-windows ${{ inputs.tag }}
+# End-to-end tests of a released package in headless Chrome on a Windows runner (docs/TESTING.md, "headless"):
+# scripts/test-adblock.ps1 (ad and tracker hosts, WebSockets, frame documents, redirects, workers) and
+# scripts/test-cosmetic-lists.ps1 (cosmetic filtering, scriptlets, signed filter list updates, replay and expiry).
+# Downloads the .zip of the release, requires its build provenance (build-windows.yml on that tag), runs the tests against
+# the browser inside it and fails on a wrong result. Nothing is published and there are no secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag whose .zip to test, e.g. v0.2.2-beta.2"
+        required: true
+permissions: {}
+concurrency:
+  group: e2e-windows
+  cancel-in-progress: false
+jobs:
+  e2e:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Download the package and check where it came from
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ($env:TAG -notmatch '^v[0-9][0-9A-Za-z.+-]*$') { throw "unexpected tag: $env:TAG" }
+          New-Item -ItemType Directory C:\e2e | Out-Null
+          gh release download $env:TAG --repo $env:REPO --pattern "PlainBrowser_*_x64.zip" --dir C:\e2e
+          if ($LASTEXITCODE -ne 0) { throw "download failed" }
+          $zip = Get-ChildItem C:\e2e -Filter "PlainBrowser_*_x64.zip" | Select-Object -First 1
+          $sha = gh api "repos/$env:REPO/commits/$env:TAG" --jq .sha
+          if ($LASTEXITCODE -ne 0) { throw "tag lookup failed" }
+          gh attestation verify $zip.FullName --repo $env:REPO --signer-workflow "$env:REPO/.github/workflows/build-windows.yml" --source-ref "refs/tags/$env:TAG" --source-digest $sha
+          if ($LASTEXITCODE -ne 0) { throw "$($zip.Name) has no valid build provenance for $env:TAG" }
+          Expand-Archive $zip.FullName -DestinationPath C:\e2e\pkg
+          $chrome = Get-ChildItem C:\e2e\pkg -Recurse -Filter chrome.exe | Select-Object -First 1
+          if (-not $chrome) { throw "no chrome.exe in the package" }
+          "CHROME=$($chrome.FullName)" >> $env:GITHUB_ENV
+          Write-Host "testing $($chrome.FullName)"
+      - name: Ad blocking (test-adblock.ps1)
+        run: |
+          ./scripts/test-adblock.ps1 -ExePath $env:CHROME *>&1 | Tee-Object C:\e2e\adblock.txt
+          $t = Get-Content C:\e2e\adblock.txt -Raw
+          "### test-adblock.ps1`n" + '```' + "`n$t`n" + '```' >> $env:GITHUB_STEP_SUMMARY
+          $on = ($t -split "`n" | Where-Object { $_ -like "*[[]ON] RESULT*" }) -join " "
+          $off = ($t -split "`n" | Where-Object { $_ -like "*[[]OFF_killswitch] RESULT*" }) -join " "
+          $problems = @()
+          foreach ($k in "ad_adnxs", "ad_criteo", "ad_scorecard", "ad_pubmatic", "rd_adnxs", "ws_duckdns") {
+            if ($on -notmatch "$k=error") { $problems += "ON: $k should be blocked" }
+            if ($off -notmatch "$k=(allowed|open)") { $problems += "OFF_killswitch: $k should be allowed" }
+          }
+          foreach ($k in "ctl_example_com", "ctl_example_org") {
+            if ($on -notmatch "$k=allowed") { $problems += "ON: $k should be allowed" }
+          }
+          if ($on -notmatch "ws_control=open") { $problems += "ON: ws_control should open" }
+          if ($t -notmatch "\[ON\] frame document requested: False, redirect target requested: False") { $problems += "ON: the frame document or the redirect target reached the server" }
+          if ($t -notmatch "\[OFF_killswitch\] frame document requested: True, redirect target requested: True") { $problems += "OFF_killswitch: the frame document and the redirect target should reach the server" }
+          if ($problems.Count) { $problems | ForEach-Object { Write-Host "::error::$_" }; throw "$($problems.Count) check(s) failed" }
+          Write-Host "test-adblock: all checks passed"
+      - name: Cosmetic filtering and list updates (test-cosmetic-lists.ps1)
+        run: |
+          ./scripts/test-cosmetic-lists.ps1 -Exe $env:CHROME -Out C:\e2e\lists
+          $log = Get-Content C:\e2e\lists\lists.log -Raw
+          Write-Host $log
+          "### test-cosmetic-lists.ps1`n" + '```' + "`n$log`n" + '```' >> $env:GITHUB_STEP_SUMMARY
+          if ((Get-Content C:\e2e\lists\lists.log | Select-Object -Last 1) -notmatch "PASS") { throw "test-cosmetic-lists failed" }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-logs
+          path: |
+            C:\e2e\adblock.txt
+            C:\e2e\lists\lists.log
+            C:\dw-test3\*.txt
+            C:\dw-test3\srv_*.log
+          retention-days: 7
+          if-no-files-found: ignore
