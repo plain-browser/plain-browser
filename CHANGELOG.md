@@ -5,6 +5,12 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.3-beta.1] - 2026-11-18 [Chromium 157.0.8103.78, ungoogled-chromium-windows 157.0.8103.78-1.1]
+
+### Changed
+- Same Chromium base (157.0.8103.78). Package version 0.2.3.0.
+- Build and release (no change for users): compile cache credentials split into read-write (main and release tags) and read-only (other refs); the Rust crates added for the ad blocker are checked against a pinned list (`scripts/adblock-crates.lock`, filled by the first build); sign-release and resumed builds verify where a file came from; the Microsoft Store submission waits for the maintainer's approval.
+
 ### Fixed
 - Filter list updates: the first check waits until the stored lists and the highest accepted manifest `sequence` have been read. The read runs at background priority and, found by the new `e2e-windows` workflow on a Windows runner, could finish after a check made 3 s after start-up, which then took an older (replayed) manifest as new. In normal use the first check is 2 minutes after start, so this was a test-time race, but the check no longer depends on timing.
 
