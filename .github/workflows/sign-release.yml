@@ -26,9 +26,18 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9][0-9A-Za-z.+-]*$ ]] || { echo "::error::unexpected tag: $TAG"; exit 1; }
           mkdir dist && cd dist
           gh release download "$TAG" --repo "$REPO" --pattern '*' --clobber
           rm -f SHA256SUMS.txt *.bundle
+          # Only files that build-windows.yml made from this tag are signed: a signature says who published the files,
+          # so without this a file added to the draft by hand would carry our signature too.
+          sha=$(gh api "repos/$REPO/commits/$TAG" --jq .sha)
+          for f in *; do
+            gh attestation verify "$f" --repo "$REPO" --signer-workflow "$REPO/.github/workflows/build-windows.yml" \
+              --source-ref "refs/tags/$TAG" --source-digest "$sha" > /dev/null \
+              || { echo "::error::$f has no valid build provenance for $TAG ($sha): not signing"; exit 1; }
+          done
           sha256sum * > SHA256SUMS.txt
           for f in *; do
             case "$f" in *.bundle) continue;; esac

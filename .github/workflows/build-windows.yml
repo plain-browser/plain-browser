@@ -73,7 +73,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           # Everything prepare-tree.ps1 reads: the pinned tag and version, patches, our sources, branding, the
           # Python and PowerShell helpers it calls, and the profile (flags.windows.gn differs).
-          TREE_NAME: tree-0-${{ env.PROFILE }}-${{ hashFiles('versions.toml', 'patches/**', 'src/**', 'branding/**', 'scripts/*.py', 'scripts/*.ps1', 'scripts/ci/common.ps1', 'scripts/ci/install-tools.ps1', 'scripts/ci/prepare-tree.ps1') }}
+          TREE_NAME: tree-0-${{ env.PROFILE }}-${{ hashFiles('versions.toml', 'patches/**', 'src/**', 'branding/**', 'scripts/*.py', 'scripts/*.ps1', 'scripts/adblock-crates.lock', 'scripts/ci/common.ps1', 'scripts/ci/install-tools.ps1', 'scripts/ci/prepare-tree.ps1') }}
         run: |
           # Only a tree made by this workflow in this repository, from main or a release tag. The artifacts API lists
           # every run's artifacts, and a pull request from a fork runs its own workflow file and can upload one under
@@ -409,6 +409,22 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - name: Check the run to resume from
+        if: ${{ inputs.resume_run != '' && inputs.resume_stage == '5' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RESUME_RUN: ${{ inputs.resume_run }}
+        run: |
+          # The tree of an earlier run is code that gets built and released: only a build-windows run of this repository
+          # on main or a release tag (a pull request from a fork can upload an artifact of the same name).
+          if ($env:RESUME_RUN -notmatch '^[0-9]+$') { throw "resume_run must be a run id" }
+          $run = gh api "repos/$env:REPO/actions/runs/$env:RESUME_RUN" --jq '[.path, .event, .head_repository.full_name, (.head_branch // "")] | join(" ")'
+          if ($LASTEXITCODE -ne 0) { throw "run lookup failed" }
+          $path, $trigger, $from, $branch = $run -split " "
+          if (($path -split "@")[0] -ne ".github/workflows/build-windows.yml" -or $trigger -notin @("push", "workflow_dispatch") -or $from -ne $env:REPO -or -not ($branch -eq "main" -or $branch.StartsWith("v"))) {
+            throw "run $env:RESUME_RUN ($run) is not a build-windows run of this repository on main or a release tag"
+          }
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: tree-4
@@ -483,6 +499,22 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - name: Check the run to resume from
+        if: ${{ inputs.resume_run != '' && inputs.resume_stage == '6' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RESUME_RUN: ${{ inputs.resume_run }}
+        run: |
+          # The tree of an earlier run is code that gets built and released: only a build-windows run of this repository
+          # on main or a release tag (a pull request from a fork can upload an artifact of the same name).
+          if ($env:RESUME_RUN -notmatch '^[0-9]+$') { throw "resume_run must be a run id" }
+          $run = gh api "repos/$env:REPO/actions/runs/$env:RESUME_RUN" --jq '[.path, .event, .head_repository.full_name, (.head_branch // "")] | join(" ")'
+          if ($LASTEXITCODE -ne 0) { throw "run lookup failed" }
+          $path, $trigger, $from, $branch = $run -split " "
+          if (($path -split "@")[0] -ne ".github/workflows/build-windows.yml" -or $trigger -notin @("push", "workflow_dispatch") -or $from -ne $env:REPO -or -not ($branch -eq "main" -or $branch.StartsWith("v"))) {
+            throw "run $env:RESUME_RUN ($run) is not a build-windows run of this repository on main or a release tag"
+          }
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: tree-5
@@ -555,6 +587,22 @@ jobs:
         env:
           SCCACHE_BUCKET: ${{ vars.SCCACHE_BUCKET }}
         run: ./scripts/ci/install-tools.ps1 -Work $env:PB_WORK
+      - name: Check the run to resume from
+        if: ${{ inputs.resume_run != '' && inputs.resume_stage == '7' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RESUME_RUN: ${{ inputs.resume_run }}
+        run: |
+          # The tree of an earlier run is code that gets built and released: only a build-windows run of this repository
+          # on main or a release tag (a pull request from a fork can upload an artifact of the same name).
+          if ($env:RESUME_RUN -notmatch '^[0-9]+$') { throw "resume_run must be a run id" }
+          $run = gh api "repos/$env:REPO/actions/runs/$env:RESUME_RUN" --jq '[.path, .event, .head_repository.full_name, (.head_branch // "")] | join(" ")'
+          if ($LASTEXITCODE -ne 0) { throw "run lookup failed" }
+          $path, $trigger, $from, $branch = $run -split " "
+          if (($path -split "@")[0] -ne ".github/workflows/build-windows.yml" -or $trigger -notin @("push", "workflow_dispatch") -or $from -ne $env:REPO -or -not ($branch -eq "main" -or $branch.StartsWith("v"))) {
+            throw "run $env:RESUME_RUN ($run) is not a build-windows run of this repository on main or a release tag"
+          }
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: tree-6

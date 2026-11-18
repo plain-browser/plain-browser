@@ -31,11 +31,20 @@ Set-Location $Src
 foreach ($d in "seahash-v4","flatbuffers-v25") { $p = "$crates\vendor\$d"; if ((Test-Path $p) -and -not (Test-Path "$p\LICENSE")) { Remove-Item $p -Recurse -Force } }
 
 # 2. vendor
+# The lock as Chromium ships it, to tell afterwards which crates the vendoring added (scripts\check-crates.py).
+$lockBefore = Join-Path ([IO.Path]::GetTempPath()) "Cargo.lock.before"
+Copy-Item "$crates\Cargo.lock" $lockBefore -Force
 $eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
 & $py tools\crates\run_gnrt.py vendor 2>&1 | ForEach-Object { "$_" }
 $vendorrc = $LASTEXITCODE
 $ErrorActionPreference = $eap
 if ($vendorrc) { throw "gnrt vendor failed ($vendorrc)" }
+
+# The crates added now come from crates.io at whatever version cargo picked today: they must be the reviewed ones
+# (scripts\adblock-crates.lock). Cargo.lock still has their checksums here; the next step strips them.
+& $py -I "$PSScriptRoot\check-crates.py" --before $lockBefore --after "$crates\Cargo.lock" --pins "$PSScriptRoot\adblock-crates.lock" 2>&1 | ForEach-Object { "$_" }
+if ($LASTEXITCODE) { throw "the vendored adblock crates do not match scripts\adblock-crates.lock (see above)" }
+Remove-Item $lockBefore -Force -ErrorAction SilentlyContinue
 
 # 3. no checksums in Chromium's Cargo.lock
 $lock = [IO.File]::ReadAllText("$crates\Cargo.lock")

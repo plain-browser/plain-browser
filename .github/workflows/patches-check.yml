@@ -3,9 +3,9 @@ name: patches-check
 # Catches a patch that no longer applies before anyone spends hours on the Windows builder.
 on:
   push:
-    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
+    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/check-crates.py", "scripts/check-crates_test.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
   pull_request:
-    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
+    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/check-crates.py", "scripts/check-crates_test.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
   workflow_dispatch:
     inputs:
       tag:
@@ -22,6 +22,8 @@ jobs:
           persist-credentials: false
       - name: version.h matches versions.toml
         run: python3 -I scripts/sync-version.py --check
+      - name: Pinned-crate check (unit tests)
+        run: python3 -I scripts/check-crates_test.py
       - name: Apply the series to the files it touches
         env:
           GITHUB_TOKEN: ${{ github.token }}

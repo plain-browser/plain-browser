@@ -1,0 +1,5 @@
+# Rust crates that the adblock engine adds to Chromium's vendored set (scripts/vendor-adblock-crates.ps1), one per line:
+#   <name> <version> <sha256 of the .crate file, as in crates.io and Cargo.lock>
+# Checked by scripts/check-crates.py between `gnrt vendor` and the end of vendoring; a crate that is not here, or has
+# another checksum, stops the build. Empty until the first build with the check has printed the list to commit
+# (search the "prepare" job's log for "adblock-crates.lock"); review it before committing.

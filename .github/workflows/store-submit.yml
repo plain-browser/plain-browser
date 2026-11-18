@@ -129,6 +129,10 @@ jobs:
     environment: store
     steps:
       - uses: microsoft/setup-msstore-cli@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
+        with:
+          # The CLI itself is downloaded by the action: pinned, because this job holds the Partner Center secrets.
+          # v0.4.4 is what the 2026-11-15 submission ran with; raise it by hand after reading its release notes.
+          version: v0.4.4
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: store-package
