@@ -86,16 +86,18 @@ v7.1.0, `upload-artifact` v7.0.2, `download-artifact` v8.0.2); Dependabot (`.git
 The release is created with the preinstalled `gh` CLI and `GITHUB_TOKEN`, not a third-party action.
 
 ### Rust crates of the ad blocker
-`gnrt vendor` resolves adblock-rust's dependencies against Chromium's lock and downloads the crates the tree lacks (about
-18) from crates.io at the versions cargo picks on the day. `scripts/check-crates.py` runs right after it, while
-`Cargo.lock` still has their checksums, and compares every crate added by the vendoring with `scripts/adblock-crates.lock`
-(name, version, SHA-256): a crate that is not listed or has another checksum stops `prepare`. Chromium's own crates are not
-in the list (they come with the tree of the pinned tag). The list is empty until the first build after this check was added:
-that run prints the lines to commit under `::warning::scripts/adblock-crates.lock is empty` in the `prepare` log; review them
-against crates.io (the `checksum` of `https://crates.io/api/v1/crates/<name>/<version>`) before committing. After that a
-new Chromium tag that makes cargo pick another version of a dependency fails the build with the new lines, so a human
-looks at the changed crate before it is compiled into the browser (the failure becomes an issue like any source problem).
-The list is part of the `tree-0` cache key. Unit tests: `scripts/check-crates_test.py` (`patches-check.yml`).
+`gnrt vendor` downloads the crates the tree lacks (about 18, `adblock-v0_13`, `seahash-v4`, ...) from crates.io at the
+versions it picks on the day, straight into `third_party/rust/chromium_crates_io/vendor`; it leaves no checksums in
+`Cargo.lock`. `scripts/check-crates.py` runs right after it and compares every directory that vendoring added with
+`scripts/adblock-crates.lock`: the crate version and a SHA-256 over the whole tree (path and hash of every file). A crate
+that is not listed, or whose version or tree differs, stops `prepare`. Chromium's own crates are not in the list (they come
+with the tree of the pinned tag). A new Chromium tag that makes gnrt pick another version of a dependency fails the build
+with the new lines, so a human reads the changed crate before it is compiled into the browser (the failure becomes an
+issue like any source problem). To update the list, copy the lines from the failed (or, when the list is empty, the
+warning) output of the `prepare` log and review them first: download the `.crate` of each version from
+`https://static.crates.io/crates/<name>/<name>-<version>.crate` and compare it with the vendored tree; only the files our
+patches add (`LICENSE` for `seahash` and `flatbuffers`) may differ. The list is part of the `tree-0` cache key. Unit tests:
+`scripts/check-crates_test.py` (`patches-check.yml`).
 
 ### Security checks on the repository itself
 

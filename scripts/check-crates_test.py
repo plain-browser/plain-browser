@@ -1,74 +1,90 @@
-import importlib.util, unittest
+import importlib.util, tempfile, unittest
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location("check_crates", Path(__file__).resolve().parent / "check-crates.py")
 cc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cc)
 
-R = "registry+https://github.com/rust-lang/crates.io-index"
-A, B, C = "a" * 64, "b" * 64, "c" * 64
 
-
-def lock(*pkgs):
-    out = ["version = 4", ""]
-    for name, version, source, checksum in pkgs:
-        out += ["[[package]]", f'name = "{name}"', f'version = "{version}"']
-        if source:
-            out.append(f'source = "{source}"')
-        if checksum:
-            out.append(f'checksum = "{checksum}"')
-        out.append("")
-    return "\n".join(out)
-
-
-BEFORE = lock(("serde", "1.0.1", R, None), ("plainbrowser", "0.1.0", None, None))
-AFTER = lock(("serde", "1.0.1", R, A), ("plainbrowser", "0.1.0", None, None), ("seahash", "4.1.0", R, B), ("adblock", "0.13.3", R, C))
-PINS = f"# comment\nseahash 4.1.0 {B}\nadblock 0.13.3 {C}  # trailing\n"
+def crate(vendor, name, version, files=None):
+    d = vendor / name
+    d.mkdir(parents=True)
+    (d / "Cargo.toml").write_text(f'[package]\nname = "x"\nversion = "{version}"\n\n[dependencies]\nversion = "9.9.9"\n')
+    for rel, content in (files or {"src/lib.rs": "pub fn f() {}\n"}).items():
+        (d / rel).parent.mkdir(parents=True, exist_ok=True)
+        (d / rel).write_text(content)
+    return d
 
 
 class CheckCrates(unittest.TestCase):
-    def test_added_are_the_new_registry_crates_only(self):
-        new = cc.added(cc.parse_lock(BEFORE), cc.parse_lock(AFTER))
-        self.assertEqual(new, {("seahash", "4.1.0"): B, ("adblock", "0.13.3"): C})
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.vendor = Path(self.tmp.name)
+        crate(self.vendor, "serde-v1", "1.0.1")                       # Chromium's own, there before vendoring
+        self.before = {"serde-v1"}
+        self.a = crate(self.vendor, "adblock-v0_13", "0.13.3")
+        self.b = crate(self.vendor, "seahash-v4", "4.1.0", {"src/lib.rs": "x\n", "LICENSE": "MIT\n"})
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def new(self):
+        return cc.added(self.vendor, self.before)
+
+    def pins(self):
+        return "# c\n" + "".join(f"{n} {v} {h}  # trailing\n" for n, (v, h) in sorted(self.new().items()))
+
+    def test_added_are_the_new_directories_only(self):
+        self.assertEqual(sorted(self.new()), ["adblock-v0_13", "seahash-v4"])
+        self.assertEqual(self.new()["adblock-v0_13"][0], "0.13.3")  # the [package] version, not a dependency's
+
+    def test_tree_hash_is_stable_and_sees_content_names_and_new_files(self):
+        h = cc.tree_hash(self.a)
+        self.assertEqual(h, cc.tree_hash(self.a))
+        (self.a / "src" / "lib.rs").write_text("pub fn g() {}\n")
+        self.assertNotEqual(h, cc.tree_hash(self.a))
+        h2 = cc.tree_hash(self.a)
+        (self.a / "build.rs").write_text("fn main() {}\n")
+        self.assertNotEqual(h2, cc.tree_hash(self.a))
 
     def test_match(self):
-        code, out = cc.check(BEFORE, AFTER, PINS)
+        code, out = cc.check(self.new(), self.pins())
         self.assertEqual(code, 0)
         self.assertIn("2 added crates match", out[-1])
 
-    def test_changed_checksum_fails(self):
-        code, out = cc.check(BEFORE, AFTER, PINS.replace(B, "d" * 64))
+    def test_changed_content_fails(self):
+        pins = self.pins()
+        (self.a / "src" / "lib.rs").write_text("pub fn evil() {}\n")
+        code, out = cc.check(self.new(), pins)
         self.assertEqual(code, 1)
-        self.assertTrue(any("seahash 4.1.0" in l and "differs" in l for l in out))
+        self.assertTrue(any("adblock-v0_13" in l and "differs" in l for l in out))
+
+    def test_new_version_fails(self):
+        pins = self.pins()
+        (self.b / "Cargo.toml").write_text('[package]\nversion = "4.1.1"\n')
+        code, _ = cc.check(self.new(), pins)
+        self.assertEqual(code, 1)
 
     def test_unlisted_crate_fails(self):
-        code, out = cc.check(BEFORE, AFTER, f"adblock 0.13.3 {C}\n")
+        crate(self.vendor, "extra-v1", "1.0.0")
+        code, out = cc.check(self.new(), self.pins().replace(next(l for l in self.pins().splitlines() if l.startswith("extra")), ""))
         self.assertEqual(code, 1)
-        self.assertTrue(any("seahash 4.1.0" in l and "not in" in l for l in out))
-
-    def test_new_version_of_a_listed_crate_fails(self):
-        after = AFTER.replace('version = "4.1.0"', 'version = "4.1.1"')
-        code, _ = cc.check(BEFORE, after, PINS)
-        self.assertEqual(code, 1)
+        self.assertTrue(any("extra-v1" in l and "not in" in l for l in out))
 
     def test_empty_pins_warn_and_list(self):
-        code, out = cc.check(BEFORE, AFTER, "# nothing yet\n")
+        code, out = cc.check(self.new(), "# nothing yet\n")
         self.assertEqual(code, 0)
         self.assertTrue(out[0].startswith("::warning::"))
-        self.assertIn(f"seahash 4.1.0 {B}", out)
+        self.assertTrue(any(l.startswith("seahash-v4 4.1.0 ") for l in out))
 
     def test_pinned_but_not_added_is_a_note(self):
-        code, out = cc.check(BEFORE, AFTER, PINS + f"extra 1.0.0 {A}\n")
+        code, out = cc.check(self.new(), self.pins() + "gone-v1 1.0.0 " + "a" * 64 + "\n")
         self.assertEqual(code, 0)
-        self.assertTrue(any(l.startswith("note:") and "extra 1.0.0" in l for l in out))
+        self.assertTrue(any(l.startswith("note:") and "gone-v1" in l for l in out))
 
     def test_bad_pin_line_is_an_error(self):
         with self.assertRaises(ValueError):
-            cc.parse_pins("seahash 4.1.0 nothex\n")
-
-    def test_git_and_path_sources_are_not_pinned(self):
-        after = lock(("serde", "1.0.1", R, None), ("gitcrate", "1.0.0", "git+https://example.com/x", C))
-        self.assertEqual(cc.added(cc.parse_lock(BEFORE), cc.parse_lock(after)), {})
+            cc.parse_pins("seahash-v4 4.1.0 nothex\n")
 
 
 if __name__ == "__main__":

@@ -1,44 +1,53 @@
 #!/usr/bin/env python3
 """Pin the Rust crates that the adblock engine adds to Chromium's vendored crate set.
 
-`gnrt vendor` (scripts/vendor-adblock-crates.ps1) resolves adblock-rust's dependencies against Chromium's Cargo.lock and
-downloads whatever the tree does not have yet from crates.io, at the versions it picks on the day of the build.
-Cargo records the SHA-256 of each downloaded crate in Cargo.lock; the vendor script then strips those lines. This
-script runs in between: it takes the crates that are in the lock after vendoring but not before (the ones we added),
-and compares name, version and checksum with the reviewed list in scripts/adblock-crates.lock.
+`gnrt vendor` (scripts/vendor-adblock-crates.ps1) resolves adblock-rust's dependencies and downloads the crates the tree
+does not have yet from crates.io, at the versions it picks on the day of the build, into
+third_party/rust/chromium_crates_io/vendor/<name>-v<major>. It does not leave checksums in Cargo.lock, so this script
+pins what ends up on disk: for every directory that vendoring added, the SHA-256 over the whole tree (relative path
+and SHA-256 of each file, sorted) together with the crate version, compared with the reviewed list in
+scripts/adblock-crates.lock.
 
-  - an added crate that is not in the list, or one with another checksum: exit 1, nothing is built from it;
+  - an added crate that is not in the list, or one whose version or tree hash differs: exit 1, nothing is built from it;
   - no list yet (or an empty one): the lines to commit are printed and the build goes on (first run only);
-  - a listed crate that was not added this time: only a note (Chromium may have brought its own copy).
+  - a listed crate that was not added this time: only a note.
 
-usage: check-crates.py --before Cargo.lock.before --after Cargo.lock --pins scripts/adblock-crates.lock
-Reviewing a change of the list: compare the checksum with https://crates.io/api/v1/crates/<name>/<version> ("checksum")
-and read the crate's diff on docs.rs or in its repository before committing it.
+usage: check-crates.py --vendor <vendor dir> --before <file: directory names before vendoring> --pins scripts/adblock-crates.lock
+Reviewing the list: scripts/adblock-crates.lock says how (compare each tree with the .crate file of that version on
+crates.io; only the files that our patches add may differ).
 """
-import argparse, re, sys
+import argparse, hashlib, re, sys
 from pathlib import Path
 
-REGISTRY = "registry+https://github.com/rust-lang/crates.io-index"
 SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
-def parse_lock(text):
-    """[[package]] blocks -> {(name, version): (source, checksum)}; the values may be None."""
-    packages = {}
-    for block in re.split(r"(?m)^\[\[package\]\]\s*$", text)[1:]:
-        fields = dict(re.findall(r'(?m)^(name|version|source|checksum) = "([^"]*)"\s*$', block))
-        if "name" in fields and "version" in fields:
-            packages[(fields["name"], fields["version"])] = (fields.get("source"), fields.get("checksum"))
-    return packages
+def tree_hash(directory):
+    """SHA-256 over '<relative path>\\0<sha256 of the file>\\n' for every file, sorted by path."""
+    lines = []
+    for path in sorted(p for p in directory.rglob("*") if p.is_file()):
+        rel = path.relative_to(directory).as_posix()
+        lines.append(f"{rel}\0{hashlib.sha256(path.read_bytes()).hexdigest()}\n")
+    return hashlib.sha256("".join(lines).encode("utf-8")).hexdigest()
 
 
-def added(before, after):
-    """Registry crates with a checksum that the lock got during vendoring: {(name, version): checksum}."""
-    return {
-        key: checksum
-        for key, (source, checksum) in after.items()
-        if key not in before and source == REGISTRY and checksum
-    }
+def crate_version(directory):
+    """The version in the crate's own Cargo.toml ([package] section), or None."""
+    manifest = directory / "Cargo.toml"
+    if not manifest.is_file():
+        return None
+    text = manifest.read_text(encoding="utf-8", errors="replace")
+    m = re.search(r'(?ms)^\[package\]\s*$(.*?)(?=^\[|\Z)', text)
+    v = re.search(r'(?m)^version\s*=\s*"([^"]+)"', m.group(1)) if m else None
+    return v.group(1) if v else None
+
+
+def added(vendor, before_names):
+    """{directory name: (version, tree hash)} for the directories of `vendor` that were not there before."""
+    out = {}
+    for d in sorted(p for p in vendor.iterdir() if p.is_dir() and p.name not in before_names):
+        out[d.name] = (crate_version(d) or "?", tree_hash(d))
+    return out
 
 
 def parse_pins(text):
@@ -49,31 +58,30 @@ def parse_pins(text):
             continue
         parts = line.split()
         if len(parts) != 3 or not SHA256.fullmatch(parts[2]):
-            raise ValueError(f"pins line {number}: expected '<name> <version> <sha256>', got {line!r}")
-        pins[(parts[0], parts[1])] = parts[2]
+            raise ValueError(f"pins line {number}: expected '<directory> <version> <sha256 of the tree>', got {line!r}")
+        pins[parts[0]] = (parts[1], parts[2])
     return pins
 
 
-def check(before_text, after_text, pins_text):
-    """Returns (exit code, lines to print)."""
-    new = added(parse_lock(before_text), parse_lock(after_text))
+def check(new, pins_text):
+    """new: {directory: (version, tree hash)}. Returns (exit code, lines to print)."""
     pins = parse_pins(pins_text)
-    listing = [f"{name} {version} {checksum}" for (name, version), checksum in sorted(new.items())]
+    listing = [f"{name} {version} {digest}" for name, (version, digest) in sorted(new.items())]
     if not pins:
         return 0, [f"::warning::scripts/adblock-crates.lock is empty: {len(new)} added crates are not checked. Review and commit:"] + listing
     out, bad = [], 0
-    for (name, version), checksum in sorted(new.items()):
-        want = pins.get((name, version))
+    for name, (version, digest) in sorted(new.items()):
+        want = pins.get(name)
         if want is None:
-            out.append(f"::error::crate {name} {version} ({checksum}) is not in scripts/adblock-crates.lock")
+            out.append(f"::error::crate {name} {version} is not in scripts/adblock-crates.lock")
             bad += 1
-        elif want != checksum:
-            out.append(f"::error::crate {name} {version}: checksum {checksum} differs from the pinned {want}")
+        elif want != (version, digest):
+            out.append(f"::error::crate {name}: {version} {digest} differs from the pinned {want[0]} {want[1]}")
             bad += 1
-    for (name, version) in sorted(set(pins) - set(new)):
-        out.append(f"note: pinned crate {name} {version} was not added this time")
+    for name in sorted(set(pins) - set(new)):
+        out.append(f"note: pinned crate {name} was not added this time")
     if bad:
-        out.append(f"{bad} added crate(s) do not match the pinned list. Review them (see the header of scripts/check-crates.py), then update the list. Lines for the crates as they came in:")
+        out.append(f"{bad} added crate(s) do not match the pinned list. Review them (see scripts/adblock-crates.lock), then update it. Lines for the crates as they came in:")
         out += listing
         return 1, out
     out.append(f"adblock crates: {len(new)} added crates match scripts/adblock-crates.lock")
@@ -82,16 +90,13 @@ def check(before_text, after_text, pins_text):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--before", required=True)
-    ap.add_argument("--after", required=True)
+    ap.add_argument("--vendor", required=True)
+    ap.add_argument("--before", required=True, help="text file with the directory names of the vendor directory before vendoring")
     ap.add_argument("--pins", required=True)
     args = ap.parse_args()
+    before = set(Path(args.before).read_text(encoding="utf-8").split())
     pins = Path(args.pins)
-    code, lines = check(
-        Path(args.before).read_text(encoding="utf-8"),
-        Path(args.after).read_text(encoding="utf-8"),
-        pins.read_text(encoding="utf-8") if pins.exists() else "",
-    )
+    code, lines = check(added(Path(args.vendor), before), pins.read_text(encoding="utf-8") if pins.exists() else "")
     print("\n".join(lines))
     return code
 
