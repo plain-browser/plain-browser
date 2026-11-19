@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# frames.sh <name> <t1,t2,...>: extract frames (seconds) from Videos\<name>.mkv on DW-VIDEO into scratchpad/frames/<name>-<t>.png at 960 wide
-vm="${PB_VIDEO_VM:?set PB_VIDEO_VM=user@host of the DW-VIDEO VM}"
+# frames.sh <name> <t1,t2,...>: extract frames (seconds) from Videos\<name>.mkv on PB-VIDEO into scratchpad/frames/<name>-<t>.png at 960 wide
+vm="${PB_VIDEO_VM:?set PB_VIDEO_VM=user@host of the PB-VIDEO VM}"
 n="$1"; ts="$2"; S="${S:-$(mktemp -d)}"; mkdir -p $S/frames
 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "$vm" "
 \$ff = (Get-ChildItem \"\$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Gyan.FFmpeg*\*\bin\" | Select-Object -First 1).FullName

@@ -8,15 +8,15 @@ Two Windows 11 VMs, both installed unattended from the same multi-edition ISO
 
 | libvirt name | Hostname | Edition | vCPU / RAM | Disk | Purpose |
 |---|---|---|---|---|---|
-| `draftway-build` | DW-BUILD | Pro | 12 / 9 GB | `/mnt/nvme/domains/draftway-build/vdisk1.img` (300 GB) | Chromium build, headless tests (`scripts/build.ps1`, `scripts/test-*.ps1`) |
-| `plainbrowser-video` | DW-VIDEO | Enterprise | 4 / 6 GB | `/mnt/nvme/domains/plainbrowser-video/vdisk1.img` (120 GB, sparse) | Screen recordings for the YouTube video (`docs/VIDEO_PLAN.md`), created 2026-10-28 |
+| `plainbrowser-build` | PB-BUILD | Pro | 12 / 9 GB | `/mnt/nvme/domains/plainbrowser-build/vdisk1.img` (300 GB) | Chromium build, headless tests (`scripts/build.ps1`, `scripts/test-*.ps1`) |
+| `plainbrowser-video` | PB-VIDEO | Enterprise | 4 / 6 GB | `/mnt/nvme/domains/plainbrowser-video/vdisk1.img` (120 GB, sparse) | Screen recordings for the YouTube video (`docs/VIDEO_PLAN.md`), created 2026-10-28 |
 
 Both use the same user (`builder`), the same SSH key (`authorized_keys`) and the same first-boot script.
 
 ## How a VM is created
 
-1. `autounattend.xml` with `@@PASSWORD@@` substituted. For DW-VIDEO three things differ from the committed file:
-   `ComputerName` DW-VIDEO, the generic Enterprise installation key `NPPR9-FWDCX-D2C8J-H872K-2YT43` in place of
+1. `autounattend.xml` with `@@PASSWORD@@` substituted. For PB-VIDEO three things differ from the committed file:
+   `ComputerName` PB-VIDEO, the generic Enterprise installation key `NPPR9-FWDCX-D2C8J-H872K-2YT43` in place of
    the Pro one, and an `InstallFrom` block selecting the image by name:
    `<InstallFrom><MetaData wcm:action="add"><Key>/IMAGE/NAME</Key><Value>Windows 11 Enterprise</Value></MetaData></InstallFrom>`
    (the ISO's `install.wim` index 6; list them with `dism /Get-WimInfo /WimFile:D:\sources\install.wim`).
@@ -28,7 +28,7 @@ Both use the same user (`builder`), the same SSH key (`authorized_keys`) and the
    cp /usr/share/qemu/ovmf-x64/OVMF_VARS-pure-efi-tpm.fd /etc/libvirt/qemu/nvram/<uuid>_VARS-pure-efi-tpm.fd
    virsh define <domain>.xml && virsh start <name>
    ```
-   The domain XML is the build VM's (`virsh dumpxml draftway-build`) with a new name, uuid, MAC, disk paths,
+   The domain XML is the build VM's (`virsh dumpxml plainbrowser-build`) with a new name, uuid, MAC, disk paths,
    vCPU/memory and `autoport` VNC.
 3. The ISO prints "Press any key to boot from CD or DVD" and OVMF gives up if nothing is pressed. With no one at
    the console: `virsh reset <name>` and then `virsh send-key <name> KEY_ENTER` once a second for about 45 s.

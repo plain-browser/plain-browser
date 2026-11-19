@@ -70,12 +70,3 @@ jobs:
           gcloud storage rsync out/_next/static "gs://$BUCKET/_next/static" --recursive --delete-unmatched-destination-objects \
             --cache-control='public, max-age=31536000, immutable'
           gcloud storage objects update "gs://$BUCKET/**.html" --cache-control='public, max-age=300' --quiet
-      - name: Purge Cloudflare cache
-        if: vars.CLOUDFLARE_ZONE_ID != ''
-        env:
-          CF_ZONE: ${{ vars.CLOUDFLARE_ZONE_ID }}
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          curl -fsS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/purge_cache" \
-            -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}'

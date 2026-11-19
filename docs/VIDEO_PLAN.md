@@ -21,7 +21,7 @@ Różnice względem planu powyżej:
   nie 35. Żeby dojść do 35 min, trzeba dopisać ok. 1 300 słów albo mówić wolniej (ok. 110 słów/min).
 - **Strona z reklamami:** zamiast prawdziwego portalu własna strona demo `kurier.test` (prawdziwe adresy sieci
   reklamowych, treść fikcyjna), żeby w filmie nie było cudzych treści.
-- **Timelapse builda:** animacja odtworzona z prawdziwego `.ninja_log` DW-BUILD (58 692 kroki, 7:00:30), z podpisem
+- **Timelapse builda:** animacja odtworzona z prawdziwego `.ninja_log` PB-BUILD (58 692 kroki, 7:00:30), z podpisem
   na ekranie; pełny 7-godzinny build nie był nagrywany.
 - **GitHub Actions:** repo jest prywatne, więc zamiast strony Actions są pliki workflow w terminalu.
 - **Partner Center:** nie nagrany (wymaga logowania); zamiast niego tekst listingu i strona polityki prywatności.

@@ -1,7 +1,7 @@
 # Video production (YouTube video about building Plain Browser)
 
 Tooling that recorded the screen shots and assembled the rough cut for `docs/VIDEO_PLAN.md`. Everything runs on
-the recording VM DW-VIDEO (`plainbrowser-video` on the Unraid host, see `infra/unraid-vm/README.md`); the scripts in
+the recording VM PB-VIDEO (`plainbrowser-video` on the Unraid host, see `infra/unraid-vm/README.md`); the scripts in
 `host/` drive it over SSH from a Linux machine.
 The addresses are not in the repository: set `PB_VIDEO_VM=user@host` (the recording VM) and `PB_UNRAID=user@host` (the Unraid
 server, for `shot.sh` and `gexec.sh`) in the shell that runs the scripts.
@@ -44,7 +44,7 @@ server, for `shot.sh` and `gexec.sh`) in the shell that runs the scripts.
 - `tts.ps1`: placeholder voice from the Windows OneCore voice "Adam" (pl-PL), one WAV per part, so the timing
   can be checked before the author records the real voice. Replace `A.wav`, `B.wav`, `C.wav` with the recording
   and run `compose.py` again; the subtitles and part lengths follow the audio.
-- `compose.py`: the author's studio portrait (`dist/video/postac/IMG_3373.PNG`, copied as `portret.jpg`) in a
+- `compose.py` (the name in the caption comes from `PB_AUTHOR_NAME`): the author's studio portrait (`dist/video/postac/IMG_3373.PNG`, copied as `portret.jpg`) in a
   circle in the corner of the screen shots during the voice-over, and large in a studio frame (`web/studio.html`,
   name bar) with a slow push-in and a waveform during the to-camera part; burned-in subtitles; title card.
   No generated lip movement: a moving mouth needs the real camera recording.

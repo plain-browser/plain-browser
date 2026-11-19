@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gexec.sh '<powershell command>' [wait-s]: run a command in DW-VIDEO through the QEMU guest agent and print its output
+# gexec.sh '<powershell command>' [wait-s]: run a command in PB-VIDEO through the QEMU guest agent and print its output
 unraid="${PB_UNRAID:?set PB_UNRAID=user@host of the Unraid server}"
 cmd=$(python3 -I -c 'import json,sys; print(json.dumps({"execute":"guest-exec","arguments":{"path":"powershell.exe","arg":["-NoProfile","-Command",sys.argv[1]],"capture-output":True}}))' "$1")
 pid=$(ssh -o BatchMode=yes -o LogLevel=ERROR "$unraid" "virsh qemu-agent-command plainbrowser-video '$cmd'" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["return"]["pid"])')

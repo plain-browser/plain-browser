@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# runshot.sh <shot-name> [timeout-s]: run C:\PlainBrowser\shots\<name>.ps1 in the desktop session of DW-VIDEO and wait for it.
-vm="${PB_VIDEO_VM:?set PB_VIDEO_VM=user@host of the DW-VIDEO VM}"
+# runshot.sh <shot-name> [timeout-s]: run C:\PlainBrowser\shots\<name>.ps1 in the desktop session of PB-VIDEO and wait for it.
+vm="${PB_VIDEO_VM:?set PB_VIDEO_VM=user@host of the PB-VIDEO VM}"
 n="$1"; t="${2:-300}"
 ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "$vm" "
 \$log='C:\PlainBrowser\shots\shot.log'; \$start = if (Test-Path \$log) { (Get-Content \$log).Count } else { 0 }

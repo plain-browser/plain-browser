@@ -1,4 +1,4 @@
-"""Rough cut of the Plain Browser video from the narration scripts and the recorded shots (runs on DW-VIDEO)."""
+"""Rough cut of the Plain Browser video from the narration scripts and the recorded shots (runs on PB-VIDEO)."""
 import glob, json, os, re, subprocess, sys, urllib.parse
 ROOT = r'C:\PlainBrowser\asm'; VID = r'C:\Users\builder\Videos'; OUT = os.path.join(VID, 'montaz')
 FF = glob.glob(os.path.expandvars(r'%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg*\*\bin'))[0]

@@ -43,8 +43,8 @@ Adres: https://github.com/plain-browser/plain-browser/settings/security_analysis
 - `pipeline`: Actions → pipeline → „Run workflow”. Powinien zakończyć się bez zmian, gdy nie ma nowego tagu (tag w
   `versions.toml` jest aktualny) albo otworzyć issue z wynikiem `check-patches.py` dla nowszego taga.
 - `website`: potrzebuje zmiennych repozytorium `GCP_WORKLOAD_IDENTITY_PROVIDER` i `GCP_SERVICE_ACCOUNT`
-  (Settings → Secrets and variables → Actions → Variables) oraz opcjonalnie `CLOUDFLARE_ZONE_ID` (zmienna)
-  i `CLOUDFLARE_API_TOKEN` (sekret). Konfiguracja GCP i Cloudflare jest opisana w `website/README.md`.
+  (Settings → Secrets and variables → Actions → Variables) Konfiguracja GCP jest opisana w `website/README.md`.
+  Cache Cloudflare nie jest czyszczony przez workflow (HTML ma 300 s cache).
 - `build-windows`: patrz `docs/CI.md`. Pierwsze uruchomienie zrób ręcznie z profilem `alpha` i sprawdź czasy
   etapów; dopiero potem używaj tagów `v*`.
 - `sign-release`: uruchamiany ręcznie na gotowym wydaniu z plikami; pierwszy przebieg na prawdziwym wydaniu jest

@@ -1,11 +1,11 @@
 """Segment 1 with the author's real photo (no generated lip movement): PiP circle over the screen shots while the
-voice-over runs, a studio shot with the portrait for the to-camera part, burned-in subtitles. Runs on DW-VIDEO."""
+voice-over runs, a studio shot with the portrait for the to-camera part, burned-in subtitles. Runs on PB-VIDEO."""
 import glob, json, os, re, subprocess, urllib.parse
 D = r'C:\PlainBrowser\avatar'; V = r'C:\Users\builder\Videos'; W = os.path.join(D, 'work'); os.makedirs(W, exist_ok=True)
 FF = glob.glob(os.path.expandvars(r'%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg*\*\bin'))[0]
 FFMPEG, FFPROBE = os.path.join(FF, 'ffmpeg.exe'), os.path.join(FF, 'ffprobe.exe')
 CHROME = r'C:\PlainBrowser\PlainBrowser_0.1.3-alpha.1_x64\chrome.exe'
-NAME, ROLE = 'Tomasz Lasota', 'autor Plain Browser'
+NAME, ROLE = os.environ.get('PB_AUTHOR_NAME', 'Author'), 'autor Plain Browser'
 ENC = ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '19', '-pix_fmt', 'yuv420p', '-r', '30', '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2']
 def ff(*a): subprocess.run([FFMPEG, '-v', 'error', '-y', *a], check=True, cwd=W)
 def dur(p): return float(subprocess.check_output([FFPROBE, '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', p]).decode())

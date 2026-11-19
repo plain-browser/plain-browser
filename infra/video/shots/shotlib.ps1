@@ -1,4 +1,4 @@
-# Shared helpers for recording shots on DW-VIDEO (runs in the interactive session via the PBShot task).
+# Shared helpers for recording shots on PB-VIDEO (runs in the interactive session via the PBShot task).
 $ErrorActionPreference = 'Continue'
 $Log = 'C:\PlainBrowser\shots\shot.log'
 function L($m) { "$(Get-Date -Format s) $m" | Out-File $Log -Append -Encoding utf8 }
