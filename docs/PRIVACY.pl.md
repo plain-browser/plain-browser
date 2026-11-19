@@ -111,9 +111,11 @@ oferuje to bez przekazywania Google czegokolwiek o Tobie:
   Cloudflare, stały `User-Agent` i prefiksy hashy.
 - Jedyne, co przeglądarka dodaje, to nagłówek `X-Client: PlainBrowser/<wersja>`. Nie jest wysyłany żaden
   identyfikator instalacji, użytkownika ani numer kompilacji Chromium.
-- **Proxy nie prowadzi logów.** Rejestrowanie żądań i obserwowalność są wyłączone, a proxy nie ma żadnej pamięci.
-  Nie widzimy, o jakie prefiksy pytasz. Połączenie obsługuje jednak Cloudflare i widzi Twój adres IP tak, jak host
-  każdej strony; stosuje się do tego jego polityka prywatności.
+- **Proxy nie zapisuje żądań.** Rejestrowanie żądań i obserwowalność są wyłączone, a proxy nie ma żadnej pamięci
+  trwałej. Worker przetwarza jednak prefiksy hashy w locie, w pamięci, żeby przekazać je do Google, więc to
+  stwierdzenie o tym, jak jest skonfigurowany i napisany (kod jest w `infra/safebrowsing-proxy`), a nie coś, co
+  możesz sprawdzić z zewnątrz. Połączenie obsługuje też Cloudflare i widzi Twój adres IP tak, jak host każdej
+  strony; stosuje się do tego jego polityka prywatności.
 - Ochrona rozszerzona, sprawdzanie adresów w czasie rzeczywistym i rozszerzone raportowanie, które wysyłałyby pełne
   adresy i treść stron, są ukryte w ustawieniach i nie mają działającego punktu docelowego: nasze proxy obsługuje
   tylko listy prefiksów hashy, a pozostałe adresy są wyłączone. Można je nadal włączyć przez politykę

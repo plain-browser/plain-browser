@@ -5,8 +5,8 @@ Category: 70-safebrowsing. The only Google service the browser still talks to is
 proxy (0001). Settings > You and Google > Google services gets a plain on/off toggle for it, bound to
 safebrowsing.enabled (the same pref the Security page's radio group drives, so both views agree). On the
 Security page the Enhanced protection radio is hidden (its real-time lookups are not something the proxy
-supports and docs/PRIVACY.md promises it cannot be turned on), the Standard radio loses its collapse (only the
-reporting toggle lived there; reporting is disabled by the iridium patches) and the Standard / No protection
+supports; it stays selectable by policy, docs/PRIVACY.md says so), the Standard radio loses its collapse (only
+the reporting toggle lived there; reporting is disabled by the iridium patches) and the Standard / No protection
 descriptions say where requests go. The texts, with their Polish translations, live in
 //plainbrowser/shields/resources (the grdp and xtb of 60-ui/0008); //plainbrowser/safebrowsing/ui adds them
 to the settings data source at the end of settings::AddLocalizedStrings under Chromium's own keys
