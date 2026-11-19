@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Copy this checkout (tracked + untracked, minus ignored files) to the build VM as C:\dw-build\repo.
 # The VM has no git clone of the repo; scripts there read C:\dw-build\repo (apply-plainbrowser.ps1 -Repo).
-# Usage: scripts/vm-sync.sh [user@host]   (default builder@192.168.1.33, key ~/.ssh/id_ed25519)
+# Usage: scripts/vm-sync.sh [user@host]   (default: $PB_BUILD_VM, which has to be set when no argument is given)
 set -euo pipefail
-host="${1:-builder@192.168.1.33}"
+host="${1:-${PB_BUILD_VM:?pass user@host of the build VM or set PB_BUILD_VM}}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
 ( cd "$root" && git ls-files -z --cached --others --exclude-standard | grep -z -v -E '^(website/|dist/|infra/.*/node_modules/)' | tar czf "$tmp" --null -T - )

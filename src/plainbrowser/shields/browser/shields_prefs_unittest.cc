@@ -55,7 +55,7 @@ TEST(ShieldsSiteForEntryTest, SitesHostsAndUrlsGiveTheSite) {
 
 TEST(ShieldsSiteForEntryTest, HostsWithoutRegistryAreKept) {
   EXPECT_EQ(SiteForEntry("localhost"), "localhost");
-  EXPECT_EQ(SiteForEntry("192.168.1.33"), "192.168.1.33");
+  EXPECT_EQ(SiteForEntry("192.0.2.33"), "192.0.2.33");
 }
 
 TEST(ShieldsSiteForEntryTest, NonWebEntriesAreEmpty) {

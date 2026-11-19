@@ -3,6 +3,8 @@
 Tooling that recorded the screen shots and assembled the rough cut for `docs/VIDEO_PLAN.md`. Everything runs on
 the recording VM DW-VIDEO (`plainbrowser-video` on the Unraid host, see `infra/unraid-vm/README.md`); the scripts in
 `host/` drive it over SSH from a Linux machine.
+The addresses are not in the repository: set `PB_VIDEO_VM=user@host` (the recording VM) and `PB_UNRAID=user@host` (the Unraid
+server, for `shot.sh` and `gexec.sh`) in the shell that runs the scripts.
 
 ## Layout
 - `shots/shotlib.ps1`: helpers used by every shot: OBS over its WebSocket (`obs-ws.ps1`, localhost:4455, no auth,
