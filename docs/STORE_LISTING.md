@@ -68,7 +68,7 @@ Chromium, Google and other names belong to their owners.
 **Nazwa produktu:** Plain Browser
 
 **Krótki opis (100):**
-Zwykła przeglądarka na Chromium: bez usług Google, z wbudowanym blokowaniem reklam, bez śledzenia.
+Szybka, prywatna przeglądarka z wbudowanym blokowaniem reklam, bez telemetrii i bez konta.
 
 **Opis:**
 Plain Browser to szybka, znajoma przeglądarka oparta na Chromium, bez zbędnych dodatków. Nie ma konta Google,

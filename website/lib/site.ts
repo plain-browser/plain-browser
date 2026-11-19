@@ -13,6 +13,18 @@ function readVersion(): string {
   return process.env.PLAINBROWSER_VERSION ?? "0.2.3-beta.1";
 }
 
+// Chromium major version of the pinned upstream tag in ../versions.toml ("157.0.8103.50-1.1" -> "157").
+function readChromium(): string {
+  try {
+    const toml = fs.readFileSync(path.join(process.cwd(), "..", "versions.toml"), "utf8");
+    const m = toml.match(/^ungoogled_chromium_windows\s*=\s*"(\d+)\./m);
+    if (m) return m[1];
+  } catch {
+    /* built outside the repository: fall back below */
+  }
+  return "157";
+}
+
 export const site = {
   name: "Plain Browser",
   url: "https://plain-browser.app",
@@ -23,7 +35,7 @@ export const site = {
   // Microsoft's Store web installer: a small signed .exe that installs the current Store version.
   storeInstaller: "https://get.microsoft.com/installer/download/9PKZGSKC9FWP",
   version: readVersion(),
-  chromium: "156",
+  chromium: readChromium(),
   os: "Windows 11, x64",
 };
 

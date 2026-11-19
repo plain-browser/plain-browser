@@ -133,7 +133,7 @@ const en: Dict = {
     title: "Where the project stands",
     lead: "This is a pre-release and the page says so. What has been verified, and what has not:",
     done: [
-      "Built from Chromium 156 on our own Windows builder",
+      "Built from Chromium 157 by our release pipeline, which follows each upstream update",
       "Blocker compiles, links and blocks: headless test stops four ad hosts and passes controls",
       "Kill switch verified: with blocking disabled all requests go through",
       "Branding, product icon, Polish and English interface",
@@ -149,7 +149,9 @@ const en: Dict = {
       "Published in the Microsoft Store, updated from the Chromium security releases",
     ],
     todo: [
-      "Curated Manifest V2 extension repository",
+      "Page of recommended extensions (uBlock Origin, AdGuard, NoScript) from our own repository: written, ships with the next release",
+      "Optional filter lists (cookie banners, annoyances), your own filters and Global Privacy Control: written, ship with the next release",
+      "Ad blocking for WebSockets and fingerprint protection in workers: built and tested, ship with the next release",
       "Fingerprint noise inside the engine (Blink), not only in page scripts",
       "Store installation tested on a clean machine",
     ],
@@ -167,7 +169,7 @@ const en: Dict = {
       },
       {
         q: "Can I install uBlock Origin?",
-        a: "Manifest V2 is enabled, so it should work, and that is the point. We tested uBlock Origin 1.75.0 end to end and its blocking webRequest rules work, but not every extension has been tried, so treat it as experimental. Extensions are installed manually from a .crx or unpacked folder; a curated repository is planned.",
+        a: "Manifest V2 is enabled, so it should work, and that is the point. We tested uBlock Origin 1.75.0 end to end and its blocking webRequest rules work, but not every extension has been tried, so treat it as experimental. Extensions are installed manually from a .crx or unpacked folder; a page of recommended extensions from our own repository comes with the next release.",
       },
       {
         q: "Does it update itself?",
@@ -179,7 +181,7 @@ const en: Dict = {
       },
       {
         q: "Does Safe Browsing work, and what does Google see?",
-        a: "Yes, in standard protection with a local hash-prefix database. List updates and the rare full-hash lookups go to our Cloudflare proxy at sb.plain-browser.app instead of Google. The proxy strips your IP address, cookies and identifying headers, keeps no logs, and Google sees only Cloudflare's address and hash prefixes. Enhanced Protection and URL reporting are removed for good, and a switch under Settings > You and Google turns Safe Browsing off. Details are in the privacy policy.",
+        a: "Yes, in standard protection with a local hash-prefix database. List updates and the rare full-hash lookups go to our Cloudflare proxy at sb.plain-browser.app instead of Google. The proxy strips your IP address, cookies and identifying headers, is set up not to store requests, and Google sees only Cloudflare's address and hash prefixes. Enhanced Protection and URL reporting are removed for good, and a switch under Settings > You and Google turns Safe Browsing off. Details are in the privacy policy.",
       },
       {
         q: "Which platforms?",
@@ -291,9 +293,9 @@ const pl: Dict = {
       "Brak telemetrii, statystyk użycia i raportów o awariach",
       "Brak konta, logowania i synchronizacji",
       "Brak analityki i identyfikatora reklamowego w przeglądarce",
-      "Aktualizacje list filtrów wyłącznie z naszego serwera lustrzanego bez logów, z możliwością wyłączenia",
+      "Aktualizacje list filtrów wyłącznie z naszego serwera lustrzanego bez zapisywania żądań, z możliwością wyłączenia",
       "Brak kontaktu z usługami Google",
-      "Safe Browsing wyłącznie przez nasze proxy bez logów, z możliwością wyłączenia",
+      "Safe Browsing wyłącznie przez nasze proxy bez zapisywania żądań, z możliwością wyłączenia",
     ],
     proof:
       "Sprawdzone przy pierwszym uruchomieniu: świeży profil bez otwartej strony przez 100 sekund nie wysłał żadnych własnych żądań sieciowych. Jedynym ruchem było wykrywanie proxy w Windows, które wykonuje każda aplikacja używająca ustawień systemowych.",
@@ -313,7 +315,7 @@ const pl: Dict = {
     title: "Na jakim etapie jest projekt",
     lead: "To wersja przedpremierowa i ta strona tego nie ukrywa. Co zostało sprawdzone, a co nie:",
     done: [
-      "Zbudowana z Chromium 156 na własnej maszynie budującej Windows",
+      "Zbudowana z Chromium 157 przez nasz proces wydawania, który podąża za każdą aktualizacją Chromium",
       "Bloker kompiluje się, linkuje i blokuje: test headless zatrzymuje cztery hosty reklamowe i przepuszcza kontrolne",
       "Wyłącznik sprawdzony: z wyłączonym blokowaniem wszystkie żądania przechodzą",
       "Branding, ikona produktu, interfejs po polsku i angielsku",
@@ -329,7 +331,9 @@ const pl: Dict = {
       "Opublikowana w Microsoft Store, aktualizowana za wydaniami bezpieczeństwa Chromium",
     ],
     todo: [
-      "Wyselekcjonowane repozytorium rozszerzeń Manifest V2",
+      "Strona polecanych rozszerzeń (uBlock Origin, AdGuard, NoScript) z naszego własnego repozytorium: napisana, trafi do następnego wydania",
+      "Opcjonalne listy filtrów (banery cookie, uciążliwe elementy), własne filtry i Global Privacy Control: napisane, trafią do następnego wydania",
+      "Blokowanie reklam w WebSocketach i ochrona fingerprintu w workerach: zbudowane i przetestowane, trafią do następnego wydania",
       "Szum fingerprintu w silniku (Blink), nie tylko w skryptach strony",
       "Instalacja ze Store sprawdzona na czystym komputerze",
     ],
@@ -347,7 +351,7 @@ const pl: Dict = {
       },
       {
         q: "Czy zainstaluję uBlock Origin?",
-        a: "Manifest V2 jest włączony, więc powinien działać, i o to chodzi. Przetestowaliśmy uBlock Origin 1.75.0 od początku do końca i jego reguły blokujące webRequest działają, ale nie sprawdziliśmy każdego rozszerzenia, więc traktuj to jako eksperyment. Rozszerzenia instaluje się ręcznie z pliku .crx lub rozpakowanego katalogu; wyselekcjonowane repozytorium jest w planach.",
+        a: "Manifest V2 jest włączony, więc powinien działać, i o to chodzi. Przetestowaliśmy uBlock Origin 1.75.0 od początku do końca i jego reguły blokujące webRequest działają, ale nie sprawdziliśmy każdego rozszerzenia, więc traktuj to jako eksperyment. Rozszerzenia instaluje się ręcznie z pliku .crx lub rozpakowanego katalogu; strona polecanych rozszerzeń z naszego własnego repozytorium pojawi się w następnym wydaniu.",
       },
       {
         q: "Czy aktualizuje się sama?",
@@ -359,7 +363,7 @@ const pl: Dict = {
       },
       {
         q: "Czy Safe Browsing działa i co widzi Google?",
-        a: "Tak, w trybie ochrony standardowej z lokalną bazą prefiksów hashy. Aktualizacje listy i rzadkie zapytania o pełne hashe idą do naszego proxy Cloudflare pod sb.plain-browser.app zamiast do Google. Proxy usuwa Twój adres IP, ciasteczka i nagłówki identyfikujące, nie prowadzi logów, a Google widzi tylko adres Cloudflare i prefiksy hashy. Ochrona rozszerzona i raportowanie adresów są usunięte na stałe, a przełącznik w Ustawienia → Ty i Google wyłącza Safe Browsing. Szczegóły w polityce prywatności.",
+        a: "Tak, w trybie ochrony standardowej z lokalną bazą prefiksów hashy. Aktualizacje listy i rzadkie zapytania o pełne hashe idą do naszego proxy Cloudflare pod sb.plain-browser.app zamiast do Google. Proxy usuwa Twój adres IP, ciasteczka i nagłówki identyfikujące, jest skonfigurowane tak, by nie zapisywać żądań, a Google widzi tylko adres Cloudflare i prefiksy hashy. Ochrona rozszerzona i raportowanie adresów są usunięte na stałe, a przełącznik w Ustawienia → Ty i Google wyłącza Safe Browsing. Szczegóły w polityce prywatności.",
       },
       {
         q: "Jakie platformy?",
@@ -368,7 +372,7 @@ const pl: Dict = {
     ],
   },
   cta: {
-    title: "Wypróbuj alfę",
+    title: "Wypróbuj betę",
     body: "Jeśli nie boisz się testować wczesnego oprogramowania, pobierz, popsuj i opowiedz nam, co się stało.",
     download: "Pobierz",
     issues: "Zgłoś błąd",
