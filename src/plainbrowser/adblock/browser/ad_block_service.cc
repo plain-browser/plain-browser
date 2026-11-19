@@ -354,7 +354,7 @@ void AdBlockService::RemoveLogViewer(ProfileId profile) {
     return;
   }
   log_viewers_by_profile_.erase(it);
-  std::erase_if(log_, [profile](const LogEntry& e) {
+  base::EraseIf(log_, [profile](const LogEntry& e) {
     return e.profile == profile;
   });
 }
@@ -392,7 +392,7 @@ std::vector<AdBlockService::LogEntry> AdBlockService::GetLog(
 
 void AdBlockService::ClearLog(ProfileId profile) {
   base::AutoLock lock(log_lock_);
-  std::erase_if(log_, [profile](const LogEntry& e) {
+  base::EraseIf(log_, [profile](const LogEntry& e) {
     return e.profile == profile;
   });
 }
