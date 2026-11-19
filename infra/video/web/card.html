@@ -1,0 +1,9 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Karta</title>
+<style>html,body{margin:0;width:1920px;height:1080px;background:#111820;color:#e6edf3;font-family:Segoe UI,Arial;overflow:hidden}
+.k{position:absolute;left:120px;top:110px;font-size:30px;letter-spacing:.25em;color:#d29922;font-weight:700}
+.s{position:absolute;left:120px;top:170px;font-size:44px;font-weight:700;color:#9fb0c3}
+.t{position:absolute;left:120px;right:120px;top:290px;font-size:46px;line-height:1.45;font-family:Georgia,serif}
+.f{position:absolute;left:120px;bottom:90px;font-size:26px;color:#6e7b8a}</style></head><body>
+<div class="k" id="k"></div><div class="s" id="s"></div><div class="t" id="t"></div><div class="f">Plain Browser · montaż roboczy · w finalnej wersji: ujęcie z kamery</div>
+<script>const P=new URLSearchParams(location.search);for(const id of['k','s','t'])document.getElementById(id).textContent=P.get(id)||'';</script>
+</body></html>

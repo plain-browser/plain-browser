@@ -1,0 +1,29 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Build</title>
+<style>html,body{margin:0;height:100%;background:#0c0c0c;color:#d4d4d4;font-family:Consolas,monospace;overflow:hidden}
+#log{position:absolute;left:40px;right:40px;top:40px;bottom:250px;font-size:20px;line-height:1.45;white-space:pre;overflow:hidden;color:#8b949e}
+#bar{position:absolute;left:40px;right:40px;bottom:120px;height:26px;background:#222;border-radius:4px}#fill{height:100%;width:0;background:#2ea043;border-radius:4px}
+#st{position:absolute;left:40px;bottom:160px;font-size:36px;color:#e6edf3}#clk{position:absolute;right:40px;bottom:160px;font-size:36px;color:#d29922}
+#note{position:absolute;left:40px;bottom:50px;font:22px Segoe UI,Arial;color:#8b949e}</style></head><body>
+<div id="log"></div><div id="st"></div><div id="clk"></div><div id="bar"><div id="fill"></div></div>
+<div id="note"></div>
+<script>
+const P=new URLSearchParams(location.search),mode=P.get('m')||'full',DUR=(+P.get('s')||40)*1000;
+const files=['third_party/blink/renderer/core/layout/layout_block.cc','v8/src/compiler/turboshaft/graph-builder.cc','chrome/browser/ui/views/toolbar/toolbar_view.cc',
+'third_party/blink/renderer/platform/wtf/text/string_impl.cc','components/autofill/core/browser/form_structure.cc','content/browser/renderer_host/render_frame_host_impl.cc',
+'v8/src/objects/js-objects.cc','third_party/skia/src/core/SkCanvas.cpp','net/http/http_network_transaction.cc','plainbrowser/adblock/browser/ad_block_service.cc',
+'third_party/blink/renderer/core/dom/element.cc','chrome/browser/profiles/profile_impl.cc','services/network/url_loader.cc','plainbrowser/shields/ui/shields_button.cc'];
+fetch('ninja.json').then(r=>r.json()).then(d=>{
+ const src=mode==='full'?d:d.rebuild, cum=src.cum, B=src.bucket_ms, T=cum.length*B, total=src.total;
+ document.getElementById('note').textContent=mode==='full'
+  ?'Odtworzone z prawdziwego .ninja_log pełnego buildu na VM 12 vCPU (trzy przebiegi ninja), przyspieszone ok. '+Math.round(T/DUR)+'×'
+  :'Odtworzone z prawdziwego .ninja_log przebudowy po zmianie w naszej warstwie, przyspieszone ok. '+Math.round(T/DUR)+'×';
+ const log=document.getElementById('log');const lines=[];const t0=performance.now();let lastN=-1;
+ function f(){const k=Math.min(1,(performance.now()-t0)/DUR),t=k*T,i=Math.min(cum.length-1,Math.floor(t/B)),n=cum[i];
+  document.getElementById('st').textContent=`[${n.toLocaleString('pl-PL')}/${total.toLocaleString('pl-PL')}]`;
+  const h=Math.floor(t/3600000),m=Math.floor(t/60000)%60,s=Math.floor(t/1000)%60;
+  document.getElementById('clk').textContent=`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  document.getElementById('fill').style.width=(100*n/total)+'%';
+  if(n!==lastN){for(let j=0;j<3;j++)lines.push(`[${(n-2+j).toLocaleString('pl-PL')}/${total.toLocaleString('pl-PL')}] CXX obj/${files[(n*7+j*3)%files.length].replace(/\.(cc|cpp)$/,'.obj')}`);while(lines.length>26)lines.shift();log.textContent=lines.join('\n');lastN=n}
+  if(k<1)requestAnimationFrame(f)}
+ setTimeout(()=>requestAnimationFrame(f),1500)});
+</script></body></html>

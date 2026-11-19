@@ -1,0 +1,12 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Studio</title>
+<style>html,body{margin:0;width:1920px;height:1080px;overflow:hidden;font-family:Segoe UI,Arial}
+body{background:radial-gradient(ellipse 900px 700px at 50% 60%,#2b3a57 0%,#141c2e 60%,#0b101b 100%)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px}
+.logo{position:absolute;left:64px;top:56px;display:flex;align-items:center;gap:16px;color:#e6edf3;font-size:30px;font-weight:600}
+.logo b{width:48px;height:48px;border-radius:50%;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff}
+.lt{position:absolute;left:1020px;top:690px;padding:18px 30px;background:rgba(10,14,24,.82);border-left:6px solid #2563eb;color:#e6edf3}
+.lt .n{font-size:40px;font-weight:700}.lt .r{font-size:24px;color:#9fb0c3;margin-top:4px}</style></head><body>
+<div class="grid"></div><div class="logo"><b>P</b>Plain Browser</div>
+<div class="lt"><div class="n" id="n"></div><div class="r" id="r"></div></div>
+<script>const P=new URLSearchParams(location.search);n.textContent=P.get('n')||'';r.textContent=P.get('r')||'';if(!P.get('n'))document.querySelector('.lt').remove()</script>
+</body></html>

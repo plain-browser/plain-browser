@@ -1,0 +1,7 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Artykuł (strona demo)</title>
+<style>body{font-family:Segoe UI,Arial;max-width:900px;margin:60px auto;color:#1b1b1b}h1{font:700 44px Georgia,serif}
+.url{font:18px Consolas,monospace;background:#f0f0f0;padding:14px 18px;border-radius:6px;word-break:break-all}</style></head><body>
+<h1>Artykuł z newslettera</h1><p style="font-size:20px">Adres, pod którym serwer zobaczył tę stronę:</p>
+<div class="url" id="u"></div><p style="font-size:20px;margin-top:28px">Parametry zapytania widziane przez stronę:</p><div class="url" id="q"></div>
+<script>document.getElementById('u').textContent=location.href;document.getElementById('q').textContent=location.search||'(brak)';</script>
+</body></html>

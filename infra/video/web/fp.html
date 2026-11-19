@@ -1,0 +1,14 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>Odcisk urządzenia (strona demo)</title>
+<style>body{font-family:Segoe UI,Arial;max-width:1100px;margin:50px auto;color:#1b1b1b}h1{font:700 40px Georgia,serif}
+table{width:100%;border-collapse:collapse;font-size:22px}td{padding:14px 12px;border-bottom:1px solid #ddd}td:first-child{color:#555;width:40%}
+td:last-child{font-family:Consolas,monospace;font-weight:600}</style></head><body>
+<h1>Co ta strona wie o Twoim komputerze</h1><table id="t"></table>
+<script>
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16).padStart(8,'0')}
+const c=document.createElement('canvas');c.width=300;c.height=80;const x=c.getContext('2d');x.textBaseline='top';x.font='22px Arial';
+x.fillStyle='#f60';x.fillRect(10,10,120,40);x.fillStyle='#069';x.fillText('Plain Browser ✓ 0123',14,16);x.fillStyle='rgba(102,204,0,0.7)';x.fillText('fingerprint',90,40);
+let gl='(brak)';try{const g=document.createElement('canvas').getContext('webgl');const d=g.getExtension('WEBGL_debug_renderer_info');gl=g.getParameter(d.UNMASKED_RENDERER_WEBGL)}catch(e){}
+const rows=[['Rdzenie procesora (hardwareConcurrency)',navigator.hardwareConcurrency],['Pamięć urządzenia (deviceMemory)',(navigator.deviceMemory||'?')+' GB'],
+['Karta graficzna (WebGL)',gl],['Odcisk canvas (hash)',hash(c.toDataURL())],['Godzina odczytu',new Date().toLocaleTimeString('pl-PL')]];
+document.getElementById('t').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+</script></body></html>
