@@ -1,7 +1,7 @@
 # Microsoft Store listing text
 
 Paste into Partner Center → Store listings. Limits: short description 100 characters, description 10,000,
-features 20 × 200 characters, search terms 7 × 30 characters. Version 0.1.0-alpha.1 is an early test build; the
+features 20 × 200 characters, search terms 7 × 30 characters. Version 0.2.3-beta.1 is a beta; the
 text says so and claims only what has been checked.
 
 ## English (en-us)
@@ -32,19 +32,23 @@ What you get:
 • Private by design: your history, cookies and passwords stay in your profile on your device.
 • Free and open source. Our code is MPL-2.0; the full source and licenses are on GitHub.
 
-This is an early alpha. Expect rough edges: the ad blocker has no global on/off setting yet (only the per-site
-toggle), and some features of larger browsers are missing (for example sync and a built-in extension store). Extensions can be
+This is a beta. Expect rough edges: some features of larger browsers are missing (for example sync and the Chrome
+Web Store). A page of recommended extensions (uBlock Origin, AdGuard, NoScript) is built in; other extensions can be
 installed manually. Bug reports are welcome on GitHub.
 
 Plain Browser is not affiliated with Google or the Chromium project. Chromium is a project of The Chromium Authors.
 
 **What's new in this version:**
-First public alpha: Plain Browser branding, built-in ad blocking with a per-site toggle, Safe Browsing through our
-anonymizing proxy, Polish and English interface, Chromium 156.
+Beta: built-in ad blocking with a per-site toggle and a global switch, optional filter lists (cookie banners,
+annoyances) and your own filters, Global Privacy Control, a page of recommended extensions, Safe Browsing through our
+anonymizing proxy, Polish and English interface, Chromium 157.
 
 **Product features (up to 20):**
 - Built-in ad and tracker blocking (adblock-rust, EasyList, EasyPrivacy)
-- Per-site toggle for all protections in the toolbar
+- Per-site toggle for all protections in the toolbar, and a global switch in Settings
+- Optional filter lists (cookie banners, annoyances) and your own filters
+- Recommended extensions (uBlock Origin, AdGuard, NoScript) from our own repository
+- Global Privacy Control on by default
 - No Google services, no account, no telemetry
 - Safe Browsing through our proxy: Google never sees your IP address; can be turned off
 - Chromium engine: modern web standards, PDF viewer, developer tools
@@ -93,19 +97,23 @@ Co dostajesz:
 • Prywatność z założenia: historia, ciasteczka i hasła zostają w Twoim profilu na Twoim urządzeniu.
 • Darmowa i otwartoźródłowa. Nasz kod ma licencję MPL-2.0, a pełny kod źródłowy i licencje są na GitHubie.
 
-To wczesna wersja alfa. Mogą zdarzać się niedociągnięcia: bloker reklam nie ma jeszcze globalnego wyłącznika
-(tylko przełącznik dla witryny), a brakuje niektórych funkcji większych przeglądarek (np. synchronizacji i wbudowanego sklepu z
-rozszerzeniami). Rozszerzenia można instalować ręcznie. Zgłoszenia błędów są mile widziane na GitHubie.
+To wersja beta. Mogą zdarzać się niedociągnięcia: brakuje niektórych funkcji większych przeglądarek (np.
+synchronizacji i Chrome Web Store). Wbudowana jest strona polecanych rozszerzeń (uBlock Origin, AdGuard, NoScript);
+inne rozszerzenia można instalować ręcznie. Zgłoszenia błędów są mile widziane na GitHubie.
 
 Plain Browser nie jest powiązany z Google ani z projektem Chromium. Chromium to projekt The Chromium Authors.
 
 **Co nowego w tej wersji:**
-Pierwsza publiczna alfa: marka Plain Browser, wbudowane blokowanie reklam z przełącznikiem dla witryny, Safe
-Browsing przez nasze anonimizujące proxy, interfejs po polsku i angielsku, Chromium 156.
+Beta: wbudowane blokowanie reklam z przełącznikiem dla witryny i globalnym wyłącznikiem, opcjonalne listy filtrów
+(banery cookie, uciążliwe elementy) i własne filtry, Global Privacy Control, strona polecanych rozszerzeń, Safe
+Browsing przez nasze anonimizujące proxy, interfejs po polsku i angielsku, Chromium 157.
 
 **Funkcje produktu:**
 - Wbudowane blokowanie reklam i trackerów (adblock-rust, EasyList, EasyPrivacy)
-- Przełącznik wszystkich ochron dla bieżącej witryny na pasku narzędzi
+- Przełącznik wszystkich ochron dla bieżącej witryny na pasku narzędzi i globalny wyłącznik w ustawieniach
+- Opcjonalne listy filtrów (banery cookie, uciążliwe elementy) i własne filtry
+- Polecane rozszerzenia (uBlock Origin, AdGuard, NoScript) z naszego własnego repozytorium
+- Global Privacy Control domyślnie włączony
 - Bez usług Google, bez konta, bez telemetrii
 - Safe Browsing przez nasze proxy: Google nigdy nie widzi Twojego adresu IP; można wyłączyć
 - Silnik Chromium: nowoczesne standardy, przeglądarka PDF, narzędzia deweloperskie

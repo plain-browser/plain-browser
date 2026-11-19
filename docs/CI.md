@@ -122,7 +122,7 @@ patches add (`LICENSE` for `seahash` and `flatbuffers`) may differ. The list is 
 
 ### Profiles
 
-- **release** (default, since 2026-11-10, not yet built): `is_official_build=true`, `chrome_pgo_phase=0`,
+- **release** (default, since 2026-11-10): `is_official_build=true`, `chrome_pgo_phase=0`,
   `use_thin_lto=false`, `enable_precompiled_headers=false`, `generate_about_credits=true`, appended to upstream's
   `flags.windows.gn` the same way `scripts/build.ps1` does. Official-build code paths without LTO and PGO: stack
   variables are zero-initialised (`init_stack_vars_zero`), Rust panics abort at once, the release linker settings

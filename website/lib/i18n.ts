@@ -147,11 +147,11 @@ const en: Dict = {
       "Daily filter list updates from our mirror, with an Ed25519-signed manifest",
       "Tracking redirectors skipped; HTTPS-First and automatic secure DNS on by default",
       "Published in the Microsoft Store, updated from the Chromium security releases",
+      "Ad blocking for WebSockets and fingerprint protection in workers: built and tested",
     ],
     todo: [
-      "Page of recommended extensions (uBlock Origin, AdGuard, NoScript) from our own repository: written, ships with the next release",
-      "Optional filter lists (cookie banners, annoyances), your own filters and Global Privacy Control: written, ship with the next release",
-      "Ad blocking for WebSockets and fingerprint protection in workers: built and tested, ship with the next release",
+      "Page of recommended extensions (uBlock Origin, AdGuard, NoScript) from our own repository: in the current beta, no automated end-to-end test yet",
+      "Optional filter lists (cookie banners, annoyances), your own filters and Global Privacy Control: in the current beta, no automated end-to-end test yet",
       "Fingerprint noise inside the engine (Blink), not only in page scripts",
       "Store installation tested on a clean machine",
     ],
@@ -169,7 +169,7 @@ const en: Dict = {
       },
       {
         q: "Can I install uBlock Origin?",
-        a: "Manifest V2 is enabled, so it should work, and that is the point. We tested uBlock Origin 1.75.0 end to end and its blocking webRequest rules work, but not every extension has been tried, so treat it as experimental. Extensions are installed manually from a .crx or unpacked folder; a page of recommended extensions from our own repository comes with the next release.",
+        a: "Manifest V2 is enabled, so it should work, and that is the point. We tested uBlock Origin 1.75.0 end to end and its blocking webRequest rules work, but not every extension has been tried, so treat it as experimental. Recommended extensions (uBlock Origin, AdGuard, NoScript) install from a page in Settings, served from our own repository; others are installed manually in developer mode.",
       },
       {
         q: "Does it update itself?",
@@ -329,11 +329,11 @@ const pl: Dict = {
       "Codzienne aktualizacje list filtrów z naszego serwera, z manifestem podpisanym Ed25519",
       "Pomijanie przekierowań śledzących; HTTPS-First i automatyczny bezpieczny DNS domyślnie włączone",
       "Opublikowana w Microsoft Store, aktualizowana za wydaniami bezpieczeństwa Chromium",
+      "Blokowanie reklam w WebSocketach i ochrona fingerprintu w workerach: zbudowane i przetestowane",
     ],
     todo: [
-      "Strona polecanych rozszerzeń (uBlock Origin, AdGuard, NoScript) z naszego własnego repozytorium: napisana, trafi do następnego wydania",
-      "Opcjonalne listy filtrów (banery cookie, uciążliwe elementy), własne filtry i Global Privacy Control: napisane, trafią do następnego wydania",
-      "Blokowanie reklam w WebSocketach i ochrona fingerprintu w workerach: zbudowane i przetestowane, trafią do następnego wydania",
+      "Strona polecanych rozszerzeń (uBlock Origin, AdGuard, NoScript) z naszego własnego repozytorium: w obecnej wersji beta, bez automatycznego testu end-to-end",
+      "Opcjonalne listy filtrów (banery cookie, uciążliwe elementy), własne filtry i Global Privacy Control: w obecnej wersji beta, bez automatycznego testu end-to-end",
       "Szum fingerprintu w silniku (Blink), nie tylko w skryptach strony",
       "Instalacja ze Store sprawdzona na czystym komputerze",
     ],
@@ -351,7 +351,7 @@ const pl: Dict = {
       },
       {
         q: "Czy zainstaluję uBlock Origin?",
-        a: "Manifest V2 jest włączony, więc powinien działać, i o to chodzi. Przetestowaliśmy uBlock Origin 1.75.0 od początku do końca i jego reguły blokujące webRequest działają, ale nie sprawdziliśmy każdego rozszerzenia, więc traktuj to jako eksperyment. Rozszerzenia instaluje się ręcznie z pliku .crx lub rozpakowanego katalogu; strona polecanych rozszerzeń z naszego własnego repozytorium pojawi się w następnym wydaniu.",
+        a: "Manifest V2 jest włączony, więc powinien działać, i o to chodzi. Przetestowaliśmy uBlock Origin 1.75.0 od początku do końca i jego reguły blokujące webRequest działają, ale nie sprawdziliśmy każdego rozszerzenia, więc traktuj to jako eksperyment. Polecane rozszerzenia (uBlock Origin, AdGuard, NoScript) instaluje się ze strony w ustawieniach, z naszego własnego repozytorium; pozostałe ręcznie, w trybie dewelopera.",
       },
       {
         q: "Czy aktualizuje się sama?",
