@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Inter, Segoe UI, sans-serif">
+  <rect width="1920" height="1080" fill="#0f1419"/>
+  <text x="960" y="110" text-anchor="middle" fill="#e6edf3" font-size="56" font-weight="600">Cztery warstwy, jedno repozytorium</text>
+  <g id="l1"><rect x="260" y="820" width="1400" height="140" rx="16" fill="#1f2a37" stroke="#3b4a5c" stroke-width="3"/>
+    <text x="300" y="878" fill="#e6edf3" font-size="40" font-weight="600">Chromium</text>
+    <text x="300" y="928" fill="#9fb0c3" font-size="28">przypięty tag 156.0.8078.47 · ok. 48 700 plików C++ · ich kod</text></g>
+  <g id="l2"><rect x="330" y="640" width="1260" height="140" rx="16" fill="#1f2a37" stroke="#3b4a5c" stroke-width="3"/>
+    <text x="370" y="698" fill="#e6edf3" font-size="40" font-weight="600">ungoogled-chromium</text>
+    <text x="370" y="748" fill="#9fb0c3" font-size="28">patche + pruning.list + domain_substitution.list · usuwa Google</text></g>
+  <g id="l3"><rect x="400" y="460" width="1120" height="140" rx="16" fill="#1f2a37" stroke="#3b4a5c" stroke-width="3"/>
+    <text x="440" y="518" fill="#e6edf3" font-size="40" font-weight="600">ungoogled-chromium-windows</text>
+    <text x="440" y="568" fill="#9fb0c3" font-size="28">build.py, package.py · MSVC, bez depot_tools</text></g>
+  <g id="l4"><rect x="470" y="280" width="980" height="140" rx="16" fill="#163a2a" stroke="#2ea043" stroke-width="4"/>
+    <text x="510" y="338" fill="#e6edf3" font-size="40" font-weight="600">Plain Browser (to repo)</text>
+    <text x="510" y="388" fill="#b7e3c3" font-size="28">patches/ · src/plainbrowser/ · branding/ · scripts/ · versions.toml</text></g>
+  <text x="960" y="1020" text-anchor="middle" fill="#9fb0c3" font-size="30">Każda warstwa to zmiany nakładane na tę pod spodem. Nikt nie trzyma kopii Chromium.</text>
+</svg>

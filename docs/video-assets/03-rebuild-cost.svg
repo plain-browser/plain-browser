@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="Inter, Segoe UI, sans-serif">
+  <rect width="1920" height="1080" fill="#0f1419"/>
+  <text x="960" y="100" text-anchor="middle" fill="#e6edf3" font-size="56" font-weight="600">Ile kosztuje zmiana</text>
+  <g font-size="30" fill="#e6edf3">
+    <text x="160" y="300">Pełny build</text>
+    <rect x="620" y="262" width="1180" height="56" rx="8" fill="#f85149"/>
+    <text x="640" y="300" fill="#0f1419" font-weight="600">7,0 h · 59 500 kroków · 69 h CPU</text>
+    <text x="160" y="460">Bump Chromium .47 → .73</text>
+    <rect x="620" y="422" width="1180" height="56" rx="8" fill="#3b4a5c"/>
+    <rect x="620" y="422" width="437" height="56" rx="8" fill="#d29922"/>
+    <text x="640" y="460" fill="#0f1419" font-weight="600">37 % obiektów naprawdę zmienionych (10 169)</text>
+    <text x="1080" y="460" fill="#9fb0c3">reszta: ninja buduje z powodu nowej daty pliku</text>
+    <text x="160" y="620">Jedna etykieta w UI</text>
+    <rect x="620" y="582" width="1180" height="56" rx="8" fill="#3b4a5c"/>
+    <rect x="620" y="582" width="70" height="56" rx="8" fill="#d29922"/>
+    <text x="710" y="620" fill="#9fb0c3">835 obiektów · 12–35 min · generated_resources.h ← 823 pliki</text>
+    <text x="160" y="780">Ta sama etykieta, własny .grd</text>
+    <rect x="620" y="742" width="1180" height="56" rx="8" fill="#3b4a5c"/>
+    <rect x="620" y="742" width="8" height="56" rx="4" fill="#2ea043"/>
+    <text x="650" y="780" fill="#9fb0c3">kilkadziesiąt obiektów (szacunek)</text>
+  </g>
+  <text x="960" y="980" text-anchor="middle" fill="#9fb0c3" font-size="28">Pomiary z VM 12 vCPU (docs/BUILD_CACHE.md). Cache po treści pliku: bump 7 h → ok. 2,5–3 h (szacunek).</text>
+</svg>
