@@ -115,7 +115,12 @@ oferuje to bez przekazywania Google czegokolwiek o Tobie:
   Nie widzimy, o jakie prefiksy pytasz. Połączenie obsługuje jednak Cloudflare i widzi Twój adres IP tak, jak host
   każdej strony; stosuje się do tego jego polityka prywatności.
 - Ochrona rozszerzona, sprawdzanie adresów w czasie rzeczywistym i rozszerzone raportowanie, które wysyłałyby pełne
-  adresy i treść stron, są wyłączone i nie da się ich włączyć.
+  adresy i treść stron, są ukryte w ustawieniach i nie mają działającego punktu docelowego: nasze proxy obsługuje
+  tylko listy prefiksów hashy, a pozostałe adresy są wyłączone. Można je nadal włączyć przez politykę
+  przedsiębiorstwa albo plik preferencji, ale z założenia nic nie trafiłoby do Google (nie było to testowane).
+- Ochrona obejmuje **adresy stron** (złośliwe oprogramowanie, wyłudzanie danych, niechciane oprogramowanie). Nie
+  sprawdza pobieranych plików ani rozszerzeń: list dla nich nie da się pobrać z publicznym kluczem API, więc nie są
+  pobierane.
 - Safe Browsing można wyłączyć w ustawieniach (Ty i Google → Usługi Google albo Prywatność i bezpieczeństwo →
   Bezpieczeństwo); wtedy przeglądarka nie wysyła do naszego proxy niczego.
 

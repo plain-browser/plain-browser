@@ -11,7 +11,8 @@ Limits you should know about:
 - The proxy operator (you) can see client IPs in Cloudflare. The Worker neither logs nor stores them
   (`observability` is off, no KV/D1), but Cloudflare processes the connection as with any site.
 - The request body is passed through unchanged. Hash prefixes are what Safe Browsing requires; do not enable
-  reporting or Enhanced Protection, they send URLs.
+  reporting or Enhanced Protection, they send URLs. The Enhanced radio is only hidden in Settings (`70-safebrowsing/0005`);
+  a policy or the preferences file can still select it, and its requests then have no working endpoint here.
 - Only v4 is proxied, as designed. Current Chromium also has a v5 prefix (`kSbV5UrlPrefix`); see "Chromium side".
 
 ## Endpoints
@@ -84,7 +85,8 @@ Done in `patches/70-safebrowsing/0001-proxy-and-client-header.patch`, on
    id, user id or Chromium build number is sent.
 3. The Worker does not serve v5, so v5 lookups get a 404 at the proxy and never reach Google. The real-time URL
    lookup and report URLs still carry domain-substituted hostnames (dead), as in ungoogled-chromium.
-4. Enhanced Protection and extended reporting stay disabled and unselectable (they upload URLs and page data).
+4. Enhanced Protection and extended reporting are hidden in Settings and have no working endpoint (they would upload
+   URLs and page data). They are not blocked in code: a policy or the preferences file could still select them.
    Standard protection (local hash list) is the only mode that fits this design.
 
 Safe Browsing is compiled back in since 2026-10-26: `patches/upstream-revert.list` drops ungoogled's three

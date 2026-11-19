@@ -115,7 +115,11 @@ without Google learning anything about you:
   something you can verify from outside. Cloudflare still handles the connection and can see your IP address the way
   any website's host does; its own privacy policy applies to that.
 - Enhanced Protection, real-time URL lookups and extended reporting, which would send full URLs and page
-  content, are disabled and cannot be turned on.
+  content, are hidden in Settings and have no working endpoint: our proxy serves only the hash-prefix lists and the
+  other addresses are disabled. They could still be switched on through an enterprise policy or the preferences
+  file, but by design nothing would be sent to Google (this has not been tested).
+- The protection covers **website addresses** (malware, phishing, unwanted software). It does not check downloaded
+  files or extensions: the lists for those cannot be fetched with a public API key and are not requested.
 - You can turn Safe Browsing off in the settings (You and Google > Google services, or Privacy and security >
   Security); with it off, the browser makes no requests to our proxy.
 
