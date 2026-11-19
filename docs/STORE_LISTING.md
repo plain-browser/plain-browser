@@ -1,7 +1,7 @@
 # Microsoft Store listing text
 
 Paste into Partner Center → Store listings. Limits: short description 100 characters, description 10,000,
-features 20 × 200 characters, search terms 7 × 30 characters. Version 0.2.4-beta.1 is a beta; the
+features 20 × 200 characters, search terms 7 × 30 characters. Version 0.2.4-beta.2 is a beta; the
 text says so and claims only what has been checked.
 
 ## English (en-us)

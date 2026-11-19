@@ -8,6 +8,10 @@
 # Reviewed 2026-11-19 from the tree of the v0.2.3-beta.1 build (run 44322817201): every one of these 18 trees is byte for byte
 # the .crate file from static.crates.io of that version, plus .cargo-checksum.json (written by gnrt, {"files":{}}) and, for
 # seahash and flatbuffers, the LICENSE file that our patch adds.
+# psl-v2 moved to 2.1.247 on 2026-11-19 (psl is not pinned by adblock: gnrt takes the newest 2.x, and the crate is republished
+# whenever the public suffix list changes): compared with 2.1.246, only data/rules.txt, src/list.rs (generated from it) and the
+# version in Cargo.toml/Cargo.lock differ, there is no build.rs. A new psl release will stop the build the same way until the
+# line is updated here.
 adblock-v0_13 0.13.3 839b905ebd9b9275db6dfe6d4832d5892a40afc03ce819a01be9833a08090794
 addr-v0_15 0.15.6 8c4e69f936cc6bdb3c2c665345c8a2a0d3059917eca45147e1e0c17a4568d28b
 arrayvec-v0_7 0.7.8 a6f2eb1f8685407a9200cccbf96cc769e208febec74aaf8cbb910ddc146e0554
@@ -18,7 +22,7 @@ idna_adapter-v1 1.2.2 824ce2df9bf171beaf5feec8a156519f2a55e74898d73eb94e7db32e50
 percent-encoding-v2 2.3.2 785f3adef51da30ef75bea1791d053129168842375bf219adc0278a080b73c4a
 precomputed-hash-v0_1 0.1.1 8204533892b88e1c80a2692d4ff3065ed863e9bc450dfeb9b831b15e49879314
 psl-types-v2 2.0.11 f71740843aa91cef6851978430236770e77a786f72c8db44c780dcecfafc4160
-psl-v2 2.1.246 34dfd265ca0dae960420656d9b01c96d7454e6b0291141a19ef17bd66bd4763b
+psl-v2 2.1.247 99f8a21cf2c5a90da63414f146400539bd4c0ce6e9394a330976138416f4fe53
 rustc-hash-v2 2.1.3 ddf9758454c0b9de03fed3dda2937c1e8831d7aa418cf2041e2a20a4e1b18572
 rustc_version-v0_4 0.4.1 a0feeb5986b5da048d602b736eb8e239a8b520b27aeec7a0007e1450b75dd520
 seahash-v4 4.1.0 e941a90b2b6d02d220503dcaf7d5b8ab8d43e3e274055b31b5d6d7c20e2cce12

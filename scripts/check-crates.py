@@ -25,7 +25,10 @@ SHA256 = re.compile(r"[0-9a-f]{64}")
 def tree_hash(directory):
     """SHA-256 over '<relative path>\\0<sha256 of the file>\\n' for every file, sorted by path."""
     lines = []
-    for path in sorted(p for p in directory.rglob("*") if p.is_file()):
+    # Sorted by the tuple of path components, compared as plain strings: sorting the Path objects themselves ignores
+    # case on Windows (and so orders README.md and a.rs differently than on Linux), which gave a different hash on the
+    # runner than the one the list was reviewed with.
+    for path in sorted((p for p in directory.rglob("*") if p.is_file()), key=lambda p: p.relative_to(directory).parts):
         rel = path.relative_to(directory).as_posix()
         lines.append(f"{rel}\0{hashlib.sha256(path.read_bytes()).hexdigest()}\n")
     return hashlib.sha256("".join(lines).encode("utf-8")).hexdigest()

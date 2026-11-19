@@ -47,6 +47,19 @@ class CheckCrates(unittest.TestCase):
         (self.a / "build.rs").write_text("fn main() {}\n")
         self.assertNotEqual(h2, cc.tree_hash(self.a))
 
+    def test_tree_hash_order_does_not_depend_on_the_platform(self):
+        # Sorting Path objects ignores case on Windows: the hash has to follow plain string order of the path parts
+        # ('README.md' < 'Z' < 'a' < 'a.rs', and the directory 'a' before the file 'a.rs'), the same everywhere.
+        import hashlib
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t)
+            files = {"README.md": b"r", "Z": b"z", "a/b": b"ab", "a.rs": b"a"}
+            for name, data in files.items():
+                (d / name).parent.mkdir(parents=True, exist_ok=True)
+                (d / name).write_bytes(data)
+            want = "".join(f"{n}\0{hashlib.sha256(files[n]).hexdigest()}\n" for n in ("README.md", "Z", "a/b", "a.rs"))
+            self.assertEqual(hashlib.sha256(want.encode()).hexdigest(), cc.tree_hash(d))
+
     def test_match(self):
         code, out = cc.check(self.new(), self.pins())
         self.assertEqual(code, 0)
