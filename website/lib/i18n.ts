@@ -148,12 +148,12 @@ const en: Dict = {
       "Tracking redirectors skipped; HTTPS-First and automatic secure DNS on by default",
       "Published in the Microsoft Store, updated from the Chromium security releases",
       "Ad blocking for WebSockets and fingerprint protection in workers: built and tested",
+      "Store installation checked by hand on a clean machine",
     ],
     todo: [
       "Page of recommended extensions (uBlock Origin, AdGuard, NoScript) from our own repository: in the current beta, no automated end-to-end test yet",
       "Optional filter lists (cookie banners, annoyances), your own filters and Global Privacy Control: in the current beta, no automated end-to-end test yet",
       "Fingerprint noise inside the engine (Blink), not only in page scripts",
-      "Store installation tested on a clean machine",
     ],
   },
   faq: {
@@ -330,12 +330,12 @@ const pl: Dict = {
       "Pomijanie przekierowań śledzących; HTTPS-First i automatyczny bezpieczny DNS domyślnie włączone",
       "Opublikowana w Microsoft Store, aktualizowana za wydaniami bezpieczeństwa Chromium",
       "Blokowanie reklam w WebSocketach i ochrona fingerprintu w workerach: zbudowane i przetestowane",
+      "Instalacja ze Store sprawdzona ręcznie na czystym komputerze",
     ],
     todo: [
       "Strona polecanych rozszerzeń (uBlock Origin, AdGuard, NoScript) z naszego własnego repozytorium: w obecnej wersji beta, bez automatycznego testu end-to-end",
       "Opcjonalne listy filtrów (banery cookie, uciążliwe elementy), własne filtry i Global Privacy Control: w obecnej wersji beta, bez automatycznego testu end-to-end",
       "Szum fingerprintu w silniku (Blink), nie tylko w skryptach strony",
-      "Instalacja ze Store sprawdzona na czystym komputerze",
     ],
   },
   faq: {

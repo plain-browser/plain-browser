@@ -59,13 +59,13 @@ Details and third-party notices: [NOTICE.md](NOTICE.md). The name "Plain Browser
 | Default browser from the Microsoft Store package: status in Settings and "Make default" opening the package's Default apps page | Done, shipped since 0.2.2-beta.2 (`patches/60-ui/0013`, `src/plainbrowser/win`); no test yet |
 
 Tests: `scripts/test-*.ps1` run headless on the build VM; C++ unit tests in `docs/TESTING.md`.
-Not yet tested: the UI on real pages beyond the test pages, Store installation on a clean machine, and no end-to-end test for optional lists, GPC, the extension catalogue and "Make default".
+Store installation and the beta's features were checked by hand by the maintainer on a clean machine (2026-11-19). Not yet covered by automated tests: the UI on real pages beyond the test pages, and optional lists, GPC, the extension catalogue and "Make default" (no end-to-end test).
 
 ## Roadmap
 
 Privacy features and the project-security plan are in [docs/ROADMAP.md](docs/ROADMAP.md); vulnerability reporting in [SECURITY.md](SECURITY.md).
 
-1. Acceptance test of the Store beta on a clean machine; end-to-end tests for the features listed above.
+1. End-to-end tests for the features listed above.
 2. Ad-block request log and exceptions per profile; Blink-level fingerprint noise.
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md). Changes: [CHANGELOG.md](CHANGELOG.md). Manual GitHub and Store setup
