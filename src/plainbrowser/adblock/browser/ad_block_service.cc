@@ -334,18 +334,33 @@ void AdBlockService::RewrittenUrl(
       mojo::WrapCallbackWithDefaultInvokeIfNotRun(std::move(callback), GURL()));
 }
 
-void AdBlockService::AddLogViewer() {
+void AdBlockService::AddLogViewer(ProfileId profile) {
+  if (profile == kNoProfile) {
+    return;
+  }
+  base::AutoLock lock(log_lock_);
+  ++log_viewers_by_profile_[profile];
   ++log_viewers_;
 }
 
-void AdBlockService::RemoveLogViewer() {
-  if (--log_viewers_ <= 0) {
-    log_viewers_ = 0;
-    ClearLog();
+void AdBlockService::RemoveLogViewer(ProfileId profile) {
+  base::AutoLock lock(log_lock_);
+  auto it = log_viewers_by_profile_.find(profile);
+  if (it == log_viewers_by_profile_.end()) {
+    return;
   }
+  --log_viewers_;
+  if (--it->second > 0) {
+    return;
+  }
+  log_viewers_by_profile_.erase(it);
+  std::erase_if(log_, [profile](const LogEntry& e) {
+    return e.profile == profile;
+  });
 }
 
-void AdBlockService::Log(LogAction action,
+void AdBlockService::Log(ProfileId profile,
+                         LogAction action,
                          std::string url,
                          std::string page,
                          std::string type) {
@@ -353,21 +368,33 @@ void AdBlockService::Log(LogAction action,
     return;
   }
   base::AutoLock lock(log_lock_);
+  if (!log_viewers_by_profile_.contains(profile)) {
+    return;
+  }
   if (log_.size() >= kMaxLogEntries) {
     log_.pop_front();
   }
-  log_.push_back(LogEntry{base::Time::Now(), action, std::move(url),
+  log_.push_back(LogEntry{profile, base::Time::Now(), action, std::move(url),
                           std::move(page), std::move(type)});
 }
 
-std::vector<AdBlockService::LogEntry> AdBlockService::GetLog() const {
+std::vector<AdBlockService::LogEntry> AdBlockService::GetLog(
+    ProfileId profile) const {
   base::AutoLock lock(log_lock_);
-  return std::vector<LogEntry>(log_.begin(), log_.end());
+  std::vector<LogEntry> entries;
+  for (const LogEntry& e : log_) {
+    if (e.profile == profile) {
+      entries.push_back(e);
+    }
+  }
+  return entries;
 }
 
-void AdBlockService::ClearLog() {
+void AdBlockService::ClearLog(ProfileId profile) {
   base::AutoLock lock(log_lock_);
-  log_.clear();
+  std::erase_if(log_, [profile](const LogEntry& e) {
+    return e.profile == profile;
+  });
 }
 
 }  // namespace plainbrowser::adblock

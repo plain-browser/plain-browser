@@ -2,6 +2,9 @@
 #ifndef PLAINBROWSER_SHIELDS_BROWSER_SHIELDS_SERVICE_H_
 #define PLAINBROWSER_SHIELDS_BROWSER_SHIELDS_SERVICE_H_
 
+#include <cstdint>
+#include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <string_view>
@@ -25,9 +28,9 @@ namespace plainbrowser::shields {
 // renderer: the adblock filter asks IsExcepted() on the engine sequence, and
 // renderer processes get the list pushed over mojom::ShieldsConfig (the
 // fingerprint agent needs it synchronously). The lists of all profiles are
-// merged: a site excepted in one profile is excepted everywhere. Plain Browser
-// is used with one profile; keeping the lists apart would need per-profile
-// filter plumbing for no practical gain today.
+// merged: a site excepted in one profile is excepted everywhere (still to do:
+// per-profile lists). It also knows which profile a renderer process belongs
+// to, which the request log of chrome://adblock is kept by.
 class ShieldsService {
  public:
   static ShieldsService* GetInstance();
@@ -38,6 +41,16 @@ class ShieldsService {
   // Any thread. `site` is an eTLD+1 as returned by SiteFor().
   bool IsExcepted(std::string_view site) const;
 
+  // Any thread. The id of the profile the renderer process `process_id`
+  // (RenderProcessHost::GetDeprecatedID()) belongs to, as used by
+  // AdBlockService's request log, or 0 when there is none: an off-the-record
+  // profile, a process not seen by OnRendererProcessCreated() or one that is
+  // gone. An id is never reused while the browser runs.
+  uint64_t ProfileIdForProcess(int process_id) const;
+
+  // UI thread. The same for a BrowserContext: 0 when it is off the record.
+  uint64_t ProfileIdFor(content::BrowserContext* context);
+
   // UI thread. Called when a renderer process is created
   // (ChromeContentBrowserClient::ExposeInterfacesToRenderer, patches/30-adblock):
   // starts watching the process's profile prefs if not yet watched, binds a
@@ -47,21 +60,25 @@ class ShieldsService {
  private:
   friend class base::NoDestructor<ShieldsService>;
   class ProfileWatcher;
+  class ProcessObserver;
 
   ShieldsService();
   ~ShieldsService();
 
   void EnsureWatching(content::BrowserContext* context);
   void OnWatcherDestroyed(ProfileWatcher* watcher);
+  void OnProcessGone(int process_id);
   // UI thread. Recomputes the merged list and pushes it to every renderer.
   void Rebuild();
 
   // UI thread only.
   std::set<ProfileWatcher*> watchers_;
   mojo::RemoteSet<mojom::ShieldsConfig> renderers_;
+  std::map<int, std::unique_ptr<ProcessObserver>> process_observers_;
 
   mutable base::Lock lock_;
   std::set<std::string> excepted_ GUARDED_BY(lock_);
+  std::map<int, uint64_t> process_profiles_ GUARDED_BY(lock_);
 };
 
 }  // namespace plainbrowser::shields

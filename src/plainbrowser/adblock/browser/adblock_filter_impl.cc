@@ -121,8 +121,11 @@ class AdblockFilterImpl : public mojom::AdblockFilter {
                 AdBlockService* service = AdBlockService::GetInstance();
                 service->CountBlocked();
                 if (service->logging()) {
-                  service->Log(AdBlockService::LogAction::kRedirected,
-                               url.spec(), PageFor(top_level_url));
+                  service->Log(
+                      shields::ShieldsService::GetInstance()
+                          ->ProfileIdForProcess(process_id),
+                      AdBlockService::LogAction::kRedirected, url.spec(),
+                      PageFor(top_level_url));
                 }
               }
               if (!data_url.empty() && frame_token) {
@@ -187,7 +190,9 @@ void DecideRequest(const GURL& url,
               AdBlockService* service = AdBlockService::GetInstance();
               service->CountBlocked();
               if (service->logging()) {
-                service->Log(AdBlockService::LogAction::kBlocked, url.spec(),
+                service->Log(shields::ShieldsService::GetInstance()
+                                 ->ProfileIdForProcess(process_id),
+                             AdBlockService::LogAction::kBlocked, url.spec(),
                              PageFor(top_level_url), request_type);
               }
             }

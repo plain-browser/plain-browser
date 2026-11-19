@@ -23,6 +23,7 @@
 #include "plainbrowser/adblock/browser/filter_lists.h"
 #include "plainbrowser/adblock/common/filter_list_names.h"
 #include "plainbrowser/adblock/common/pref_names.h"
+#include "plainbrowser/shields/browser/shields_service.h"
 #include "ui/base/webui/web_ui_util.h"
 
 namespace plainbrowser::adblock {
@@ -67,14 +68,19 @@ PrefService* LocalState() {
 
 class AdblockPageHandler : public content::WebUIMessageHandler {
  public:
-  // The request log records only while a chrome://adblock page is open.
-  AdblockPageHandler() { AdBlockService::GetInstance()->AddLogViewer(); }
+  AdblockPageHandler() = default;
   ~AdblockPageHandler() override {
-    AdBlockService::GetInstance()->RemoveLogViewer();
+    AdBlockService::GetInstance()->RemoveLogViewer(profile_);
   }
 
   // content::WebUIMessageHandler:
   void RegisterMessages() override {
+    // The request log records only for a profile that has a chrome://adblock
+    // page open, and the page shows only that profile's entries. An
+    // off-the-record window has no profile id: nothing is logged for it.
+    profile_ = shields::ShieldsService::GetInstance()->ProfileIdFor(
+        web_ui()->GetWebContents()->GetBrowserContext());
+    AdBlockService::GetInstance()->AddLogViewer(profile_);
     // Unretained: WebUI owns the handler and drops its callbacks with it.
     web_ui()->RegisterMessageCallback(
         "getStatus", base::BindRepeating(&AdblockPageHandler::HandleGetStatus,
@@ -211,7 +217,7 @@ class AdblockPageHandler : public content::WebUIMessageHandler {
     AllowJavascript();
     base::ListValue entries;
     for (const AdBlockService::LogEntry& e :
-         AdBlockService::GetInstance()->GetLog()) {
+         AdBlockService::GetInstance()->GetLog(profile_)) {
       entries.Append(base::DictValue()
                          .Set("time", e.time.InMillisecondsFSinceUnixEpoch())
                          .Set("action", LogActionName(e.action))
@@ -224,10 +230,13 @@ class AdblockPageHandler : public content::WebUIMessageHandler {
 
   void HandleClearLog(const base::ListValue& args) {
     AllowJavascript();
-    AdBlockService::GetInstance()->ClearLog();
+    AdBlockService::GetInstance()->ClearLog(profile_);
     ResolveJavascriptCallback(args[0], base::Value());
   }
 
+  // The profile whose log this page shows; kNoProfile before RegisterMessages()
+  // and for an off-the-record window.
+  AdBlockService::ProfileId profile_ = AdBlockService::kNoProfile;
   base::WeakPtrFactory<AdblockPageHandler> weak_factory_{this};
 };
 

@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -129,16 +130,23 @@ class AdBlockService {
   int64_t blocked_total() const { return blocked_total_; }
 
   // The request log of chrome://adblock: what the blocker did, newest last.
-  // Kept in memory only, and only while a chrome://adblock page is open
-  // (AddLogViewer() / RemoveLogViewer()); emptied when the last one closes, so
-  // nothing about the pages a user visits stays around otherwise.
+  // Kept in memory only, and only for a profile that has a chrome://adblock
+  // page open (AddLogViewer() / RemoveLogViewer()); a profile's entries are
+  // dropped when its last page closes, so nothing about the pages a user
+  // visits stays around otherwise. Entries are kept per profile: a page shows
+  // and clears only its own profile's. The profile is the id from
+  // shields::ShieldsService (never kNoProfile); an off-the-record profile has
+  // none, so nothing it does is ever logged.
   enum class LogAction {
     kBlocked,     // A network rule blocked the request.
     kRedirected,  // A $redirect rule replaced the response.
     kParamsRemoved,  // Tracking parameters were removed from a navigation.
     kRedirectSkipped,  // A tracking redirector was skipped (debouncing).
   };
+  using ProfileId = uint64_t;
+  static constexpr ProfileId kNoProfile = 0;
   struct LogEntry {
+    ProfileId profile = kNoProfile;
     base::Time time;
     LogAction action;
     // The request (blocked, redirected) or the navigation's original URL.
@@ -151,17 +159,21 @@ class AdBlockService {
     std::string type;
   };
   static constexpr size_t kMaxLogEntries = 500;
-  // Any thread.
-  void AddLogViewer();
-  void RemoveLogViewer();
+  // Any thread. kNoProfile is ignored.
+  void AddLogViewer(ProfileId profile);
+  void RemoveLogViewer(ProfileId profile);
+  // Any thread. A cheap test whether any profile is being watched, so callers
+  // can skip building the entry; Log() decides per profile.
   bool logging() const { return log_viewers_ > 0; }
-  // Any thread. Dropped unless logging().
-  void Log(LogAction action,
+  // Any thread. Dropped unless `profile` has a viewer.
+  void Log(ProfileId profile,
+           LogAction action,
            std::string url,
            std::string page,
            std::string type = std::string());
-  std::vector<LogEntry> GetLog() const;
-  void ClearLog();
+  // The profile's entries, oldest first.
+  std::vector<LogEntry> GetLog(ProfileId profile) const;
+  void ClearLog(ProfileId profile);
 
   // For chrome://adblock.
   struct Status {
@@ -223,6 +235,9 @@ class AdBlockService {
   std::atomic<int64_t> blocked_total_{0};
   std::atomic<int> log_viewers_{0};
   mutable base::Lock log_lock_;
+  // Open chrome://adblock pages by profile, and the entries of those profiles
+  // (the newest kMaxLogEntries over all of them).
+  std::map<ProfileId, int> log_viewers_by_profile_ GUARDED_BY(log_lock_);
   base::circular_deque<LogEntry> log_ GUARDED_BY(log_lock_);
   SEQUENCE_CHECKER(sequence_checker_);
 };

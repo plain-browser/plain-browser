@@ -32,6 +32,15 @@ void OpenCleanUrl(base::WeakPtr<content::WebContents> web_contents,
   }
 }
 
+// The profile the request log files a navigation under; none (not logged) for
+// an off-the-record profile.
+AdBlockService::ProfileId LogProfileFor(content::NavigationHandle* handle) {
+  content::WebContents* web_contents = handle->GetWebContents();
+  return web_contents ? shields::ShieldsService::GetInstance()->ProfileIdFor(
+                            web_contents->GetBrowserContext())
+                      : AdBlockService::kNoProfile;
+}
+
 }  // namespace
 
 // static
@@ -100,8 +109,8 @@ TrackingParamsNavigationThrottle::Check() {
             debounce::TargetFor(url, debounce::BuiltInRules());
         target && !shields->IsExcepted(shields::SiteFor(*target))) {
       AdBlockService::GetInstance()->Log(
-          AdBlockService::LogAction::kRedirectSkipped, url.spec(),
-          target->spec());
+          LogProfileFor(handle), AdBlockService::LogAction::kRedirectSkipped,
+          url.spec(), target->spec());
       Reissue(*target);
       return CANCEL;
     }
@@ -138,7 +147,8 @@ void TrackingParamsNavigationThrottle::OnRewritten(const GURL& original,
     Resume();
     return;
   }
-  AdBlockService::GetInstance()->Log(AdBlockService::LogAction::kParamsRemoved,
+  AdBlockService::GetInstance()->Log(LogProfileFor(handle),
+                                     AdBlockService::LogAction::kParamsRemoved,
                                      original.spec(), rewritten.spec());
   // The clean URL has nothing left to strip, so the new navigation proceeds
   // through this throttle.

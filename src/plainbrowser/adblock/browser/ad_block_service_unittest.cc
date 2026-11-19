@@ -242,13 +242,14 @@ TEST_F(AdBlockServiceTest, UserConfigIsKeptWhenTheEngineIsStartedAgain) {
 
 TEST_F(AdBlockServiceTest, TheLogRecordsOnlyWhileSomeoneLooks) {
   using Action = AdBlockService::LogAction;
-  service_->Log(Action::kBlocked, kAdScript, kPage, "script");
-  EXPECT_TRUE(service_->GetLog().empty());
-  service_->AddLogViewer();
-  service_->Log(Action::kBlocked, kAdScript, kPage, "script");
-  service_->Log(Action::kParamsRemoved, "https://a.test/?utm_source=x",
-                "https://a.test/");
-  std::vector<AdBlockService::LogEntry> log = service_->GetLog();
+  constexpr AdBlockService::ProfileId kProfile = 1;
+  service_->Log(kProfile, Action::kBlocked, kAdScript, kPage, "script");
+  EXPECT_TRUE(service_->GetLog(kProfile).empty());
+  service_->AddLogViewer(kProfile);
+  service_->Log(kProfile, Action::kBlocked, kAdScript, kPage, "script");
+  service_->Log(kProfile, Action::kParamsRemoved,
+                "https://a.test/?utm_source=x", "https://a.test/");
+  std::vector<AdBlockService::LogEntry> log = service_->GetLog(kProfile);
   ASSERT_EQ(2u, log.size());
   EXPECT_EQ(Action::kBlocked, log[0].action);
   EXPECT_EQ(kAdScript, log[0].url);
@@ -256,16 +257,48 @@ TEST_F(AdBlockServiceTest, TheLogRecordsOnlyWhileSomeoneLooks) {
   EXPECT_EQ(Action::kParamsRemoved, log[1].action);
   // Bounded: the oldest entries go first.
   for (size_t i = 0; i < AdBlockService::kMaxLogEntries; ++i) {
-    service_->Log(Action::kBlocked, "https://x.test/" + base::NumberToString(i),
-                  kPage, "image");
+    service_->Log(kProfile, Action::kBlocked,
+                  "https://x.test/" + base::NumberToString(i), kPage, "image");
   }
-  log = service_->GetLog();
+  log = service_->GetLog(kProfile);
   ASSERT_EQ(AdBlockService::kMaxLogEntries, log.size());
   EXPECT_EQ("https://x.test/0", log.front().url);
   // The last viewer leaving empties it.
-  service_->RemoveLogViewer();
+  service_->RemoveLogViewer(kProfile);
   EXPECT_FALSE(service_->logging());
-  EXPECT_TRUE(service_->GetLog().empty());
+  EXPECT_TRUE(service_->GetLog(kProfile).empty());
+}
+
+TEST_F(AdBlockServiceTest, TheLogIsKeptPerProfile) {
+  using Action = AdBlockService::LogAction;
+  constexpr AdBlockService::ProfileId kWatched = 1, kOther = 2;
+  service_->AddLogViewer(kWatched);
+  // A profile nobody looks at (another profile, or off the record) is not
+  // recorded, even though some other profile's page is open.
+  service_->Log(kOther, Action::kBlocked, kAdScript, kPage, "script");
+  service_->Log(AdBlockService::kNoProfile, Action::kBlocked, kAdScript, kPage,
+                "script");
+  service_->Log(kWatched, Action::kBlocked, kAdScript, kPage, "script");
+  EXPECT_EQ(1u, service_->GetLog(kWatched).size());
+  EXPECT_TRUE(service_->GetLog(kOther).empty());
+  EXPECT_TRUE(service_->GetLog(AdBlockService::kNoProfile).empty());
+  // Both watched: each sees only its own, clearing one leaves the other.
+  service_->AddLogViewer(kOther);
+  service_->Log(kOther, Action::kRedirected, kAdScript, kPage);
+  EXPECT_EQ(1u, service_->GetLog(kWatched).size());
+  EXPECT_EQ(1u, service_->GetLog(kOther).size());
+  service_->ClearLog(kWatched);
+  EXPECT_TRUE(service_->GetLog(kWatched).empty());
+  EXPECT_EQ(1u, service_->GetLog(kOther).size());
+  // A second page of the same profile keeps its entries until the last closes.
+  service_->AddLogViewer(kOther);
+  service_->RemoveLogViewer(kOther);
+  EXPECT_EQ(1u, service_->GetLog(kOther).size());
+  service_->RemoveLogViewer(kOther);
+  EXPECT_TRUE(service_->GetLog(kOther).empty());
+  EXPECT_TRUE(service_->logging());  // kWatched is still open.
+  service_->RemoveLogViewer(kWatched);
+  EXPECT_FALSE(service_->logging());
 }
 
 TEST_F(AdBlockServiceTest, StopsStartingAnEngineThatKeepsGoingAway) {

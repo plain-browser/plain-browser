@@ -168,9 +168,13 @@ Added 2026-11-09, shipped since 0.2.2-beta.2. Unit tests and the Rust tests cove
   accepted as the header on both sides.
 - **Request log** (chrome://adblock, "Request log"): `AdBlockService::Log()` records blocked and `$redirect`-replaced
   requests (`AdblockFilterImpl`, with the request type and the page's top-level origin) and removed tracking
-  parameters and skipped redirectors (`TrackingParamsNavigationThrottle`), at most 500 entries, only while a
-  chrome://adblock page is open (`AddLogViewer()` in the page handler's constructor); it is emptied when the last
-  one closes. In memory only. Filter box and Clear button on the page.
+  parameters and skipped redirectors (`TrackingParamsNavigationThrottle`), at most 500 entries, only for a profile
+  that has a chrome://adblock page open (`AddLogViewer(profile)` in the page handler's `RegisterMessages()`); a
+  profile's entries are dropped when its last page closes. Entries are filed per profile: the id comes from
+  `ShieldsService` (`ProfileIdFor(context)`; `ProfileIdForProcess(id)` for the filter, which only knows the
+  renderer process), a page shows and clears only its own profile's, and an off-the-record profile has id 0, so
+  nothing it does is logged. In memory only. Filter box and Clear button on the page. Not yet verified in a
+  build: unit tests cover the service (`TheLogIsKeptPerProfile`), the id plumbing needs a run with two profiles.
 - Not done: an element picker ("hide this element" from the context menu), per-feature site toggles.
 
 ## Generic element hiding

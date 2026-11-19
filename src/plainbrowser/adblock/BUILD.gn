@@ -271,6 +271,7 @@ source_set("webui") {
     "//components/prefs",
     "//content/public/browser",
     "//content/public/common",
+    "//plainbrowser/shields:browser",
     "//ui/base",
   ]
 }

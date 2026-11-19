@@ -5,6 +5,9 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+### Changed
+- The ad blocker's request log (chrome://adblock) is kept per profile: a page shows and clears only its own profile's entries, and a private window's requests are never logged.
+
 ## [0.2.3-beta.1] - 2026-11-18 [Chromium 157.0.8103.78, ungoogled-chromium-windows 157.0.8103.78-1.1]
 
 ### Changed
