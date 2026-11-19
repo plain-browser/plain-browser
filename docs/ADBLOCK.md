@@ -173,8 +173,10 @@ Added 2026-11-09, shipped since 0.2.2-beta.2. Unit tests and the Rust tests cove
   profile's entries are dropped when its last page closes. Entries are filed per profile: the id comes from
   `ShieldsService` (`ProfileIdFor(context)`; `ProfileIdForProcess(id)` for the filter, which only knows the
   renderer process), a page shows and clears only its own profile's, and an off-the-record profile has id 0, so
-  nothing it does is logged. In memory only. Filter box and Clear button on the page. Not yet verified in a
-  build: unit tests cover the service (`TheLogIsKeptPerProfile`), the id plumbing needs a run with two profiles.
+  nothing it does is logged. In memory only. Filter box and Clear button on the page. Verified 2026-11-19 on a build: unit test
+  `TheLogIsKeptPerProfile` and `scripts/test-adblock-profiles.ps1` (Default, a second profile and a private window in
+  one process: each page shows only its own request, the private window's stays empty, Clear affects one profile,
+  entries are gone after the last page closes).
 - Not done: an element picker ("hide this element" from the context menu), per-feature site toggles.
 
 ## Generic element hiding
