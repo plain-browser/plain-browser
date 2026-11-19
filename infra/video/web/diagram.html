@@ -2,7 +2,7 @@
 <style>html,body{margin:0;background:#0f1419;height:100%;overflow:hidden}object{width:100vw;height:100vh;display:block}</style></head><body>
 <object id="o" type="image/svg+xml"></object>
 <script>
-const P=new URLSearchParams(location.search),o=document.getElementById('o');o.data=P.get('d')+'.svg';
+const P=new URLSearchParams(location.search),o=document.getElementById('o');const D={'01-layers':'01-layers.svg','02-request-flow':'02-request-flow.svg','03-rebuild-cost':'03-rebuild-cost.svg','04-rebase-cycle':'04-rebase-cycle.svg'};const f=Object.prototype.hasOwnProperty.call(D,P.get('d'))?D[P.get('d')]:null;if(f)o.data=f;
 o.addEventListener('load',()=>{const doc=o.contentDocument;const ids=(P.get('seq')||'').split(',').filter(Boolean);const step=+(P.get('step')||1600);
  ids.forEach(id=>{const g=doc.getElementById(id);if(g){g.style.opacity=0;g.style.transition='opacity 700ms, transform 700ms';g.style.transform='translateY(20px)'}});
  ids.forEach((id,i)=>setTimeout(()=>{const g=doc.getElementById(id);if(g){g.style.opacity=1;g.style.transform='none'}},(+(P.get('delay')||1200))+i*step));});
