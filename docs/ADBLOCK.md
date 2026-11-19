@@ -141,11 +141,11 @@ the update state (last successful check, a failed last check, updates off) with 
 embedded by GN (`embed_text.py`) and served through a request filter, strings come from `strings.m.js` (shields
 grdp); the script builds the DOM with `textContent` only (Trusted Types).
 Verified with `scripts/test-adblock-webui.ps1` (scheduled task `PBAdblockWebUI` on the build VM, PASS): 4 requests
-blocked on the test page, the engine process, the four lists, the settings rows, and the global switch turned off
+blocked on the test page, the engine process, the lists it shows (the three default ones and the parameter list at the time), the settings rows, and the global switch turned off
 in Settings shows Off on the page and `plainbrowser.adblock.enabled = false` in Local State.
 
 ## Optional lists, custom filters and the request log
-Added 2026-11-09, not yet built or run in a browser; unit tests and the Rust tests cover the logic.
+Added 2026-11-09, shipped since 0.2.2-beta.2. Unit tests and the Rust tests cover the logic; there is no end-to-end test yet (`test-adblock-webui.ps1` checks only the default lists).
 
 - **Optional lists** (`common/filter_list_names.h` `kOptionalLists`, Rust `OPTIONAL_LISTS`): EasyList Cookie List
   (`easylistcookie`, on by default), Fanboy's Annoyance List (`fanboyannoyance`, off; contains the cookie list) and
@@ -316,8 +316,9 @@ Tests: `AdBlockEngineTest.WebSocketUrlsAreCheckedAgainstWebSocketRules` (no port
 - Scriptlets beyond our set (uBO's resources are GPLv3; we write our own), `$redirect` for request types the
   file extension does not reveal, procedural operators `:others()`, `:watch-attr()`, `:matches-prop()`.
 - Navigation (`$document`) blocking of main-frame navigations; requests started from the browser process.
-- The subframe and redirect checks (2026-11-11) are written but not compiled or run in a browser yet:
-  `scripts/test-adblock.ps1` has the cases (`fr_adnxs` frame document, `rd_adnxs` redirect to a blocked host).
+- The subframe and redirect checks (2026-11-11) shipped in 0.2.2-beta.2. `scripts/test-adblock.ps1` has the cases
+  (`fr_adnxs` frame document, `rd_adnxs` redirect to a blocked host); `e2e-windows.yml` runs it against a release.
+  No record of a passing run is kept in the repository.
 - `$removeparam` on subresources: the renderer throttle decides asynchronously and a deferred request's URL may
   only be edited synchronously (`URLLoaderThrottle::WillStartRequest`), so only navigations are cleaned today.
 - Tracking-parameter stripping verified 2026-10-26 with `scripts/test-privacy.ps1` (headless, local server): the

@@ -124,7 +124,7 @@ directory. If the VM's execution policy refuses `-File`, run it as
 Expected on a current build: `[WITH_UBO]` with `manifest_version 2`, `state ENABLED`, `ad_*` and `pgl_*` `error`,
 `ctl_*=allowed`, `blocked=6`; `[NO_EXT]` with all eight `allowed`.
 
-## Distribution without the Chrome Web Store (2026-11-09, not yet built)
+## Distribution without the Chrome Web Store (2026-11-09, shipped since 0.2.2-beta.2)
 
 - **chrome://recommended-extensions** (`src/plainbrowser/extensions`, registered by `patches/20-hooks`, linked
   from Settings > Privacy and security > "Recommended extensions"): uBlock Origin, AdGuard (both MV2) and NoScript

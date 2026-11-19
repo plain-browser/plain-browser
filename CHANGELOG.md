@@ -26,14 +26,14 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
   upstream pin check message is read as a scoped variable); the message now uses `${want}`. 0.2.2-beta.1 was tagged
   but its build stopped in `prepare` on this and was never released.
 
-Written 2026-11-09 and checked with `scripts/check-patches.py` (all patches apply to 157.0.8103.38-1.1), the Rust
-tests and the Node tests; not yet compiled or run in a browser.
+Also first shipped in this release: the changes below, written 2026-11-09 to 2026-11-11 (the 0.2.0-beta.7 section
+below and the items that follow), which 0.2.1-beta.1 did not contain.
 
 ### Fixed
 - Ad blocking: a document loaded in an `<iframe>`/`<frame>` is now checked against the network rules (it is a
   navigation the browser process loads, which the renderer-side filter never saw), and every redirect target of a
   subresource is checked again (a request to an allowed URL that redirected to a blocked one went through).
-  Written, not yet compiled or run in a browser.
+  `scripts/test-adblock.ps1` has the cases (`fr_adnxs`, `rd_adnxs`).
 
 ### Added
 - Global Privacy Control on by default: the `Sec-GPC: 1` header and `navigator.globalPrivacyControl`, with
@@ -55,7 +55,7 @@ tests and the Node tests; not yet compiled or run in a browser.
   its page in Windows' Default apps (`60-ui/0013`, `//plainbrowser/win`). Before, the package was always reported
   "not default" and the button opened a page for an unknown app.
 
-### Added (branch `feat/websocket-and-worker-fingerprint`, built and tested on the build VM 2026-11-10)
+### Added (WebSockets and workers; built and tested on the build VM 2026-11-10)
 - WebSockets go through the ad blocker: `$websocket` rules apply, decided in the browser process before a socket is opened, so a
   blocked tracker never receives the handshake (`ContentBrowserClient::WillInterceptWebSocket`/`CreateWebSocket`, chained with
   the extensions' webRequest proxy; the engine accepts ws/wss URLs). Shared and service workers are not covered.
@@ -90,7 +90,7 @@ tests and the Node tests; not yet compiled or run in a browser.
   Microsoft Store by the automated release pipeline).
 - Package version 0.2.1.0.
 
-## [0.2.0-beta.7] - 2026-11-09 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1] (never released: 0.2.1-beta.1 was built from the pipeline's upstream update before these changes were pushed; they ship with the next release)
+## [0.2.0-beta.7] - 2026-11-09 [Chromium 157.0.8103.38, ungoogled-chromium-windows 157.0.8103.38-1.1] (never released as its own version: 0.2.1-beta.1 was built from the pipeline's upstream update before these changes were pushed; they shipped in 0.2.2-beta.2)
 
 ### Changed
 - Patches rewritten for cheaper Chromium bumps, same behaviour. Our `#include`s sit in one "Plain Browser: own
