@@ -3,6 +3,8 @@
 The host's address is not in the repository: the scripts that need it read `PB_UNRAID=user@host` (`infra/video/host/`), `PB_VIDEO_VM` and
 `PB_BUILD_VM` (`scripts/vm-sync.sh`).
 
+The VM names in this document (`plainbrowser-build`, `plainbrowser-video`, `PB-BUILD`, `PB-VIDEO`) are examples: the real machines may be named differently, and the variables above point at them.
+
 Two Windows 11 VMs, both installed unattended from the same multi-edition ISO
 (`/mnt/ssd/isos/pl-pl_windows_11_25h2_26200.8117_multi_editions_*.iso`, virtio drivers from `virtio-win-0.1.285-1.iso`):
 
