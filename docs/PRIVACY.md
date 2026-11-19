@@ -1,21 +1,20 @@
 # Plain Browser privacy policy
 
-Last updated: 9 November 2026 · [Polski](PRIVACY.pl.md)
+Last updated: 19 November 2026 · [Polski](PRIVACY.pl.md)
 
 Plain Browser is a web browser built from Chromium with the ungoogled-chromium patch set. This policy says what the
-browser does with your data. It describes version 0.2.3-beta.1 and the release after it (Global Privacy Control, optional filter lists,
-recommended extensions), and is updated whenever a release changes it.
+browser does with your data. It describes version 0.2.3-beta.1 and is updated whenever a release changes it.
 
 ## Summary
 
 - Plain Browser has **no telemetry, no usage statistics and no crash reports** that are sent to us or anyone else.
-- It has **no account, sign-in or sync service**, and we run **no server** that receives data about you from the
-  browser. We cannot see what you browse. The services of ours the browser talks to, the Safe Browsing proxy,
-  the filter list mirror and the extension repository (all below), keep no logs and get nothing about the pages
-  you visit.
-- It does **not contact Google services**. The ungoogled-chromium patches remove them (Google sign-in,
-  translation, the Chrome Web Store and others). The one exception is Safe Browsing through our own
-  anonymizing proxy, described below; you can turn it off.
+- It has **no account, sign-in or sync service**, and we run **no server that receives data about the pages you
+  visit**. We cannot see what you browse. The three services of ours the browser talks to (the Safe Browsing proxy,
+  the filter list mirror and the extension repository, all below) are configured not to keep logs and are sent
+  nothing about the pages you visit. Cloudflare, which serves them, still sees your IP address when you connect.
+- It does **not contact Google directly**. The ungoogled-chromium patches remove Google sign-in, translation, the
+  Chrome Web Store and other services. The one exception is Safe Browsing, which goes through our anonymizing proxy:
+  Google receives hash prefixes of URLs from the proxy, never your IP address. You can turn it off.
 - Your browsing data stays **on your device**.
 
 ## What we collect
@@ -23,9 +22,11 @@ recommended extensions), and is updated whenever a release changes it.
 Nothing. We do not receive, collect, store or sell personal information. There is no analytics, advertising
 identifier or tracking code in the browser.
 
-We checked this for the first start of the browser: with a fresh profile and no page open, Plain Browser made no
-network requests of its own over 100 seconds. The only network activity was the Windows proxy auto-detection
-(WPAD) that any application using the system proxy settings performs.
+We measured an earlier build: with a fresh profile and no page open, it made no network requests of its own over
+100 seconds, apart from the Windows proxy auto-detection (WPAD) any application using the system proxy settings
+performs. The current version makes its first requests of its own a few minutes after start: the filter list check
+(about two minutes after start), Safe Browsing list updates through our proxy, and DNS lookups, encrypted when your
+resolver supports it. You can turn off each of the first two in Settings.
 
 ## Data stored on your device
 
@@ -33,6 +34,13 @@ Like every browser, Plain Browser stores your browsing history, cookies, cache, 
 downloads and settings in your Windows user profile. This data is not sent to us. You can delete it in the browser
 settings (Clear browsing data), or remove it entirely by uninstalling the browser. In the Microsoft Store version,
 Windows keeps the profile in the app's private storage and removes it on uninstall.
+
+The ad blocker also keeps on your device: your own filters (the "My filters" box on chrome://adblock, stored in the
+browser's settings file), the list of sites where you turned protections off, the filter lists it downloaded (in a
+folder inside your profile) and, for each list update, the highest manifest number it has accepted, so that an older
+copy cannot be replayed. None of it is sent to us. Turning list updates off deletes the downloaded lists; Clear
+browsing data does not remove your own filters or the site exceptions, which you can edit in Settings and on
+chrome://adblock.
 
 ## Data sent to the websites you visit
 
@@ -44,6 +52,14 @@ Control** signal (the `Sec-GPC: 1` request header and `navigator.globalPrivacyCo
 CCPA in California, sites must honour it; elsewhere it is a request. It is on by default and can be turned off in
 Settings > Privacy and security > Third-party cookies and site data > "Send an opt-out request to sites regarding
 use of your data".
+
+Plain Browser also changes what some websites would otherwise learn about you, entirely on your device. It removes
+known tracking parameters (such as `utm_*`, `fbclid`, `gclid`) from the addresses you open, so the site never
+receives them, and it skips known tracking redirectors (such as `l.facebook.com/l.php`) and goes straight to the
+page you meant. Fingerprint protection adds small, per-site and per-session variations to canvas, audio and WebGL
+output and to a few browser values, so scripts cannot use them to recognise you across sites. Both can be turned off
+for a site that breaks, from the shield button in the toolbar. Fingerprint protection is a first version: a page can
+detect and bypass it, and it does not cover every fingerprinting method.
 
 The built-in ad blocker runs entirely on your device. Its filter lists (EasyList, EasyPrivacy, EasyList Polish, the
 EasyList Cookie List, and Fanboy's Annoyance List and uBlock filters if you turn them on) are bundled with the
@@ -69,7 +85,8 @@ From version 0.1.3-alpha.1, the browser keeps its filter lists current between r
   contacts the list publishers; the mirror fetches the lists from them.
 - The requests carry **no cookies and nothing about the sites you visit**, only the browser's version number
   (`X-Client: PlainBrowser/<major.minor.patch>`, the same header the Safe Browsing proxy gets). The browser checks
-  each downloaded list's size and SHA-256 hash against the manifest before using it.
+  each downloaded list's size and SHA-256 hash against the manifest before using it. It also refuses a manifest that
+  is older than one it already accepted or past its expiry date, and keeps its current lists instead.
 - **The mirror keeps no logs** and stores only the lists. Cloudflare handles the connection and can see your IP
   address the way it can for any site it serves.
 - **You can turn it off**: Settings > Privacy and security > Update filter lists daily. With it off, the browser
@@ -84,7 +101,8 @@ without Google learning anything about you:
   proxy and to nothing else; it never contacts Google directly.
 - The browser keeps a **local database of hash prefixes** (the "Update API", standard protection). URLs you visit
   are checked against it on your device. Only when a prefix matches does the browser ask for the full hashes of
-  that prefix, which does not reveal the URL.
+  that prefix. That request carries a short prefix of the hash, not the URL, but a prefix does narrow down which
+  addresses it could be, so treat it as partial information, not as none.
 - Those requests go to **our proxy at sb.plain-browser.app**, a Cloudflare Worker, never to Google directly. The
   proxy forwards them to Google with our API key and strips everything that identifies you: your IP address,
   cookies, `Referer`, `Accept-Language` and Cloudflare's own headers. Google sees Cloudflare's IP address, a fixed

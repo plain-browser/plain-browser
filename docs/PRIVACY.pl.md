@@ -1,22 +1,22 @@
 # Polityka prywatności Plain Browser
 
-Ostatnia aktualizacja: 9 listopada 2026 · [English](PRIVACY.md)
+Ostatnia aktualizacja: 19 listopada 2026 · [English](PRIVACY.md)
 
 Plain Browser to przeglądarka zbudowana z Chromium z zestawem poprawek ungoogled-chromium. Ta polityka opisuje, co
-przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.2.3-beta.1 i następnego wydania (Global Privacy Control, opcjonalne listy
-filtrów, polecane rozszerzenia) i jest aktualizowana przy każdym wydaniu, które to zmienia.
+przeglądarka robi z Twoimi danymi. Dotyczy wersji 0.2.3-beta.1 i jest aktualizowana przy każdym wydaniu, które to zmienia.
 
 ## W skrócie
 
 - Plain Browser **nie ma telemetrii, statystyk użycia ani raportów o awariach**, które trafiałyby do nas lub do
   kogokolwiek innego.
-- Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera**, który odbierałby z
-  przeglądarki dane o Tobie. Nie widzimy, co przeglądasz. Nasze usługi, z którymi łączy się przeglądarka (proxy
-  Safe Browsing, serwer list filtrów i repozytorium rozszerzeń, opisane niżej), nie prowadzą logów i nie dostają
-  nic o odwiedzanych stronach.
-- **Nie łączy się z usługami Google.** Poprawki ungoogled-chromium usuwają je (logowanie Google, tłumaczenie,
-  Chrome Web Store i inne). Jedynym wyjątkiem jest Safe Browsing przez nasze własne anonimizujące
-  proxy, opisane niżej; można go wyłączyć.
+- Nie ma **konta, logowania ani synchronizacji** i nie prowadzimy **żadnego serwera, który odbiera dane o
+  odwiedzanych stronach**. Nie widzimy, co przeglądasz. Trzy nasze usługi, z którymi łączy się przeglądarka (proxy
+  Safe Browsing, serwer list filtrów i repozytorium rozszerzeń, opisane niżej), są skonfigurowane tak, by nie
+  zapisywać logów, i nie dostają nic o odwiedzanych stronach. Cloudflare, który je obsługuje, widzi jednak Twój
+  adres IP przy połączeniu.
+- **Nie łączy się bezpośrednio z Google.** Poprawki ungoogled-chromium usuwają logowanie Google, tłumaczenie,
+  Chrome Web Store i inne usługi. Wyjątkiem jest Safe Browsing, który przechodzi przez nasze anonimizujące proxy:
+  Google dostaje od proxy prefiksy hashy adresów, nigdy Twojego IP. Można to wyłączyć.
 - Dane o przeglądaniu zostają **na Twoim urządzeniu**.
 
 ## Co zbieramy
@@ -24,9 +24,11 @@ filtrów, polecane rozszerzenia) i jest aktualizowana przy każdym wydaniu, któ
 Nic. Nie otrzymujemy, nie zbieramy, nie przechowujemy ani nie sprzedajemy danych osobowych. W przeglądarce nie ma
 analityki, identyfikatora reklamowego ani kodu śledzącego.
 
-Sprawdziliśmy to dla pierwszego uruchomienia: przy świeżym profilu i bez otwartej strony Plain Browser przez 100
-sekund nie wysłał żadnych własnych żądań sieciowych. Jedyną aktywnością było automatyczne wykrywanie serwera proxy
-w Windows (WPAD), które wykonuje każda aplikacja korzystająca z systemowych ustawień proxy.
+Zmierzyliśmy wcześniejszą wersję: na świeżym profilu, bez otwartej strony, przez 100 sekund nie wysłała żadnych
+własnych zapytań sieciowych poza automatycznym wykrywaniem proxy Windows (WPAD), które wykonuje każda aplikacja
+używająca systemowych ustawień proxy. Obecna wersja wysyła pierwsze własne zapytania po kilku minutach od startu:
+sprawdzenie list filtrów (około dwóch minut po starcie), aktualizacje list Safe Browsing przez nasze proxy oraz
+zapytania DNS, szyfrowane, gdy Twój resolver to obsługuje. Pierwsze dwie rzeczy możesz wyłączyć w ustawieniach.
 
 ## Dane przechowywane na urządzeniu
 
@@ -34,6 +36,12 @@ Jak każda przeglądarka, Plain Browser zapisuje w profilu użytkownika Windows 
 zapisane hasła, zakładki, pobrane pliki i ustawienia. Te dane nie są do nas wysyłane. Możesz je usunąć w ustawieniach
 przeglądarki (Wyczyść dane przeglądania) albo całkowicie, odinstalowując przeglądarkę. W wersji z Microsoft Store
 Windows trzyma profil w prywatnej pamięci aplikacji i usuwa go przy odinstalowaniu.
+
+Bloker reklam przechowuje też na Twoim urządzeniu: Twoje własne filtry (pole „My filters” na chrome://adblock,
+zapisane w pliku ustawień przeglądarki), listę witryn, dla których wyłączyłeś ochronę, pobrane listy filtrów (w
+folderze w Twoim profilu) oraz najwyższy numer manifestu, jaki przyjął, żeby nie dało się podstawić starszej kopii.
+Nic z tego nie jest wysyłane do nas. Wyłączenie aktualizacji list usuwa pobrane listy; „Wyczyść dane przeglądania”
+nie usuwa własnych filtrów ani wyjątków dla witryn, które edytujesz w ustawieniach i na chrome://adblock.
 
 ## Dane wysyłane do odwiedzanych stron
 
@@ -45,6 +53,14 @@ Przeglądarka informuje też każdą stronę, że nie zgadzasz się na sprzedaż
 kalifornijska CCPA strony muszą go respektować; gdzie indziej jest prośbą. Jest domyślnie włączony; można go
 wyłączyć w Ustawieniach > Prywatność i bezpieczeństwo, na stronie plików cookie innych firm (przełącznik prośby do
 witryn o rezygnację z wykorzystania danych).
+
+Plain Browser zmienia też to, czego niektóre strony mogłyby się o Tobie dowiedzieć, wyłącznie na Twoim urządzeniu.
+Usuwa znane parametry śledzące (np. `utm_*`, `fbclid`, `gclid`) z otwieranych adresów, więc strona ich nie dostaje,
+i pomija znane przekierowania śledzące (np. `l.facebook.com/l.php`), przechodząc od razu do właściwej strony. Ochrona
+fingerprintu dodaje niewielkie wariacje, osobne dla witryny i sesji, do wyników canvas, audio i WebGL oraz kilku
+wartości przeglądarki, żeby skrypty nie mogły ich użyć do rozpoznania Cię między witrynami. Obie funkcje można
+wyłączyć dla witryny, która przestaje działać, przyciskiem tarczy na pasku. Ochrona fingerprintu to pierwsza wersja:
+strona może ją wykryć i obejść, i nie obejmuje każdej metody.
 
 Wbudowany bloker reklam działa w całości na Twoim urządzeniu. Listy filtrów (EasyList, EasyPrivacy, EasyList
 Polish, EasyList Cookie List, a po włączeniu także Fanboy's Annoyance List i uBlock filters) są dołączone do
@@ -71,7 +87,8 @@ Od wersji 0.1.3-alpha.1 przeglądarka odświeża listy filtrów między wydaniam
   z autorami list; to serwer pobiera listy od nich.
 - Żądania **nie zawierają plików cookie ani niczego o odwiedzanych stronach**, tylko numer wersji przeglądarki
   (`X-Client: PlainBrowser/<major.minor.patch>`, ten sam nagłówek, który dostaje proxy Safe Browsing). Przed
-  użyciem przeglądarka sprawdza rozmiar i skrót SHA-256 każdej pobranej listy z manifestem.
+  użyciem przeglądarka sprawdza rozmiar i skrót SHA-256 każdej pobranej listy z manifestem. Odrzuca też manifest
+  starszy niż ten, który już przyjęła, albo po terminie ważności, i zostaje przy aktualnych listach.
 - **Serwer nie prowadzi logów** i przechowuje tylko listy. Połączenie obsługuje Cloudflare, który widzi Twój adres
   IP, tak jak przy każdej obsługiwanej przez siebie stronie.
 - **Można to wyłączyć**: Ustawienia > Prywatność i bezpieczeństwo > Aktualizuj listy filtrów codziennie. Po
@@ -85,8 +102,9 @@ oferuje to bez przekazywania Google czegokolwiek o Tobie:
 - **Aktywne od wersji 0.1.2-alpha.1**, wyłącznie w ochronie standardowej. Przeglądarka wysyła żądania Safe Browsing
   do naszego proxy i nigdzie indziej; nigdy nie łączy się bezpośrednio z Google.
 - Przeglądarka trzyma **lokalną bazę prefiksów hashy** (tzw. Update API, ochrona standardowa). Odwiedzane adresy są
-  sprawdzane z nią na Twoim urządzeniu. Dopiero gdy prefiks pasuje, przeglądarka pyta o pełne hashe tego prefiksu,
-  co nie zdradza adresu strony.
+  sprawdzane z nią na Twoim urządzeniu. Dopiero gdy prefiks pasuje, przeglądarka pyta o pełne hashe tego prefiksu.
+  Zapytanie zawiera krótki prefiks hasha, nie adres, ale prefiks zawęża krąg możliwych adresów, więc to częściowa
+  informacja, a nie brak informacji.
 - Te zapytania trafiają do **naszego proxy pod adresem sb.plain-browser.app** (Cloudflare Worker), nigdy
   bezpośrednio do Google. Proxy przekazuje je do Google z naszym kluczem API i usuwa wszystko, co Cię
   identyfikuje: adres IP, ciasteczka, `Referer`, `Accept-Language` i nagłówki Cloudflare. Google widzi adres IP
