@@ -6,4 +6,4 @@ ungoogled_chromium_windows_commit = "cde653e05cce1c94aea2bf02fedd05784312fb3a"
 [product]
 product_name = "Plain Browser"
 identifier = "plainbrowser"   # GN //plainbrowser, C++ namespace, mojom module, crate names
-version = "0.2.5-beta.1"
+version = "0.2.5-beta.2"

@@ -5,6 +5,8 @@
    1. .cargo\config.toml must exist (it makes cargo read crates from vendor\).
    2. gnrt vendor, with DEPOT_TOOLS_WIN_TOOLCHAIN=0 and the VS environment.
       It must not be killed mid-run: it removes .cargo\config.toml while it works.
+      Crates whose crates.io pin Chromium relaxes only in its vendor\ copy are taken from vendor\ while it resolves
+      (Chromium 158: harfrust); config.toml and their Cargo.lock entries are restored afterwards.
    3. Strip "checksum" lines from Cargo.lock (Chromium's lock has none; vendored sources have no checksums).
    4. gnrt gen, then post-gnrt-fixups.ps1 (restores windows-rs and its BUILD.gn patch).
    Usage: powershell -File scripts\vendor-adblock-crates.ps1 [-Src C:\dw-build\ucw\build\src] [-Ucw C:\dw-build\ucw] #>
@@ -35,10 +37,37 @@ foreach ($d in "seahash-v4","flatbuffers-v25") { $p = "$crates\vendor\$d"; if ((
 $vendorDir = "$crates\vendor"
 $dirsBefore = Join-Path ([IO.Path]::GetTempPath()) "vendor-dirs.before"
 if (Test-Path $vendorDir) { Get-ChildItem $vendorDir -Directory | ForEach-Object { $_.Name } | Set-Content $dirsBefore } else { Set-Content $dirsBefore "" }
+# gnrt vendor resolves the graph against crates.io first. Chromium relaxes some dependency pins of crates.io manifests
+# with a patch in chromium_crates_io\patches that only its copy in vendor\ carries; against the index the pin conflicts
+# (Chromium 158: harfrust 0.14.0 pins icu_properties =2.2.0, Chromium uses 2.4.0, see
+# patches\harfrust-v0_14\0001-Relax-icu_properties-version-pin.patch). While gnrt vendor runs, cargo takes these
+# crates from vendor\ through [patch.crates-io]; afterwards config.toml is restored and their Cargo.lock entries get
+# their registry source back, so gnrt gen sees them as the crates.io crates they are (gnrt gen leaves path crates out). Drop an entry once
+# upstream no longer patches the pin.
+$resolveFromVendor = [ordered]@{ "harfrust" = "harfrust-v0_14" }
+$cargoConfig = "$crates\.cargo\config.toml"
+$cargoConfigBefore = [IO.File]::ReadAllText($cargoConfig)
+$patched = @($resolveFromVendor.Keys | Where-Object { Test-Path "$crates\vendor\$($resolveFromVendor[$_])\Cargo.toml" })
+if ($patched.Count) {
+  $lines = $patched | ForEach-Object { "$_ = { path = `"vendor/$($resolveFromVendor[$_])`" }" }
+  [IO.File]::WriteAllText($cargoConfig, $cargoConfigBefore + "`n# vendor-adblock-crates.ps1, removed after gnrt vendor`n[patch.crates-io]`n" + ($lines -join "`n") + "`n")
+  Write-Host "resolving from vendor\ during gnrt vendor: $($patched -join ', ')"
+}
 $eap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-& $py tools\crates\run_gnrt.py vendor 2>&1 | ForEach-Object { "$_" }
-$vendorrc = $LASTEXITCODE
-$ErrorActionPreference = $eap
+try {
+  & $py tools\crates\run_gnrt.py vendor 2>&1 | ForEach-Object { "$_" }
+  $vendorrc = $LASTEXITCODE
+} finally {
+  $ErrorActionPreference = $eap
+  if ($patched.Count) {
+    [IO.File]::WriteAllText($cargoConfig, $cargoConfigBefore)
+    $lock = [IO.File]::ReadAllText("$crates\Cargo.lock")
+    foreach ($name in $patched) {
+      $lock = [regex]::Replace($lock, '(?m)^(name = "' + [regex]::Escape($name) + '"\r?\nversion = "[^"]+"\r?\n)(?!source = )', '${1}source = "registry+https://github.com/rust-lang/crates.io-index"' + "`n")
+    }
+    [IO.File]::WriteAllText("$crates\Cargo.lock", $lock)
+  }
+}
 if ($vendorrc) { throw "gnrt vendor failed ($vendorrc)" }
 
 # The crates added now come from crates.io at whatever version gnrt picked today: what is on disk must be the reviewed

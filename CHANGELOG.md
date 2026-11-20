@@ -5,7 +5,7 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
-## [0.2.5-beta.1] - 2026-11-20 [Chromium 158.0.8127.36, ungoogled-chromium-windows 158.0.8127.36-1.1]
+## [0.2.5-beta.2] - 2026-11-20 [Chromium 158.0.8127.36, ungoogled-chromium-windows 158.0.8127.36-1.1]
 
 ### Changed
 - Chromium base updated from 157.0.8103.78 to 158.0.8127.36 (upstream update, built and submitted to the
@@ -13,6 +13,14 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 - Global Privacy Control patch (90-defaults) adapted to Chromium 158, which already enables kUniversalOptOut by
   default: the patch still turns on kUniversalOptOutSettings, force_eligible, the pref and GlobalPrivacyControlApi.
 - Package version 0.2.5.0.
+- 0.2.5-beta.1 was tagged but its build stopped in `prepare` and produced nothing (see Fixed), so this version is the
+  same content with that fixed.
+
+### Fixed
+- Vendoring the ad blocker's Rust crates failed on Chromium 158: `gnrt vendor` resolves against crates.io first, where
+  harfrust 0.14.0 pins `icu_properties = "=2.2.0"`, while Chromium uses 2.4.0 and relaxes the pin only in its vendored
+  copy. `scripts/vendor-adblock-crates.ps1` now lets cargo take harfrust from `vendor/` during that step and restores
+  `.cargo/config.toml` and the `Cargo.lock` entry afterwards.
 
 ## [0.2.4-beta.2] - 2026-11-19 [Chromium 157.0.8103.78, ungoogled-chromium-windows 157.0.8103.78-1.1]
 
