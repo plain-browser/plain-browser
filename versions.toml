@@ -1,9 +1,9 @@
 # Pinned upstreams. Update together; verify tags exist before bumping.
 [upstream]
-ungoogled_chromium_windows = "157.0.8103.78-1.1"   # Chromium 157.0.8103.78; checked 2026-11-13
+ungoogled_chromium_windows = "158.0.8127.36-1.1"   # Chromium 158.0.8127.36; checked 2026-11-20
 # The commit that tag pointed at when it was pinned: prepare-tree.ps1 refuses a tag that has moved since.
-ungoogled_chromium_windows_commit = "20e9a348fc616bd73a366fbd5d8881613d6c5cb0"
+ungoogled_chromium_windows_commit = "cde653e05cce1c94aea2bf02fedd05784312fb3a"
 [product]
 product_name = "Plain Browser"
 identifier = "plainbrowser"   # GN //plainbrowser, C++ namespace, mojom module, crate names
-version = "0.2.4-beta.2"
+version = "0.2.5-beta.1"

@@ -5,6 +5,15 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.5-beta.1] - 2026-11-20 [Chromium 158.0.8127.36, ungoogled-chromium-windows 158.0.8127.36-1.1]
+
+### Changed
+- Chromium base updated from 157.0.8103.78 to 158.0.8127.36 (upstream update, built and submitted to the
+  Microsoft Store by the automated release pipeline).
+- Global Privacy Control patch (90-defaults) adapted to Chromium 158, which already enables kUniversalOptOut by
+  default: the patch still turns on kUniversalOptOutSettings, force_eligible, the pref and GlobalPrivacyControlApi.
+- Package version 0.2.5.0.
+
 ## [0.2.4-beta.2] - 2026-11-19 [Chromium 157.0.8103.78, ungoogled-chromium-windows 157.0.8103.78-1.1]
 
 ### Changed
