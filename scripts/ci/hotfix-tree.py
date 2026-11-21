@@ -14,7 +14,13 @@ this; this puts the definition back into an already prepared tree. Does nothing 
    patches/60-ui/0009 and 70-safebrowsing/0005 now; this applies the same edits to the resumed tree (the settings
    resources are built in stage 5, after the point where the tree was saved).
 
-3. version.h: the tree was compiled with the version of the run that made it; copy the one of this revision (it is
+3. chrome_command_ids.h (run 44745294426, tree-6; tag v0.2.5-beta.3): rc.exe stopped build-7 with RC1012 "mismatched
+   parenthesis" at line 105. rc.exe does not know BUILDFLAG(), so ungoogled-chromium-windows'
+   windows-fix-command-ids.patch replaces those #if lines with constants; at commit cde653e of its tag 158.0.8127.36-1.1
+   three hunks were missing. Upstream restored them in 76a692e and moved the tag there (versions.toml pins it now);
+   this makes the same three edits in a tree prepared from the old commit.
+
+4. version.h: the tree was compiled with the version of the run that made it; copy the one of this revision (it is
    included by a handful of files, ninja rebuilds only those).
 
 usage: hotfix-tree.py [--work C:\\pb]
@@ -97,6 +103,13 @@ def main():
         ("import type {SettingsToggleButtonElement} from '../../controls/settings_toggle_button.js';\n", ""),
         ("    passwordsLeakToggle: SettingsToggleButtonElement,\n", ""),
     ], ["passwordsLeakToggle", "SettingsToggleButtonElement"])
+
+    edit_file(src / "chrome" / "app" / "chrome_command_ids.h", [
+        ("#if BUILDFLAG(IS_CHROMEOS)\n// Move window to other user commands\n", "#if (0)\n// Move window to other user commands\n"),
+        ("// Context menu items for media toolbar button\n#if BUILDFLAG(GOOGLE_CHROME_BRANDING)\n",
+         "// Context menu items for media toolbar button\n#if (0)\n"),
+        ("#if BUILDFLAG(IS_CHROMEOS)\n// Quick Answers context menu items.\n", "#if (0)\n// Quick Answers context menu items.\n"),
+    ], ["#if BUILDFLAG("])
 
     version_h = src / "plainbrowser" / "common" / "version.h"
     want = (repo / "src" / "plainbrowser" / "common" / "version.h").read_bytes()

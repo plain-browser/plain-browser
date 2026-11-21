@@ -5,6 +5,21 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.5-beta.4] - 2026-11-21 [Chromium 158.0.8127.36, ungoogled-chromium-windows 158.0.8127.36-1.1]
+
+### Changed
+- Package version 0.2.5.0 (unchanged).
+- 0.2.5-beta.3 was tagged but its build stopped in stage 7 (see Fixed); this version is the same content with that
+  fixed, built on top of beta.3's compiled stages 1-6.
+
+### Fixed
+- Build: `rc.exe` stopped on `chrome/app/chrome_command_ids.h` (RC1012 "mismatched parenthesis", line 105). At the
+  commit we had pinned, ungoogled-chromium-windows' `windows-fix-command-ids.patch` lacked three of the hunks that
+  replace `BUILDFLAG()` conditions (which `rc.exe` cannot evaluate) in that header. Upstream restored them in commit
+  76a692e and moved the tag `158.0.8127.36-1.1` there; `versions.toml` now pins that commit.
+- Build: `build-windows.yml` also runs `scripts/ci/hotfix-tree.py` when it resumes at stage 7, and the script makes the
+  same three edits in a resumed tree that was prepared from the old commit.
+
 ## [0.2.5-beta.3] - 2026-11-20 [Chromium 158.0.8127.36, ungoogled-chromium-windows 158.0.8127.36-1.1]
 
 ### Changed

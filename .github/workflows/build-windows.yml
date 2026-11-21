@@ -20,7 +20,7 @@ on:
         type: string
         required: false
       resume_stage:
-        description: "Stage to resume at with resume_run: 5 or 6 (both apply scripts/ci/hotfix-tree.py first) or 7"
+        description: "Stage to resume at with resume_run: 5, 6 or 7 (each applies scripts/ci/hotfix-tree.py first)"
         type: choice
         options: ["5", "6", "7"]
         default: "6"
@@ -611,6 +611,9 @@ jobs:
           path: C:\pb
       - name: Restore the tree
         run: ./scripts/ci/unpack-tree.ps1 -Work $env:PB_WORK
+      - name: Hotfix the resumed tree
+        if: ${{ inputs.resume_run != '' && inputs.resume_stage == '7' }}
+        run: python -I scripts/ci/hotfix-tree.py --work $env:PB_WORK
       - name: Build (one ninja time slice)
         id: stage
         env:

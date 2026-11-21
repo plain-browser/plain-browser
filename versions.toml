@@ -2,8 +2,9 @@
 [upstream]
 ungoogled_chromium_windows = "158.0.8127.36-1.1"   # Chromium 158.0.8127.36; checked 2026-11-20
 # The commit that tag pointed at when it was pinned: prepare-tree.ps1 refuses a tag that has moved since.
-ungoogled_chromium_windows_commit = "cde653e05cce1c94aea2bf02fedd05784312fb3a"
+# Re-pinned 2026-11-21: upstream moved the tag from cde653e to 76a692e ("Fix windows-fix-command-ids.patch (#668)").
+ungoogled_chromium_windows_commit = "76a692e3e39e1456e4691e7d9de28d32de1cdd87"
 [product]
 product_name = "Plain Browser"
 identifier = "plainbrowser"   # GN //plainbrowser, C++ namespace, mojom module, crate names
-version = "0.2.5-beta.3"
+version = "0.2.5-beta.4"
