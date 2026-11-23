@@ -1,8 +1,8 @@
 {
   "ublock": {
-    "tag": "1.76.4",
-    "version": "1.76.4",
-    "sha256": "4b1b27ed82e734d508ae6d255933c334f62f256e8a8aece92724b826828e3d5f",
+    "tag": "1.77.0",
+    "version": "1.77.0",
+    "sha256": "914f33995161f6c931a07390cd8d5985bf23f10299369c642a8bfb8e298ec8ab",
     "permissions": [
       "<all_urls>",
       "alarms",
@@ -28,9 +28,9 @@
     ]
   },
   "noscript": {
-    "tag": "13.6.38",
-    "version": "13.6.38",
-    "sha256": "016bdade929be19ad6985000b35914b4b978352b562aa493947fa8f826841c98",
+    "tag": "13.6.39",
+    "version": "13.6.39",
+    "sha256": "645beec7f0363cb0a09f905896a60bff94dc71a380f1396ec7cbf8a3c97bf232",
     "permissions": [
       "<all_urls>",
       "content_script:<all_urls>",
@@ -38,6 +38,7 @@
       "debugger",
       "declarativeNetRequest",
       "dns",
+      "optional:privacy",
       "scripting",
       "storage",
       "tabs",
