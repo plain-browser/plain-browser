@@ -1,9 +1,10 @@
 # Building Plain Browser in GitHub Actions
 
-Status 2026-10-26: `.github/workflows/build-windows.yml` and `scripts/ci/*.ps1` are written and lint clean
-(actionlint, PyYAML) but **have not run yet**. Until the first green run, releases are still built by hand on the
-private VM (`scripts/build.ps1`, about 7 hours with the alpha profile on 12 vCPU). Everything below that is a time or
-size figure is an estimate from that VM build and from ungoogled-chromium-windows' own CI, not a measurement.
+Releases are built by `.github/workflows/build-windows.yml`, which the pipeline starts on each release tag.
+`scripts/build.ps1` on the VM remains the way to build locally (about 7 hours with the alpha profile on 12 vCPU). One
+measured data point: run 44948094839 built v0.2.5-beta.4 on 2026-11-21 in about 3.5 hours of wall-clock time with a
+warm compile cache. Unless a line says otherwise, the other time and size figures below are still estimates from the
+VM build and from ungoogled-chromium-windows' own CI, not measurements.
 
 ## Why stages
 
@@ -12,8 +13,9 @@ One job cannot build Chromium. ungoogled-chromium-windows solves this in its own
 (`.github/workflows/reusable-build.yml`, 16 stages, and `.github/actions/stage`): `build.py --ci` runs ninja for
 3.5 hours, then interrupts it and exits with code 124; the job zips `build/src` and uploads it as an artifact; the
 next job downloads it and runs `build.py --ci` again, which skips every finished setup step and resumes ninja
-(ninja only rebuilds what is missing). We reuse that mechanism unchanged at the pinned tag (`versions.toml`,
-`156.0.8078.47-1.1`; `build.py` there has `--ci`, the 3.5 h timeout and exit code 124) and only add our layer around it.
+(ninja only rebuilds what is missing). We reuse that mechanism unchanged at the tag pinned in `versions.toml` (first
+checked at 156.0.8078.47-1.1, where `build.py` has `--ci`, the 3.5 h timeout and exit code 124) and only add our layer
+around it.
 
 ## The jobs
 
@@ -123,7 +125,8 @@ and afterwards the file and their `Cargo.lock` entries are restored. A new confl
 - Dependabot (`.github/dependabot.yml`): GitHub Actions, cargo, pip (`scripts/ci/requirements.txt`, with hashes) and npm,
   weekly, a 7-day cooldown for new releases, grouped.
 - Provenance: the `release` job attests the packages and `SHA256SUMS.txt` (`actions/attest-build-provenance`);
-  `store-submit.yml` requires the attestation (or, for builds that predate it, the build run's artifact).
+  `store-submit.yml` requires the attestation, with no fallback: `gh attestation verify` must show the `.msix` as built
+  by `build-windows.yml` on the release tag at that tag's commit (which has to be on `main`), otherwise it fails.
 - Environments: `store` (Partner Center), `extensions` (extension signing keys, Cloudflare token) and `build` (compile
   cache read-write credentials) accept deployments from `main` only (`build` also from `v*` tags); `website` has no rule.
   The build jobs use `build` on `main` and `v*` tags and `build-readonly` (no secrets, no rule) on any other ref, where
@@ -299,6 +302,6 @@ progress, not the content.
 
 ## Not verified yet
 
-The build, signing and Store submission have run end to end by hand. Not yet seen in a run: the pipeline's own
-version-bump commit (run the `selftest` input first), a rerun of a failed stage by the pipeline, and a second
-submission while the first one is in certification (`DEFERRED`).
+The build, signing and Store submission have run end to end by hand. The pipeline's own version-bump commit
+was seen on 2026-11-13 (commit 60b1250). Not yet seen in a run: a rerun of a failed stage by the pipeline, and a
+second submission while the first one is in certification (`DEFERRED`).
