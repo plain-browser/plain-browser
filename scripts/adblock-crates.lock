@@ -15,6 +15,10 @@
 # psl-v2 moved to 2.1.248 on 2026-11-20 (build of v0.2.5-beta.2, run 44737335669): the tree that run reported is byte for byte
 # psl-2.1.248.crate from static.crates.io plus .cargo-checksum.json; compared with 2.1.247, again only data/rules.txt,
 # src/list.rs (generated lookup functions), the version in Cargo.toml/Cargo.lock and .cargo_vcs_info.json differ, no build.rs.
+# psl-v2 moved to 2.1.250 on 2026-11-24 (build of v0.2.6-beta.1, run 45484007504): the tree that run reported is byte for byte
+# psl-2.1.250.crate from static.crates.io plus .cargo-checksum.json; compared with 2.1.248, only data/rules.txt (5 suffixes
+# added), src/list.rs (generated from it), the version in Cargo.toml/Cargo.lock, the crate's own dev lock entries
+# (itoa 1.0.19, syn 3.0.10) and .cargo_vcs_info.json differ; dependencies unchanged, no build.rs.
 adblock-v0_13 0.13.3 839b905ebd9b9275db6dfe6d4832d5892a40afc03ce819a01be9833a08090794
 addr-v0_15 0.15.6 8c4e69f936cc6bdb3c2c665345c8a2a0d3059917eca45147e1e0c17a4568d28b
 arrayvec-v0_7 0.7.8 a6f2eb1f8685407a9200cccbf96cc769e208febec74aaf8cbb910ddc146e0554
@@ -25,7 +29,7 @@ idna_adapter-v1 1.2.2 824ce2df9bf171beaf5feec8a156519f2a55e74898d73eb94e7db32e50
 percent-encoding-v2 2.3.2 785f3adef51da30ef75bea1791d053129168842375bf219adc0278a080b73c4a
 precomputed-hash-v0_1 0.1.1 8204533892b88e1c80a2692d4ff3065ed863e9bc450dfeb9b831b15e49879314
 psl-types-v2 2.0.11 f71740843aa91cef6851978430236770e77a786f72c8db44c780dcecfafc4160
-psl-v2 2.1.248 d76b459fc11c954ff39d0cabb01c847df8a0f0082ce52c38e5d8ca1acaab903c
+psl-v2 2.1.250 645024a0ffb10b788ed3cd93210590e3fe61b37935ba36a14258c99d049273dc
 rustc-hash-v2 2.1.3 ddf9758454c0b9de03fed3dda2937c1e8831d7aa418cf2041e2a20a4e1b18572
 rustc_version-v0_4 0.4.1 a0feeb5986b5da048d602b736eb8e239a8b520b27aeec7a0007e1450b75dd520
 seahash-v4 4.1.0 e941a90b2b6d02d220503dcaf7d5b8ab8d43e3e274055b31b5d6d7c20e2cce12

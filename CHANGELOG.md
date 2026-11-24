@@ -5,6 +5,18 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.6-beta.2] - 2026-11-24 [Chromium 158.0.8127.88, ungoogled-chromium-windows 158.0.8127.88-1.1]
+
+### Changed
+- Package version 0.2.6.0 (unchanged).
+- 0.2.6-beta.1 was tagged but its build stopped in `prepare` and produced nothing (see Fixed), so this version is the
+  same content with that fixed.
+
+### Fixed
+- The adblock crates check stopped the build: crates.io published psl 2.1.250 (a new public suffix list), which
+  `gnrt vendor` took instead of the pinned 2.1.248. The new tree was reviewed against the `.crate` from crates.io (only
+  the suffix list, the code generated from it and the version differ) and pinned in `scripts/adblock-crates.lock`.
+
 ## [0.2.6-beta.1] - 2026-11-24 [Chromium 158.0.8127.88, ungoogled-chromium-windows 158.0.8127.88-1.1]
 
 ### Changed
