@@ -5,6 +5,13 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+## [0.2.6-beta.1] - 2026-11-24 [Chromium 158.0.8127.88, ungoogled-chromium-windows 158.0.8127.88-1.1]
+
+### Changed
+- Chromium base updated from 158.0.8127.36 to 158.0.8127.88 (upstream update, built and submitted to the
+  Microsoft Store by the automated release pipeline).
+- Package version 0.2.6.0.
+
 ### Changed
 - CI: the release pipeline (`scripts/ci/pipeline.py`) starts `e2e-windows.yml` once for every release it publishes,
   so each automated release gets the headless ad blocking, cosmetic filtering and list update tests. Signing, the

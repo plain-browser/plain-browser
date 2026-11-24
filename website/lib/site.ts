@@ -10,7 +10,7 @@ function readVersion(): string {
   } catch {
     /* built outside the repository: fall back below */
   }
-  return process.env.PLAINBROWSER_VERSION ?? "0.2.5-beta.4";
+  return process.env.PLAINBROWSER_VERSION ?? "0.2.6-beta.1";
 }
 
 // Chromium major version of the pinned upstream tag in ../versions.toml ("157.0.8103.50-1.1" -> "157").
