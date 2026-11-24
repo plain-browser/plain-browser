@@ -5,6 +5,11 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+### Fixed
+- About page: it showed adblock-rust 0.13.5 while 0.13.3 is compiled in (a Dependabot update had raised only
+  `src/plainbrowser/adblock/rs/Cargo.toml`). The pin is back at 0.13.3, `scripts/sync-version.py` fails when it differs
+  from `patches/30-adblock/0000-crate-config.patch`, and Dependabot no longer proposes adblock updates.
+
 ## [0.2.5-beta.4] - 2026-11-21 [Chromium 158.0.8127.36, ungoogled-chromium-windows 158.0.8127.36-1.1]
 
 ### Changed

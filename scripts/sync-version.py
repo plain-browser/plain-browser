@@ -33,6 +33,16 @@ def upstream_versions():
     a = re.search(r'(?m)^adblock\s*=\s*\{\s*version\s*=\s*"=?([^"]+)"', read("src/plainbrowser/adblock/rs/Cargo.toml"))
     if not a:
         raise SystemExit("adblock/rs/Cargo.toml: adblock version not found")
+    # The crate-config patch pins the engine that is compiled into the browser; rs/Cargo.toml (cargo test, About page)
+    # must name the same version.
+    b = re.search(r'(?m)^\+\[dependencies\.adblock\]\s*\n\+version\s*=\s*"=?([^"]+)"',
+                  read("patches/30-adblock/0000-crate-config.patch"))
+    if not b:
+        raise SystemExit("patches/30-adblock/0000-crate-config.patch: adblock version not found")
+    if a.group(1) != b.group(1):
+        raise SystemExit("adblock version mismatch: patches/30-adblock/0000-crate-config.patch pins %s (what the browser "
+                         "is built with), src/plainbrowser/adblock/rs/Cargo.toml has %s; make them agree"
+                         % (b.group(1), a.group(1)))
     return m.group(1) + m.group(2), m.group(1), a.group(1)
 
 

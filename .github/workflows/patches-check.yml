@@ -3,9 +3,9 @@ name: patches-check
 # Catches a patch that no longer applies before anyone spends hours on the Windows builder.
 on:
   push:
-    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/check-crates.py", "scripts/check-crates_test.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
+    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/check-crates.py", "scripts/check-crates_test.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", "src/plainbrowser/adblock/rs/Cargo.toml", ".github/workflows/patches-check.yml"]
   pull_request:
-    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/check-crates.py", "scripts/check-crates_test.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", ".github/workflows/patches-check.yml"]
+    paths: ["patches/**", "versions.toml", "scripts/check-patches.py", "scripts/check-crates.py", "scripts/check-crates_test.py", "scripts/sync-version.py", "src/plainbrowser/common/version.h", "src/plainbrowser/adblock/rs/Cargo.toml", ".github/workflows/patches-check.yml"]
   workflow_dispatch:
     inputs:
       tag:

@@ -98,6 +98,9 @@ warning) output of the `prepare` log and review them first: download the `.crate
 `https://static.crates.io/crates/<name>/<name>-<version>.crate` and compare it with the vendored tree; only the files our
 patches add (`LICENSE` for `seahash` and `flatbuffers`) may differ. The list is part of the `tree-0` cache key. Unit tests:
 `scripts/check-crates_test.py` (`patches-check.yml`).
+The adblock version is set in three places: `patches/30-adblock/0000-crate-config.patch` (what the browser is built
+with), `src/plainbrowser/adblock/rs/Cargo.toml` (Linux `cargo test`, About page) and `scripts/adblock-crates.lock`;
+`scripts/sync-version.py --check` fails when the first two differ.
 `gnrt vendor` resolves the graph against crates.io before it reads `vendor/`. A crate whose dependency pin Chromium
 relaxes only in its vendored copy (a patch in `chromium_crates_io/patches`; Chromium 158: harfrust 0.14.0 pins
 `icu_properties = "=2.2.0"`, Chromium uses 2.4.0) makes that step fail. `vendor-adblock-crates.ps1` lists such crates in

@@ -12,6 +12,9 @@ updates:
     directory: /src/plainbrowser/adblock/rs
     schedule: { interval: weekly }
     cooldown: { default-days: 7 }
+    # adblock is raised by hand, together with patches/30-adblock/0000-crate-config.patch and
+    # scripts/adblock-crates.lock (docs/CI.md, "Rust crates of the ad blocker").
+    ignore: [{ dependency-name: "adblock" }]
   - package-ecosystem: pip
     directory: /scripts/ci
     schedule: { interval: weekly }
