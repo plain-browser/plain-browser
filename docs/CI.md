@@ -112,6 +112,11 @@ and afterwards the file and their `Cargo.lock` entries are restored. A new confl
 - `workflow-lint.yml`: zizmor on `.github/` (template injection, excessive permissions, unpinned actions, secrets
   outside an environment); fails on a finding. `uvx zizmor .github` runs it locally. Permissions are declared per job
   (`permissions: {}` at the top of the workflows that need write access).
+- `checks.yml`: on every push and pull request, the Node tests (`scriptlets_test.js` and `npm test` in
+  `infra/filter-lists`, `infra/safebrowsing-proxy` and `infra/extensions`) and a syntax check of the scripts: every
+  tracked `*.ps1` is parsed with the PowerShell parser and the Python scripts under `scripts/` and `infra/` go through
+  `python3 -m py_compile`. The PowerShell step exists because a parse error in `scripts/ci/prepare-tree.ps1` once
+  reached a release tag and stopped the build in `prepare` (#16).
 - `codeql.yml`: CodeQL for `actions`, `python` and `javascript-typescript` (not C++/Rust or the Chromium tree).
 - `dependency-review.yml`: a pull request that brings in a dependency with a high-severity advisory fails.
 - `scorecard.yml`: OpenSSF Scorecard, weekly and on pushes to `main`.

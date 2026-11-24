@@ -1,0 +1,57 @@
+name: checks
+# Fast checks on every push and pull request: the Node test suites (scriptlets, filter list mirror, Safe Browsing
+# proxy, extension repository) and a syntax check of the PowerShell and Python scripts, which otherwise run only
+# inside the long Windows build.
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: scriptlets
+        run: node --test src/plainbrowser/adblock/resources/scriptlets_test.js
+      # The packages have no dependencies and no lockfile: no npm ci / npm install.
+      - name: filter-lists Worker
+        run: npm test
+        working-directory: infra/filter-lists
+      - name: safebrowsing-proxy Worker
+        run: npm test
+        working-directory: infra/safebrowsing-proxy
+      - name: extensions Worker
+        run: npm test
+        working-directory: infra/extensions
+  script-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # A parse error in scripts/ci/prepare-tree.ps1 once reached a release tag and stopped the build in `prepare`.
+      - name: parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = 0
+          foreach ($path in (git ls-files '*.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $path), [ref]$tokens, [ref]$errors)
+            foreach ($e in $errors) {
+              Write-Output "::error file=$path,line=$($e.Extent.StartLineNumber)::$($e.Message)"
+            }
+            if ($errors.Count -gt 0) { $failed++ }
+          }
+          if ($failed -gt 0) {
+            Write-Output "$failed file(s) with parse errors"
+            exit 1
+          }
+      - name: compile Python scripts
+        run: git ls-files -z 'scripts/*.py' 'scripts/**/*.py' 'infra/**/*.py' | xargs -0 python3 -m py_compile

@@ -25,7 +25,8 @@ first; the design rules below follow from them.
    ```
    CI runs the same check (`patches-check.yml`).
 2. Rust: `cargo test` in `src/plainbrowser/adblock/rs` (`rust.yml`).
-3. Fingerprint script: `node src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js` (`fingerprint-script.yml`).
+3. Fingerprint script: `node src/plainbrowser/fingerprint/renderer/fingerprint_script_test.js` (`fingerprint-script.yml`); scriptlets:
+   `node --test src/plainbrowser/adblock/resources/scriptlets_test.js` (`checks.yml`).
 4. C++ unit tests and end-to-end tests need the Windows build tree; see [docs/TESTING.md](docs/TESTING.md) and the
    `scripts/test-*.ps1` scripts. Say in the PR which of them you ran and paste the result.
 5. Commit messages: imperative, first line under 72 characters, prefixed with the area
