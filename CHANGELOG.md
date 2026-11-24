@@ -5,6 +5,11 @@ Versions follow the product version in `versions.toml`; the Chromium base is giv
 
 ## [Unreleased]
 
+### Changed
+- CI: the release pipeline (`scripts/ci/pipeline.py`) starts `e2e-windows.yml` once for every release it publishes,
+  so each automated release gets the headless ad blocking, cosmetic filtering and list update tests. Signing, the
+  Store submission and publishing do not wait for it.
+
 ### Fixed
 - About page: it showed adblock-rust 0.13.5 while 0.13.3 is compiled in (a Dependabot update had raised only
   `src/plainbrowser/adblock/rs/Cargo.toml`). The pin is back at 0.13.3, `scripts/sync-version.py` fails when it differs

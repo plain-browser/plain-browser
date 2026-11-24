@@ -14,6 +14,7 @@ pass that dies half way is finished by the next one. In order:
                 maintainer's approval in the `store` environment), then
                 publish the release as a pre-release. store-submit that finds an earlier submission still in
                 certification waits (it says DEFERRED); other failures are retried a few times, then an issue.
+                After publication the pipeline starts e2e-windows for the tag once (never again, even if it failed).
 
 Stops when the repository variable PIPELINE_ENABLED is "false". DRY_RUN=1 prints the actions instead of doing them.
 Needs: GH_TOKEN with contents, actions and issues write; run from a checkout of main.
@@ -26,6 +27,7 @@ REPO = os.environ.get("GITHUB_REPOSITORY", "plain-browser/plain-browser")
 UPSTREAM = "ungoogled-software/ungoogled-chromium-windows"
 DRY = os.environ.get("DRY_RUN") == "1"
 BUILD, SIGN, STORE = "build-windows.yml", "sign-release.yml", "store-submit.yml"
+E2E = "e2e-windows.yml"
 # store-submit runs before this moment ended at CommitStarted and counted as done although Partner Center then
 # answered CommitFailed; from here on the job waits for the verdict, so only later runs say anything.
 STORE_VERDICT_SINCE = "2026-11-04T06:41:00Z"
@@ -364,6 +366,10 @@ def handle_release(tag, built_at):
         ensure_issue(f"Release missing: {tag}", f"build-windows succeeded for {tag} but no release exists (the release job needs a tag ref).", ["needs-human"])
         return
     if not rel["draft"]:
+        # once per tag: a run in any state (also a failed one) is left for a human or the repair automation
+        if not runs_of(E2E, title_prefix=f"e2e-windows {tag}"):
+            dispatch(E2E, "main", tag=tag)
+            log(f"{tag} is published: started the end-to-end tests ({E2E})")
         log(f"{tag} is published: done")
         return
     names = [a["name"] for a in rel["assets"]]

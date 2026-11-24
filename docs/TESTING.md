@@ -16,7 +16,7 @@ The Node layer runs in CI too: `checks.yml` runs the scriptlets test and `npm te
 and pull request (the fingerprint script has its own `fingerprint-script.yml`).
 
 The headless layer also runs on a GitHub runner without the build VM: the workflow `e2e-windows.yml` (run it by hand
-with a release tag) downloads the `.zip` of that release, requires its build provenance, runs `test-adblock.ps1` and
+with a release tag; the release pipeline also starts it once for every release it publishes) downloads the `.zip` of that release, requires its build provenance, runs `test-adblock.ps1` and
 `test-cosmetic-lists.ps1` against the browser inside it and fails on a wrong result; the logs are in the run summary
 and the `e2e-logs` artifact.
 

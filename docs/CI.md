@@ -236,7 +236,9 @@ variable `PIPELINE_ENABLED=false`; `DRY_RUN=1 python3 scripts/ci/pipeline.py` pr
    cancelled, their `Upstream update` issues closed and their draft releases deleted (the tags stay; a draft whose
    package went to Store certification, and any published release, is kept).
 3. **Release.** Finished build: `sign-release` on the draft, then `store-submit` with `commit=true`, then the release is
-   published as a pre-release and the upstream issue is closed. `store-submit` leaves an earlier submission that is
+   published as a pre-release and the upstream issue is closed. For a published release the pipeline starts
+   `e2e-windows.yml` on the tag once (only when no `e2e-windows <tag>` run exists; a failed one is not repeated, it
+   shows as a failed run on main). Nothing waits for it. `store-submit` leaves an earlier submission that is
    still in certification alone (the Store keeps one pending submission) and fails with `DEFERRED`; the pipeline then
    waits an hour without counting a failure. Other failures are retried up to 3 times, then issue
    `Store submission failed: <tag>`.
